@@ -1,0 +1,32 @@
+# Render Blueprint — GP API (NestJS + Prisma + PostgreSQL)
+# https://render.com/docs/blueprint-spec
+#
+# Перед деплоем: создайте PostgreSQL на Render или Supabase и задайте DATABASE_URL.
+# После деплоя фронтов добавьте их URL в CORS_ORIGINS.
+
+services:
+  - type: web
+    name: gp-api
+    runtime: node
+    plan: free
+    rootDir: .
+    buildCommand: >-
+      NPM_CONFIG_PRODUCTION=false npm install &&
+      npx prisma generate --schema apps/api/prisma/schema.prisma &&
+      npm run build:api
+    startCommand: >-
+      npx prisma migrate deploy --schema apps/api/prisma/schema.prisma &&
+      npm run start:api
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        sync: false
+        # Пример: https://gp-service.vercel.app,https://gp-partner.vercel.app
+
+databases: []

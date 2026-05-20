@@ -1,13 +1,31 @@
 {
-  "name": "gp_project",
+  "name": "gp-monorepo",
+  "private": true,
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "type": "module",
+  "engines": {
+    "node": ">=20"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs"
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run start:dev -w @gp/api",
+    "dev:service": "npm run dev -w @gp/service",
+    "dev:partner": "npm run dev -w @gp/partner",
+    "dev:admin": "npm run dev -w @gp/admin",
+    "dev": "npx --yes concurrently -n api,service,partner -c yellow,green,cyan \"npm run dev:api\" \"npm run dev:service\" \"npm run dev:partner\"",
+    "build:api": "npm run build -w @gp/api",
+    "build:service": "npm run build -w @gp/service",
+    "build:partner": "npm run build -w @gp/partner",
+    "build:admin": "npm run build -w @gp/admin",
+    "build": "npm run build:api && npm run build:service && npm run build:partner && npm run build:admin",
+    "start:api": "npm run start:prod -w @gp/api",
+    "prisma:generate": "npx prisma generate --schema apps/api/prisma/schema.prisma",
+    "prisma:migrate:deploy": "npx prisma migrate deploy --schema apps/api/prisma/schema.prisma",
+    "prisma:seed": "npm run prisma:seed -w @gp/api",
+    "test:e2e": "npm run test:e2e -w @gp/api",
+    "lint": "npm run lint -w @gp/service && npm run lint -w @gp/partner"
+  }
 }

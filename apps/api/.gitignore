@@ -1,0 +1,5 @@
+# Дополнительно к корневому .gitignore
+dist/
+.env
+.env.*
+!.env.example

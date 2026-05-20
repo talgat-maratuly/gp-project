@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Manrope", system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-slate-950 text-slate-100 font-sans antialiased;
+  }
+}
+
+@layer utilities {
+  .admin-card {
+    @apply rounded-2xl border border-white/10 bg-slate-900/80 p-5;
+  }
+  .admin-input {
+    @apply w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-sky-500/50 focus:outline-none;
+  }
+  .admin-table {
+    @apply w-full text-left text-sm;
+  }
+  .admin-table th {
+    @apply border-b border-white/10 px-3 py-2 font-semibold text-slate-400;
+  }
+  .admin-table td {
+    @apply border-b border-white/5 px-3 py-2 text-slate-300;
+  }
+}

@@ -1,0 +1,1 @@
+ALTER TABLE "PartnerProfile" ADD COLUMN IF NOT EXISTS "city" TEXT DEFAULT 'Уральск';

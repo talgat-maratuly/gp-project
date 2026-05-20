@@ -1,0 +1,258 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CLIENT
+  PARTNER
+  ADMIN
+}
+
+/// Физическое или юридическое лицо (клиент и партнёр)
+enum AccountType {
+  INDIVIDUAL
+  LEGAL_ENTITY
+}
+
+enum PartnerDirection {
+  SEPTIC
+  LAWN
+  AUTOWATERING
+  PUMPS
+  FILTERS
+  NURSERY
+  SHOP
+  LANDSCAPE
+  ELECTRICAL
+}
+
+/// Статус модерации отдельной подуслуги партнёра (не всего аккаунта)
+enum PartnerOfferingStatus {
+  PENDING_MODERATION
+  ACTIVE
+  TEMPORARILY_BLOCKED
+  REJECTED
+}
+
+enum OrderCategory {
+  SEPTIC
+  LAWN
+  AUTOWATERING
+  PUMPS
+  FILTERS
+  SHOP
+  ELECTRICAL
+}
+
+enum OrderStatus {
+  NEW
+  ACCEPTED
+  ON_THE_WAY
+  ARRIVED
+  STARTED
+  COMPLETED
+  CLIENT_CONFIRMED
+  CANCELLED
+}
+
+enum LawnWorkType {
+  MOWING
+  CARE
+  CLEANUP
+}
+
+enum PaymentMethod {
+  CASH_ON_DELIVERY
+  KASPI_DIRECT_TO_PARTNER
+}
+
+enum BalanceTransactionType {
+  TOPUP
+  COMMISSION
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  role         Role
+  name         String
+  phone        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  clientProfile  ClientProfile?
+  partnerProfile PartnerProfile?
+}
+
+model ClientProfile {
+  id        String      @id @default(uuid())
+  userId    String      @unique
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountType AccountType @default(INDIVIDUAL)
+  companyName String?
+  bin         String?
+  legalAddress String?
+  contactPerson String?
+  city      String?     @default("Уральск")
+  createdAt DateTime    @default(now())
+
+  orders Order[]
+}
+
+model PartnerProfile {
+  id           String             @id @default(uuid())
+  userId       String             @unique
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountType  AccountType        @default(INDIVIDUAL)
+  company      String?
+  bin          String?
+  legalAddress String?
+  /** Удостоверение / ИИН для физлица-специалиста */
+  idDocumentNumber String?
+  /** Реквизиты и документы: [{ kind, number, note }] */
+  documents    Json?
+  /** Необязательный код приглашения при регистрации */
+  referralCode String?
+  directions   PartnerDirection[]
+  balance    Decimal            @default(10000) @db.Decimal(12, 2)
+  isOnline   Boolean            @default(false)
+  lat        Float?             @default(51.243)
+  lng        Float?             @default(51.377)
+  city       String?            @default("Уральск")
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  products     Product[]
+  orders       Order[]              @relation("AssignedPartner")
+  transactions BalanceTransaction[]
+  geoUpdates   GeoUpdate[]
+  serviceOfferings PartnerServiceOffering[]
+}
+
+/** Подуслуга партнёра с отдельным статусом модерации (не блокирует весь аккаунт). */
+model PartnerServiceOffering {
+  id            String                @id @default(uuid())
+  partnerId     String
+  partner       PartnerProfile        @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  /** Идентификатор подуслуги как в каталоге (например grass-mowing) или gp-shop для магазина */
+  subserviceId  String
+  status        PartnerOfferingStatus @default(PENDING_MODERATION)
+  moderationNote String?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  @@unique([partnerId, subserviceId])
+  @@index([partnerId])
+  @@index([status])
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  partnerId   String
+  partner     PartnerProfile @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  name        String
+  price       Decimal  @db.Decimal(12, 2)
+  stock       Int      @default(0)
+  category    String
+  brand       String?  @default("Partner")
+  description String?  @default("")
+  /** Многострочные характеристики: обычно «Название: значение» по одной строке */
+  specifications String?
+  inStock     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orderItems OrderItem[]
+}
+
+model Order {
+  id                String        @id @default(uuid())
+  clientId          String
+  client            ClientProfile @relation(fields: [clientId], references: [id])
+  partnerId         String?
+  partner           PartnerProfile? @relation("AssignedPartner", fields: [partnerId], references: [id])
+  category          OrderCategory
+  status            OrderStatus   @default(NEW)
+  serviceName       String?
+  serviceId         String?
+  address           String?
+  clientPhone       String?
+  clientName        String?
+  clientLat         Float         @default(51.233)
+  clientLng         Float         @default(51.367)
+  executorLat       Float?
+  executorLng       Float?
+  total             Decimal       @db.Decimal(12, 2)
+  paymentMethod     PaymentMethod @default(CASH_ON_DELIVERY)
+  paymentStatus     String        @default("DIRECT_TO_PARTNER")
+  septicVolume      Int?
+  gpCommission      Decimal?      @db.Decimal(12, 2)
+  commissionPaid    Boolean       @default(false)
+  comment           String?
+  preferredDate     DateTime?
+  preferredTime     String?
+  flexibleTime      Boolean       @default(false)
+  lawnAreaSqm       Int?
+  lawnWorkType      LawnWorkType?
+  scheduledDate     DateTime?
+  acceptedAt        DateTime?
+  completedAt       DateTime?
+  clientConfirmedAt DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  items         OrderItem[]
+  geoUpdates    GeoUpdate[]
+  notifications Notification[]
+}
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id])
+  name      String
+  price     Decimal @db.Decimal(12, 2)
+  qty       Int     @default(1)
+}
+
+model BalanceTransaction {
+  id        String                 @id @default(uuid())
+  partnerId String
+  partner   PartnerProfile         @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  type      BalanceTransactionType
+  amount    Decimal                @db.Decimal(12, 2)
+  orderId   String?
+  note      String?
+  createdAt DateTime               @default(now())
+}
+
+model GeoUpdate {
+  id        String         @id @default(uuid())
+  orderId   String
+  order     Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  partnerId String?
+  partner   PartnerProfile? @relation(fields: [partnerId], references: [id])
+  lat       Float
+  lng       Float
+  status    OrderStatus?
+  createdAt DateTime       @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  orderId   String?
+  order     Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  title     String
+  body      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}

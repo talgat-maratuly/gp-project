@@ -1,0 +1,63 @@
+{
+  "name": "GP API Contract",
+  "version": "1.0.0",
+  "baseUrl": "http://localhost:4000",
+  "openapi": "/api/openapi.json",
+  "swaggerUi": "/api/docs",
+  "auth": {
+    "type": "Bearer JWT",
+    "header": "Authorization: Bearer <accessToken>",
+    "storageKeys": {
+      "gpPartner": "gp-partner-access-token",
+      "gpService": "gp-service-access-token"
+    }
+  },
+  "apps": {
+    "gpService": { "role": "CLIENT", "port": 5173 },
+    "gpPartner": { "role": "PARTNER", "port": 5174 }
+  },
+  "endpoints": {
+    "health": { "GET": "/health" },
+    "auth": {
+      "registerClient": { "POST": "/auth/register/client" },
+      "registerPartner": { "POST": "/auth/register/partner" },
+      "login": { "POST": "/auth/login" },
+      "me": { "GET": "/auth/me" }
+    },
+    "products": {
+      "list": { "GET": "/products?partnerId=" },
+      "create": { "POST": "/products" }
+    },
+    "orders": {
+      "list": { "GET": "/orders" },
+      "create": { "POST": "/orders" },
+      "get": { "GET": "/orders/:id" },
+      "updateStatus": { "PATCH": "/orders/:id/status" }
+    },
+    "partner": {
+      "me": { "GET": "/partners/me", "PATCH": "/partners/me" },
+      "balance": { "GET": "/partners/balance" },
+      "transactions": { "GET": "/partners/balance/transactions" },
+      "topup": { "POST": "/partners/balance/topup" }
+    },
+    "geo": {
+      "tracking": { "GET": "/geo/orders/:orderId/tracking" },
+      "updateLocation": { "PATCH": "/geo/location" },
+      "mockMove": { "POST": "/geo/orders/:orderId/mock-move" }
+    }
+  },
+  "enums": {
+    "partnerDirection": ["SEPTIC", "LAWN", "AUTOWATERING", "PUMPS", "FILTERS", "NURSERY", "SHOP", "LANDSCAPE"],
+    "orderStatus": ["NEW", "ACCEPTED", "ON_THE_WAY", "ARRIVED", "COMPLETED", "CANCELLED"],
+    "orderCategory": ["SEPTIC", "LAWN", "AUTOWATERING", "PUMPS", "FILTERS", "SHOP"],
+    "paymentMethod": ["CASH_ON_DELIVERY", "KASPI_DIRECT_TO_PARTNER"]
+  },
+  "registerPartnerBody": {
+    "email": "partner@example.com",
+    "password": "password123",
+    "name": "Имя",
+    "phone": "+77001234567",
+    "company": "ИП Пример",
+    "directions": ["SEPTIC", "SHOP"]
+  }
+}

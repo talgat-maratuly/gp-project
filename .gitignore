@@ -1,0 +1,84 @@
+# --- Dependencies ---
+node_modules/
+
+# --- Build / cache ---
+dist/
+build/
+out/
+.next/
+.nuxt/
+.vite/
+.turbo/
+.cache/
+*.tsbuildinfo
+
+# --- Environment (secrets) ---
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# --- Logs ---
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# --- Tests / coverage ---
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+blob-report/
+
+# --- OS ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# --- IDE / editors ---
+.idea/
+*.iml
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json.example
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# --- Cursor ---
+.cursor/
+
+# --- Deploy platforms (local metadata) ---
+.vercel/
+.netlify/
+
+# --- Misc ---
+*.local
+*.pem
+*.key
+*.p12
+*.orig
+*.rej
+.temp/
+tmp/
+temp/
+
+# --- Database (local docker volumes, dumps) ---
+*.sql.gz
+pgdata/
+postgres-data/
+
+# --- Nest / Prisma (generated client is in node_modules) ---
+# migrations/ — НЕ игнорируем, нужны в репозитории

@@ -1,0 +1,38 @@
+@import "tailwindcss";
+@import "@gp/shared/theme/gp-kaspi.css";
+
+@theme {
+  --font-sans: "Manrope", system-ui, sans-serif;
+  --color-gp-green-500: #00b35c;
+  --color-gp-green-600: #00a859;
+  --color-gp-blue-500: #3b82f6;
+  --color-gp-blue-600: #2563eb;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply font-sans antialiased;
+    background-color: var(--gp-bg);
+    color: var(--gp-text);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+@layer utilities {
+  .gp-gradient {
+    background: var(--gp-gradient);
+  }
+  .safe-pb {
+    padding-bottom: calc(var(--gp-nav-h) + var(--gp-safe-bottom) + 0.75rem);
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
