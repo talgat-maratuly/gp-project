@@ -65,6 +65,8 @@ packages/
   shared/        # Общие константы и утилиты
 ```
 
+Пошаговый prod-деплой: **[docs/DEPLOY_PRODUCTION.md](docs/DEPLOY_PRODUCTION.md)**
+
 ## Деплой (бесплатный хостинг)
 
 В продакшене участвуют только **GP Service**, **GP Partner** и **API**.  

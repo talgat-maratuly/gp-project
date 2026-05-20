@@ -1,8 +1,11 @@
-# Render Blueprint — GP API (NestJS + Prisma + PostgreSQL)
-# https://render.com/docs/blueprint-spec
-#
-# Перед деплоем: создайте PostgreSQL на Render или Supabase и задайте DATABASE_URL.
-# После деплоя фронтов добавьте их URL в CORS_ORIGINS.
+# Render Blueprint — GP API + PostgreSQL
+# Dashboard → New → Blueprint → репозиторий talgat-maratuly/gp-project
+
+databases:
+  - name: gp-postgres
+    plan: free
+    databaseName: gp
+    user: gp
 
 services:
   - type: web
@@ -22,11 +25,10 @@ services:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: gp-postgres
+          property: connectionString
       - key: JWT_SECRET
         generateValue: true
       - key: CORS_ORIGINS
         sync: false
-        # Пример: https://gp-service.vercel.app,https://gp-partner.vercel.app
-
-databases: []
