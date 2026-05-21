@@ -6,27 +6,90 @@ const mapOrdersForApp = (list) => {
   return list.map((o) => mapOrder(o, { forClient }))
 }
 
+const DEV_API_DEFAULT = 'http://localhost:4000'
+
 /**
- * Базовый URL API.
- * Production (Vercel): задайте VITE_API_URL=https://gp-api.onrender.com
- * Dev: пустая строка → относительные пути + Vite proxy (packages/shared/vite.proxy.js)
+ * Базовый URL API (без слэша в конце).
+ * Dev: http://localhost:4000 (или VITE_API_URL из .env)
+ * Production: VITE_API_URL=https://your-api.onrender.com
  */
 export const API_URL = (() => {
-  const fromEnv = import.meta.env?.VITE_API_URL
-  if (fromEnv) return String(fromEnv).replace(/\/$/, '')
-  if (import.meta.env?.DEV) return ''
+  const raw = import.meta.env?.VITE_API_URL
+  const fromEnv = typeof raw === 'string' ? raw.trim() : ''
+  if (fromEnv) {
+    const url = fromEnv.replace(/\/$/, '')
+    if (/^https?:\/\//i.test(url)) return url
+    console.warn('[GP] VITE_API_URL должен начинаться с http:// или https://, используем dev default')
+  }
+  if (import.meta.env?.DEV) return DEV_API_DEFAULT
   if (import.meta.env?.PROD) {
-    console.error('[GP] VITE_API_URL не задан. Укажите URL API в настройках Vercel.')
+    console.error('[GP] VITE_API_URL не задан для production build.')
     return ''
   }
-  return ''
+  return DEV_API_DEFAULT
 })()
 
+if (import.meta.env?.DEV) {
+  console.log('[GP] API_URL =', API_URL)
+}
+
+const EXPECTED_DEV_API = 'http://localhost:4000'
+
+function isNetworkError(err) {
+  return (
+    err instanceof TypeError ||
+    err?.name === 'TypeError' ||
+    String(err?.message || '').toLowerCase().includes('failed to fetch')
+  )
+}
+
+function isWrongApiUrl(url) {
+  if (!url || url === EXPECTED_DEV_API) return false
+  if (import.meta.env?.PROD) return false
+  return !url.includes('localhost:4000') && !url.includes('127.0.0.1:4000')
+}
+
+function formatConnectionError(url) {
+  const lines = [
+    `Не удалось подключиться к API (${url}).`,
+    '• API не запущен → npm run dev:api:safe или npm run dev:all',
+    '• Порт 4000 занят (EADDRINUSE) → npm run kill:ports && npm run dev:all',
+  ]
+  if (isWrongApiUrl(url)) {
+    lines.push(`• Неверный URL → задайте VITE_API_URL=${EXPECTED_DEV_API} в .env.development`)
+  } else if (import.meta.env?.DEV && url !== EXPECTED_DEV_API) {
+    lines.push(`• Ожидается ${EXPECTED_DEV_API} (сейчас: ${url})`)
+  }
+  return lines.join('\n')
+}
+
+function parsePrismaHint(data) {
+  const raw = [data?.message, data?.error, ...(Array.isArray(data?.message) ? data.message : [])]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+  if (
+    raw.includes('prisma') ||
+    raw.includes('database') ||
+    raw.includes('p1001') ||
+    raw.includes('postgresql') ||
+    raw.includes('connect econnrefused')
+  ) {
+    return 'Ошибка базы данных (Prisma). Запустите PostgreSQL: docker compose -f apps/api/docker-compose.yml up -d && npm run prisma:migrate:deploy'
+  }
+  return null
+}
+
 function parseError(data, status) {
+  const prismaHint = parsePrismaHint(data)
+  if (prismaHint && status >= 500) return prismaHint
   if (Array.isArray(data?.message)) return data.message.join(', ')
   if (typeof data?.message === 'string') return data.message
   if (status === 401) return 'Войдите в аккаунт'
   if (status === 403) return 'Недостаточно прав для этого действия'
+  if (status === 502 || status === 503) {
+    return prismaHint || 'API временно недоступен. Проверьте, что backend запущен (npm run dev:api:safe).'
+  }
   return data?.error || `Ошибка API (${status})`
 }
 
@@ -47,11 +110,20 @@ async function request(path, options = {}, { auth = true } = {}) {
     if (token) headers.Authorization = `Bearer ${token}`
   }
 
+  const url = `${API_URL}${path}`
+  const method = options.method || 'GET'
+  if (import.meta.env?.DEV) {
+    console.log('[GP API]', method, url)
+  }
+
   let res
   try {
-    res = await fetch(`${API_URL}${path}`, { ...options, headers })
-  } catch {
-    throw new Error('Не удалось подключиться к API. Убедитесь, что backend запущен (npm run dev:api).')
+    res = await fetch(url, { ...options, headers })
+  } catch (err) {
+    if (isNetworkError(err)) {
+      throw new Error(formatConnectionError(url))
+    }
+    throw err
   }
 
   const data = await parseJson(res)
@@ -61,19 +133,19 @@ async function request(path, options = {}, { auth = true } = {}) {
 
 export const api = {
   registerClient: (body) =>
-    request('/auth/register/client', { method: 'POST', body: JSON.stringify(body) }).then((r) => {
+    request('/auth/register/client', { method: 'POST', body: JSON.stringify(body) }, { auth: false }).then((r) => {
       setToken(r.accessToken)
       return r
     }),
 
   registerPartner: (body) =>
-    request('/auth/register/partner', { method: 'POST', body: JSON.stringify(body) }).then((r) => {
+    request('/auth/register/partner', { method: 'POST', body: JSON.stringify(body) }, { auth: false }).then((r) => {
       setToken(r.accessToken)
       return r
     }),
 
   login: (email, password) =>
-    request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }).then((r) => {
+    request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }, { auth: false }).then((r) => {
       setToken(r.accessToken)
       return r
     }),
@@ -156,6 +228,14 @@ export const api = {
 
   getOrderTracking: (orderId) => request(`/geo/orders/${orderId}/tracking`),
 
+  getGeofences: () => request('/geo/geofences'),
+
+  postGps: (body) => request('/geo/gps', { method: 'POST', body: JSON.stringify(body) }),
+
+  getOrderGpsHistory: (orderId) => request(`/geo/orders/${orderId}/history`),
+
+  getAdminFleet: () => request('/geo/admin/fleet'),
+
   updateGeoLocation: (body) => request('/geo/location', { method: 'PATCH', body: JSON.stringify(body) }),
 
   mockMove: (orderId) => request(`/geo/orders/${orderId}/mock-move`, { method: 'POST' }),
@@ -184,12 +264,33 @@ export const api = {
   adminUpdateOfferingStatus: (offeringId, body) =>
     request(`/admin/offerings/${offeringId}`, { method: 'PATCH', body: JSON.stringify(body) }),
 
-  health: async () => {
+  healthFull: async () => {
+    const url = `${API_URL}/health/full`
     try {
-      const res = await fetch(`${API_URL}/health`)
+      const res = await fetch(url)
+      const data = await parseJson(res)
+      if (!res.ok) throw new Error(parseError(data, res.status))
+      return data
+    } catch (err) {
+      if (isNetworkError(err)) throw new Error(formatConnectionError(url))
+      throw err
+    }
+  },
+
+  health: async () => {
+    const url = `${API_URL}/health`
+    try {
+      const res = await fetch(url)
+      if (!res.ok) {
+        const data = await parseJson(res).catch(() => null)
+        return { status: 'error', message: parseError(data, res.status) }
+      }
       return res.json()
-    } catch {
-      return { status: 'error' }
+    } catch (err) {
+      return {
+        status: 'error',
+        message: isNetworkError(err) ? formatConnectionError(url) : (err?.message || 'API недоступен'),
+      }
     }
   },
 }

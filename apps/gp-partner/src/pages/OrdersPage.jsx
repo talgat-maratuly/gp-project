@@ -1,19 +1,24 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { MapPin, Navigation, Phone } from 'lucide-react'
 import { usePartner } from '../context/PartnerContext'
 import { formatPrice } from '@gp/shared/utils'
 import {
-  PARTNER_ORDER_ACTIONS,
   PARTNER_DIRECTIONS,
   getClientCategoryLabel,
   getOrderStatusLabel,
   getPartnerDirectionLabel,
+  getPartnerOrderAction,
   getMapStatusText,
   formatOrderSchedule,
   LAWN_WORK_TYPES,
 } from '@gp/shared/constants'
+import { api } from '@gp/shared/api'
+import { buildMockTracking } from '@gp/shared/utils'
+import { URALSK_DISPOSAL_ZONES } from '@gp/shared/constants'
+import { subscribeOrderTracking } from '@gp/shared/api/trackingSocket'
+import LiveTrackingMap from '../components/LiveTrackingMap'
+import { useGpsTracker } from '../hooks/useGpsTracker'
 import { Chip, KaspiCard } from '@gp/shared/ui/KaspiUI'
-import OrderMap from '../components/OrderMap'
 
 function openNavigation(order) {
   const lat = order.clientLat
@@ -24,7 +29,7 @@ function openNavigation(order) {
 }
 
 function OrderCard({ order, user, onAccept, onAdvance, onCancel, onSelect, selected }) {
-  const action = PARTNER_ORDER_ACTIONS[order.status]
+  const action = getPartnerOrderAction(order.status, order.category)
   const isMine = order.partnerId === user?.partnerProfileId
   const lawnLabel = LAWN_WORK_TYPES.find((t) => t.id === order.lawnWorkType)?.label
 
@@ -64,7 +69,7 @@ function OrderCard({ order, user, onAccept, onAdvance, onCancel, onSelect, selec
         <div className="flex flex-col gap-2 mt-4">
           {order.status === 'new' && !order.partnerId && (
             <button type="button" onClick={() => onAccept(order.id)} className="w-full py-4 rounded-2xl gp-btn-primary font-bold text-sm">
-              {PARTNER_ORDER_ACTIONS.new.label}
+              Принять
             </button>
           )}
           {isMine && action && (
@@ -104,6 +109,26 @@ export default function OrdersPage() {
   } = usePartner()
   const [tab, setTab] = useState('new')
   const [dirFilter, setDirFilter] = useState('all')
+  const [tracking, setTracking] = useState(null)
+  const [geofences, setGeofences] = useState(URALSK_DISPOSAL_ZONES)
+
+  useGpsTracker(activeOrder?.category === 'septic' ? activeOrder : null)
+
+  useEffect(() => {
+    api.getGeofences().then((z) => setGeofences(z?.length ? z : URALSK_DISPOSAL_ZONES)).catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    if (!activeOrder?.id) {
+      setTracking(null)
+      return undefined
+    }
+    const fallback = () => setTracking(buildMockTracking(activeOrder, geofences))
+    api.getOrderTracking(activeOrder.id).then(setTracking).catch(fallback)
+    return subscribeOrderTracking(activeOrder.id, (t) => setTracking(t || buildMockTracking(activeOrder, geofences)))
+  }, [activeOrder?.id, activeOrder?.status, geofences])
+
+  const mapTracking = tracking || (activeOrder ? buildMockTracking(activeOrder, geofences) : null)
 
   const pool = tab === 'new' ? newOrders : activeOrders
   const filtered = dirFilter === 'all' ? pool : pool.filter((o) => o.category === dirFilter)
@@ -149,17 +174,13 @@ export default function OrdersPage() {
           <div className="p-3 border-b border-[var(--gp-border)]">
             <p className="text-xs font-bold text-[var(--gp-text-muted)]">
               {getOrderStatusLabel(activeOrder.status)}
-              {getMapStatusText(activeOrder.status) ? ` · ${getMapStatusText(activeOrder.status)}` : ''}
+              {tracking?.etaMinutes != null && ` · ~${tracking.etaMinutes} мин`}
             </p>
+            {activeOrder.illegalDisposal && (
+              <p className="text-xs font-bold text-red-600 mt-1">⚠ Подозрительный слив вне зоны</p>
+            )}
           </div>
-          <OrderMap
-            clientLat={activeOrder.clientLat}
-            clientLng={activeOrder.clientLng}
-            executorLat={activeOrder.executorLat}
-            executorLng={activeOrder.executorLng}
-            statusLabel={getMapStatusText(activeOrder.status)}
-            className="h-44"
-          />
+          <LiveTrackingMap tracking={mapTracking} className="h-56" />
         </KaspiCard>
       )}
 

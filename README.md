@@ -25,17 +25,24 @@ Swagger: http://localhost:4000/api/docs
 
 Подробнее: [apps/api/README.md](apps/api/README.md)
 
-## Frontend
+## Frontend (MVP)
 
 ```bash
 npm install
-npm run dev:api       # backend :4000
-npm run dev:service   # :5173
-npm run dev:partner   # :5174
-npm run dev:admin     # :5175 — только ADMIN
+npm run dev:all       # API :4000 + Service :5173 + Partner :5174
 ```
 
-Или всё сразу: `npm run dev`
+Если порты заняты (`EADDRINUSE`):
+
+```bash
+npm run kill:ports
+npm run dev:all
+```
+
+Подробно: **[docs/RUN_GP.md](docs/RUN_GP.md)**
+
+Отдельно: `npm run dev:api:safe`, `npm run dev:service:safe`, `npm run dev:partner:safe`  
+Админка (не в `dev:all`): `npm run dev:admin` → :5175
 
 ### E2E-тест API
 
@@ -47,11 +54,15 @@ npm run test:e2e
 
 Демо-аккаунты (пароль `password123`): `client@gp.kz`, `partner@gp.kz`, `admin@gp.kz`
 
-## Flutter (мобильные приложения)
+## Мобильные приложения
 
-React-приложения — тонкий клиент к API. Для Flutter см. **[docs/FLUTTER.md](docs/FLUTTER.md)** и контракт **[packages/contracts/gp-api.json](packages/contracts/gp-api.json)**.
+- **[docs/MOBILE_READY.md](docs/MOBILE_READY.md)** — тест на телефоне, Flutter, API URL
+- **[docs/FLUTTER.md](docs/FLUTTER.md)** — примеры Dart
+- **[apps/mobile/README.md](apps/mobile/README.md)** — создание Flutter-проектов
+- Магазин: **48 товаров** в БД после `npm run prisma:seed`
+- URL для телефона в LAN: `npm run mobile:urls`
 
-OpenAPI: http://localhost:4000/api/openapi.json
+OpenAPI: http://localhost:4000/api/openapi.json · контракт: [packages/contracts/gp-api.json](packages/contracts/gp-api.json)
 
 ## Структура
 

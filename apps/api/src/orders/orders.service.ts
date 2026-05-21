@@ -22,6 +22,8 @@ import {
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { sanitizeOrderForRole, sanitizeOrdersForRole } from '../common/order-response.util';
+import { ORDER_STATUS_UI } from '../common/order-status-ui.util';
+import { GeoGateway } from '../geo/geo.gateway';
 
 const PARTNER_FLOW: Partial<Record<OrderStatus, OrderStatus>> = {
   [OrderStatus.NEW]: OrderStatus.ACCEPTED,
@@ -38,7 +40,16 @@ export class OrdersService {
     private partners: PartnersService,
     private balance: PartnerBalanceService,
     private notifications: NotificationsService,
+    private gateway: GeoGateway,
   ) {}
+
+  private broadcastOrderStatus(orderId: string, status: OrderStatus) {
+    this.gateway.emitOrderStatus(orderId, {
+      status,
+      uiStatus: ORDER_STATUS_UI[status],
+      at: new Date().toISOString(),
+    });
+  }
 
   private orderInclude() {
     return {
@@ -150,6 +161,7 @@ export class OrdersService {
     });
 
     await this.notifications.notifyOrderStatusChange(order.id, OrderStatus.NEW);
+    this.broadcastOrderStatus(order.id, OrderStatus.NEW);
     return sanitizeOrderForRole(order, Role.CLIENT);
   }
 
@@ -284,7 +296,15 @@ export class OrdersService {
           },
           include: this.orderInclude(),
         });
+        if (order.category === OrderCategory.SEPTIC) {
+          await this.prisma.trip.upsert({
+            where: { orderId },
+            create: { orderId, partnerId: profile.id },
+            update: {},
+          });
+        }
         await this.notifications.notifyOrderStatusChange(orderId, OrderStatus.ACCEPTED);
+        this.broadcastOrderStatus(orderId, OrderStatus.ACCEPTED);
         return updated;
       }
 
@@ -297,6 +317,7 @@ export class OrdersService {
           include: this.orderInclude(),
         });
         await this.notifications.notifyOrderStatusChange(orderId, OrderStatus.CANCELLED);
+        this.broadcastOrderStatus(orderId, OrderStatus.CANCELLED);
         return updated;
       }
 
@@ -321,6 +342,7 @@ export class OrdersService {
       });
 
       await this.notifications.notifyOrderStatusChange(orderId, dto.status);
+      this.broadcastOrderStatus(orderId, dto.status);
       return updated;
     }
 
@@ -349,6 +371,7 @@ export class OrdersService {
 
     await this.chargeCommissionIfNeeded(order, order.partnerId);
     await this.notifications.notifyOrderStatusChange(orderId, OrderStatus.CLIENT_CONFIRMED);
+    this.broadcastOrderStatus(orderId, OrderStatus.CLIENT_CONFIRMED);
     return sanitizeOrderForRole(updated, Role.CLIENT);
   }
 }

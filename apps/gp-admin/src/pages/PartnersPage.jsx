@@ -1,103 +1,103 @@
-import { useCallback, useEffect, useState } from 'react'
-import { api } from '@gp/shared/api'
-import {
-  getAccountTypeLabel,
-  getPartnerOfferingStatusLabel,
-  getPartnerSubserviceLabel,
-} from '@gp/shared/constants'
-
-const STATUSES = ['PENDING_MODERATION', 'ACTIVE', 'TEMPORARILY_BLOCKED', 'REJECTED']
+import { useState } from 'react'
+import { Plus, Pencil, Trash2, Ban } from 'lucide-react'
+import { useStore } from '../context/StoreContext'
+import { useAccess } from '../context/AccessContext'
+import { useAuth } from '../context/AuthContext'
+import { useLanguage } from '../i18n/LanguageContext'
+import { ACTIONS } from '../lib/permissions'
+import Badge from '../components/ui/Badge'
+import Modal from '../components/ui/Modal'
+import FormActions from '../components/FormActions'
+import { formatMoney } from '../lib/format'
 
 export default function PartnersPage() {
-  const [rows, setRows] = useState([])
-  const [err, setErr] = useState('')
-  const [busyId, setBusyId] = useState(null)
+  const { scoped, effectiveFranchiseId } = useAccess()
+  const { user } = useAuth()
+  const { addPartner, updatePartner, removePartner } = useStore()
+  const { can } = useAccess()
+  const { t } = useLanguage()
+  const [modal, setModal] = useState(null)
+  const [form, setForm] = useState({ name: '', company: '', phone: '', city: '', serviceIds: [], active: true, rating: 5 })
 
-  const load = useCallback(() => {
-    return api
-      .adminPartners()
-      .then(setRows)
-      .catch((e) => setErr(e.message || 'Ошибка'))
-  }, [])
+  const franchiseId = effectiveFranchiseId || user.franchiseId
+  const franchiseServices = scoped.services
 
-  useEffect(() => {
-    load()
-  }, [load])
+  const save = () => {
+    const payload = { ...form, franchiseId, serviceIds: form.serviceIds }
+    if (modal === 'new') addPartner(payload)
+    else updatePartner(modal, payload)
+    setModal(null)
+  }
 
-  const patchOffering = async (offeringId, status) => {
-    setBusyId(offeringId)
-    setErr('')
-    try {
-      await api.adminUpdateOfferingStatus(offeringId, { status })
-      await load()
-    } catch (e) {
-      setErr(e.message || 'Не удалось обновить')
-    } finally {
-      setBusyId(null)
-    }
+  const toggleService = (sid) => {
+    setForm((f) => ({
+      ...f,
+      serviceIds: f.serviceIds.includes(sid) ? f.serviceIds.filter((x) => x !== sid) : [...f.serviceIds, sid],
+    }))
   }
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-white mb-2">Партнёры</h1>
-      <p className="text-xs text-slate-500 mb-6">
-        Модерация по подуслугам: статус не блокирует весь аккаунт.
-      </p>
-      {err && <p className="text-rose-400 text-sm mb-4">{err}</p>}
-      <div className="space-y-6">
-        {rows.map((p) => (
-          <div key={p.id} className="admin-card">
-            <div className="flex flex-wrap justify-between gap-2 mb-3">
-              <div>
-                <p className="font-semibold text-white">{p.company || p.user?.name}</p>
-                <p className="text-xs text-sky-400/80">{getAccountTypeLabel(p.accountType)}</p>
-                <p className="text-xs text-slate-500">
-                  {p.user?.email} · {p.user?.phone || '—'}
-                  {p.bin ? ` · БИН ${p.bin}` : ''}
-                </p>
-              </div>
-            </div>
-            {(p.serviceOfferings || []).length === 0 ? (
-              <p className="text-xs text-slate-500">Нет подуслуг в профиле</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="admin-table text-xs">
-                  <thead>
-                    <tr>
-                      <th>Подуслуга</th>
-                      <th>ID</th>
-                      <th>Статус</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {p.serviceOfferings.map((o) => (
-                      <tr key={o.id}>
-                        <td>{getPartnerSubserviceLabel(o.subserviceId)}</td>
-                        <td className="font-mono text-slate-500">{o.subserviceId}</td>
-                        <td>
-                          <select
-                            className="admin-input py-1 text-xs max-w-[200px]"
-                            value={o.status}
-                            disabled={busyId === o.id}
-                            onChange={(e) => patchOffering(o.id, e.target.value)}
-                          >
-                            {STATUSES.map((s) => (
-                              <option key={s} value={s}>
-                                {getPartnerOfferingStatusLabel(s)}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        ))}
-        {!rows.length && !err && <p className="text-slate-500 text-sm">Нет записей</p>}
+    <div className="space-y-4">
+      {can(ACTIONS.PARTNER_CRUD) && (
+        <button type="button" onClick={() => { setModal('new'); setForm({ name: '', company: '', phone: '', city: scoped.orders[0]?.city || 'Уральск', serviceIds: [], active: true, rating: 5 }) }} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-600 text-sm font-semibold">
+          <Plus className="w-4 h-4" /> {t('addPartner')}
+        </button>
+      )}
+      <div className="admin-table-wrap overflow-x-auto">
+        <table className="admin-table min-w-[900px]">
+          <thead>
+            <tr>
+              <th>{t('companyOrName')}</th>
+              <th>{t('phone')}</th>
+              <th>{t('city')}</th>
+              <th>{t('status')}</th>
+              <th>{t('rating')}</th>
+              <th>{t('completedCount')}</th>
+              <th>{t('earnings')}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {scoped.partners.map((p) => (
+              <tr key={p.id}>
+                <td className="font-medium">{p.company || p.name}</td>
+                <td>{p.phone}</td>
+                <td>{p.city}</td>
+                <td><Badge color={p.blocked ? 'red' : p.active ? 'emerald' : 'slate'}>{p.blocked ? t('blocked') : p.active ? t('active') : t('inactive')}</Badge></td>
+                <td>★ {p.rating}</td>
+                <td>{p.completedOrders}</td>
+                <td>{formatMoney(p.earnings)}</td>
+                <td>
+                  {can(ACTIONS.PARTNER_CRUD) && (
+                    <div className="flex gap-1">
+                      <button type="button" className="admin-btn-icon" onClick={() => { setModal(p.id); setForm({ ...p, serviceIds: p.serviceIds || [] }) }}><Pencil className="w-4 h-4" /></button>
+                      <button type="button" className="admin-btn-icon" onClick={() => updatePartner(p.id, { blocked: !p.blocked })}><Ban className="w-4 h-4" /></button>
+                      <button type="button" className="admin-btn-icon text-red-400" onClick={() => removePartner(p.id)}><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
+
+      <Modal open={!!modal} onClose={() => setModal(null)} title={modal === 'new' ? t('addPartner') : t('edit')} wide>
+        <div className="space-y-3 text-sm">
+          {['name', 'company', 'phone', 'city'].map((k) => (
+            <label key={k} className="block"><span className="text-xs text-slate-500">{t(k === 'company' ? 'companyOrName' : k)}</span><input className="admin-input mt-1" value={form[k]} onChange={(e) => setForm({ ...form, [k]: e.target.value })} /></label>
+          ))}
+          <div>
+            <span className="text-xs text-slate-500">{t('assignServices')}</span>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {franchiseServices.map((s) => (
+                <button key={s.id} type="button" onClick={() => toggleService(s.id)} className={`px-2 py-1 rounded-lg text-xs border ${form.serviceIds?.includes(s.id) ? 'border-sky-500 bg-sky-500/20' : 'border-white/10'}`}>{s.name}</button>
+              ))}
+            </div>
+          </div>
+          <FormActions onSave={save} onCancel={() => setModal(null)} />
+        </div>
+      </Modal>
     </div>
   )
 }

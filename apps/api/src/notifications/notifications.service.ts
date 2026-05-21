@@ -27,9 +27,13 @@ export class NotificationsService {
 
     const clientMessages: Partial<Record<OrderStatus, { title: string; body: string }>> = {
       ACCEPTED: { title: 'Заказ принят', body: 'Исполнитель принял вашу заявку' },
-      ON_THE_WAY: { title: 'Исполнитель в пути', body: 'Водитель/мастер выехал к вам' },
-      ARRIVED: { title: 'Исполнитель на месте', body: 'Мастер приехал по вашему адресу' },
-      COMPLETED: { title: 'Заказ выполнен', body: 'Спасибо! Заказ завершён' },
+      ON_THE_WAY: { title: 'Водитель выехал', body: 'Машина в пути к вам' },
+      ARRIVED: { title: 'У адреса', body: 'Водитель у вашего дома' },
+      STARTED: { title: 'Откачка', body: 'Началась откачка септика' },
+      LOADED: { title: 'Загружен', body: 'Машина едет на официальный слив' },
+      DISPOSAL_ARRIVED: { title: 'На сливе', body: 'Машина на пункте слива' },
+      DISPOSAL_COMPLETED: { title: 'Слив завершён', body: 'Официальный слив выполнен' },
+      COMPLETED: { title: 'Рейс завершён', body: 'Подтвердите выполнение в приложении' },
       CANCELLED: { title: 'Заказ отменён', body: 'Заявка была отменена' },
     };
 

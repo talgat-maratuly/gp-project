@@ -11,11 +11,23 @@
     "packages/*"
   ],
   "scripts": {
+    "kill:ports": "node scripts/kill-ports.mjs",
+    "check:ports": "node scripts/check-ports.mjs",
+    "predev:all": "node scripts/kill-ports.mjs",
     "dev:api": "npm run start:dev -w @gp/api",
+    "dev:api:safe": "node scripts/kill-ports.mjs && npm run dev:api",
     "dev:service": "npm run dev -w @gp/service",
+    "dev:service:safe": "node scripts/kill-ports.mjs && node scripts/wait-ports.mjs && npm run dev -w @gp/service",
     "dev:partner": "npm run dev -w @gp/partner",
+    "dev:partner:safe": "node scripts/kill-ports.mjs && node scripts/wait-ports.mjs && npm run dev -w @gp/partner",
     "dev:admin": "npm run dev -w @gp/admin",
-    "dev": "npx --yes concurrently -n api,service,partner -c yellow,green,cyan \"npm run dev:api\" \"npm run dev:service\" \"npm run dev:partner\"",
+    "dev:smart": "bash scripts/dev-smart.sh",
+    "dev:all": "node scripts/dev-all.mjs",
+    "restart:all": "node scripts/kill-ports.mjs && node scripts/wait-ports.mjs && node scripts/dev-all.mjs",
+    "dev": "npm run dev:smart",
+    "open:api": "open http://localhost:4000/health",
+    "open:service": "open http://localhost:5173",
+    "open:partner": "open http://localhost:5174",
     "build:api": "npm run build -w @gp/api",
     "build:service": "npm run build -w @gp/service",
     "build:partner": "npm run build -w @gp/partner",
@@ -24,8 +36,16 @@
     "start:api": "npm run start:prod -w @gp/api",
     "prisma:generate": "npx prisma generate --schema apps/api/prisma/schema.prisma",
     "prisma:migrate:deploy": "npx prisma migrate deploy --schema apps/api/prisma/schema.prisma",
+    "prisma:migrate:dev": "npx prisma migrate dev --schema apps/api/prisma/schema.prisma",
     "prisma:seed": "npm run prisma:seed -w @gp/api",
+    "mobile:urls": "bash scripts/mobile-lan-url.sh",
     "test:e2e": "npm run test:e2e -w @gp/api",
     "lint": "npm run lint -w @gp/service && npm run lint -w @gp/partner"
+  },
+  "dependencies": {
+    "socket.io-client": "^4.8.3"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   }
 }

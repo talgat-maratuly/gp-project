@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { api, clearToken, getToken, mapOrder } from '@gp/shared/api'
+import { subscribeGlobalOrderStatus, resetTrackingSocket } from '@gp/shared/api/trackingSocket'
 import { CATEGORY_TO_UI, ORDER_STATUS_TO_API } from '@gp/shared/api/mappers'
 
 const KEYS = { activeOrder: 'gp-partner-active-order' }
@@ -84,7 +85,7 @@ export function PartnerProvider({ children }) {
       const list = await api.getOrders()
       setOrders(list)
     } catch (e) {
-      notify(e.message || 'API недоступен')
+      notify(e.message || 'Не удалось загрузить заказы')
     }
   }, [notify])
 
@@ -114,8 +115,18 @@ export function PartnerProvider({ children }) {
     if (!user?.id) return
     refreshAll()
     const t = setInterval(refreshOrders, 5000)
-    return () => clearInterval(t)
+    const unsubWs = subscribeGlobalOrderStatus(() => {
+      refreshOrders()
+    })
+    return () => {
+      clearInterval(t)
+      unsubWs()
+    }
   }, [user?.id, refreshAll, refreshOrders])
+
+  useEffect(() => {
+    if (!user?.id) resetTrackingSocket('logout')
+  }, [user?.id])
 
   const register = useCallback(async (data) => {
     setLoading(true)
@@ -269,7 +280,7 @@ export function PartnerProvider({ children }) {
 
   const newOrders = useMemo(() => orders.filter((o) => o.status === 'new'), [orders])
   const activeOrders = useMemo(
-    () => orders.filter((o) => !['new', 'cancelled', 'client_confirmed'].includes(o.status)),
+    () => orders.filter((o) => !['new', 'cancelled', 'client_confirmed', 'done'].includes(o.status)),
     [orders],
   )
   const activeOrder = useMemo(() => orders.find((o) => o.id === activeOrderId) || activeOrders[0], [orders, activeOrderId, activeOrders])

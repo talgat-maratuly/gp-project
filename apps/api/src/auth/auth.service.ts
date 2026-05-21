@@ -141,11 +141,15 @@ export class AuthService {
     });
 
     const partnerProfileId = user.partnerProfile!.id;
+    const offeringStatus =
+      process.env.NODE_ENV === 'production'
+        ? PartnerOfferingStatus.PENDING_MODERATION
+        : PartnerOfferingStatus.ACTIVE;
     await this.prisma.partnerServiceOffering.createMany({
       data: subIds.map((subserviceId) => ({
         partnerId: partnerProfileId,
         subserviceId,
-        status: PartnerOfferingStatus.PENDING_MODERATION,
+        status: offeringStatus,
       })),
     });
     await this.partners.syncDirectionsFromOfferings(partnerProfileId);

@@ -29,6 +29,9 @@ export function getPartnerBusySlots(
     OrderStatus.ON_THE_WAY,
     OrderStatus.ARRIVED,
     OrderStatus.STARTED,
+    OrderStatus.LOADED,
+    OrderStatus.DISPOSAL_ARRIVED,
+    OrderStatus.DISPOSAL_COMPLETED,
     OrderStatus.COMPLETED,
   ];
 
@@ -81,8 +84,11 @@ export function haversineKm(
 export const MAP_STATUS_LABELS: Partial<Record<OrderStatus, string>> = {
   [OrderStatus.ACCEPTED]: 'Заказ принят',
   [OrderStatus.ON_THE_WAY]: 'Исполнитель едет',
-  [OrderStatus.ARRIVED]: 'На месте',
-  [OrderStatus.STARTED]: 'Работа началась',
-  [OrderStatus.COMPLETED]: 'Работа завершена',
+  [OrderStatus.ARRIVED]: 'У клиента',
+  [OrderStatus.STARTED]: 'Откачка началась',
+  [OrderStatus.LOADED]: 'Загружен, едет на слив',
+  [OrderStatus.DISPOSAL_ARRIVED]: 'На официальном сливе',
+  [OrderStatus.DISPOSAL_COMPLETED]: 'Слив завершён',
+  [OrderStatus.COMPLETED]: 'Рейс завершён',
   [OrderStatus.CLIENT_CONFIRMED]: 'Выполнение подтверждено',
 };

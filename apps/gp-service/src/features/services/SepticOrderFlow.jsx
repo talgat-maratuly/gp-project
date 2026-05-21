@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Camera, Star } from 'lucide-react'
 import { formatPrice } from '@gp/shared/utils'
+import { api } from '@gp/shared/api'
 import { PREFERRED_TIME_SLOTS, SEPTIC_VOLUME_OPTIONS, calcServiceTotal } from '@gp/shared/constants'
 import { getServiceById } from '../../data/services'
 import { useService } from '../../context/ServiceContext'
@@ -31,7 +32,7 @@ function statusToIndex(status) {
 
 export default function SepticOrderFlow() {
   const navigate = useNavigate()
-  const { placeServiceOrder, objects, profile, isLoggedIn, authReady, notify } = useService()
+  const { placeServiceOrder, objects, profile, isLoggedIn, authReady, notify, refreshOrders } = useService()
   const service = getServiceById('septic-pumping')
 
   const tomorrow = new Date()
@@ -91,6 +92,7 @@ export default function SepticOrderFlow() {
         priceFrom: service.priceFrom,
         total,
         ...form,
+        address: obj?.address,
       })
       setPlacedOrder(order)
       setPhase('tracking')
@@ -108,6 +110,20 @@ export default function SepticOrderFlow() {
     notify('Спасибо за отзыв!')
     navigate('/orders')
   }
+
+  useEffect(() => {
+    if (phase !== 'tracking' || !placedOrder?.id) return undefined
+    const poll = async () => {
+      try {
+        const fresh = await api.getOrder(placedOrder.id)
+        setPlacedOrder(fresh)
+        await refreshOrders()
+      } catch { /* keep last */ }
+    }
+    poll()
+    const t = setInterval(poll, 5000)
+    return () => clearInterval(t)
+  }, [phase, placedOrder?.id, refreshOrders])
 
   if (phase === 'review') {
     return (

@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { api, clearToken, getToken } from '@gp/shared/api'
+import { subscribeGlobalOrderStatus, resetTrackingSocket } from '@gp/shared/api/trackingSocket'
 import { CATEGORY_TO_API, PAYMENT_TO_API } from '@gp/shared/api/mappers'
 import { calcServiceTotal, computeShopDeliveryFee, LAWN_SERVICE_IDS } from '@gp/shared/constants'
 import { SERVICE_CATALOG, getServiceOrderCategory } from '../data/services'
@@ -106,8 +107,18 @@ export function ServiceProvider({ children }) {
     if (!authUser) return
     refreshOrders()
     const t = setInterval(refreshOrders, 8000)
-    return () => clearInterval(t)
+    const unsubWs = subscribeGlobalOrderStatus(() => {
+      refreshOrders()
+    })
+    return () => {
+      clearInterval(t)
+      unsubWs()
+    }
   }, [authUser, refreshOrders])
+
+  useEffect(() => {
+    if (!authUser) resetTrackingSocket('logout')
+  }, [authUser])
 
   useEffect(() => { localStorage.setItem(KEYS.cart, JSON.stringify(cart)) }, [cart])
   useEffect(() => { localStorage.setItem(KEYS.favorites, JSON.stringify(favorites)) }, [favorites])
@@ -281,9 +292,9 @@ export function ServiceProvider({ children }) {
       category: apiCategory,
       serviceName: data.serviceName,
       serviceId: data.serviceId,
-      address: obj?.address || 'Уральск',
-      clientLat: 51.233,
-      clientLng: 51.367,
+      address: data.address || obj?.address || 'Уральск',
+      clientLat: Number(data.lat ?? data.clientLat) || 51.233,
+      clientLng: Number(data.lng ?? data.clientLng) || 51.367,
       total,
       paymentMethod: PAYMENT_TO_API[data.paymentMethod] || 'CASH_ON_DELIVERY',
       comment: data.comment,

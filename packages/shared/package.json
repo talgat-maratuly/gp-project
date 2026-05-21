@@ -11,8 +11,12 @@
     "./api": "./src/api/client.js",
     "./api/mappers": "./src/api/mappers.js",
     "./api/token": "./src/api/token.js",
+    "./api/trackingSocket": "./src/api/trackingSocket.js",
     "./theme/gp-kaspi.css": "./src/theme/gp-kaspi.css",
     "./ui/KaspiUI": "./src/ui/KaspiUI.jsx"
+  },
+  "dependencies": {
+    "socket.io-client": "^4.8.1"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",

@@ -1,36 +1,23 @@
-import {
-  ExceptionFilter,
-  Catch,
-  ArgumentsHost,
-  HttpException,
-  HttpStatus,
-} from '@nestjs/common';
+import { ExceptionFilter, Catch, ArgumentsHost, Logger } from '@nestjs/common';
 import { Response } from 'express';
+import { classifyException } from './gp-error.util';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
+  private readonly logger = new Logger('GpException');
+
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
+    const payload = classifyException(exception);
 
-    let status = HttpStatus.INTERNAL_SERVER_ERROR;
-    let message: string | string[] = 'Internal server error';
-
-    if (exception instanceof HttpException) {
-      status = exception.getStatus();
-      const res = exception.getResponse();
-      if (typeof res === 'string') message = res;
-      else if (typeof res === 'object' && res !== null && 'message' in res) {
-        message = (res as { message: string | string[] }).message;
-      }
-    } else if (exception instanceof Error) {
-      message = exception.message;
+    if (payload.statusCode >= 500 || payload.kind === 'PRISMA' || payload.kind === 'PORT') {
+      this.logger.error(
+        `[${payload.kind}] ${payload.message}${payload.hint ? ` | ${payload.hint}` : ''}`,
+        exception instanceof Error ? exception.stack : undefined,
+      );
     }
 
-    response.status(status).json({
-      statusCode: status,
-      message,
-      error: HttpStatus[status],
-    });
+    response.status(payload.statusCode).json(payload);
   }
 }

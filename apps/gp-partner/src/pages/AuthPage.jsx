@@ -66,6 +66,10 @@ export default function AuthPage({ initialMode = 'register' }) {
     if (authReady && user) navigate('/', { replace: true })
   }, [authReady, user, navigate])
 
+  useEffect(() => {
+    if (import.meta.env.DEV) console.log('[GP Partner] API_URL =', API_URL)
+  }, [])
+
   const visibleGroups = useMemo(
     () => SERVICE_GROUPS.filter((g) => selectedMainIds.has(g.id)),
     [selectedMainIds],
@@ -183,12 +187,7 @@ export default function AuthPage({ initialMode = 'register' }) {
           : undefined,
       })
     } catch (err) {
-      const msg = err.message || 'Ошибка'
-      if (msg.includes('fetch') || msg.includes('Failed') || msg.includes('Network')) {
-        setError(`API недоступен${API_URL ? ` (${API_URL})` : ''}. Проверьте VITE_API_URL или запустите: npm run dev:api`)
-      } else {
-        setError(msg)
-      }
+      setError(err?.message || 'Ошибка регистрации')
     }
   }
 
@@ -203,12 +202,7 @@ export default function AuthPage({ initialMode = 'register' }) {
     try {
       await login(form.email, form.password)
     } catch (err) {
-      const msg = err.message || 'Ошибка'
-      if (msg.includes('fetch') || msg.includes('Failed') || msg.includes('Network')) {
-        setError(`API недоступен${API_URL ? ` (${API_URL})` : ''}. Проверьте VITE_API_URL или запустите: npm run dev:api`)
-      } else {
-        setError(msg)
-      }
+      setError(err?.message || 'Ошибка входа')
     }
   }
 

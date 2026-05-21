@@ -55,9 +55,31 @@ enum OrderStatus {
   ON_THE_WAY
   ARRIVED
   STARTED
+  LOADED
+  DISPOSAL_ARRIVED
+  DISPOSAL_COMPLETED
   COMPLETED
   CLIENT_CONFIRMED
   CANCELLED
+}
+
+enum GeofenceZoneType {
+  SEPTIC_DISPOSAL
+  STATION
+  POLYGON
+  UNLOAD_POINT
+}
+
+enum MovementState {
+  IDLE
+  MOVING
+  STOPPED
+}
+
+enum DisposalEventType {
+  LEGAL
+  ILLEGAL
+  SUSPECTED
 }
 
 enum LawnWorkType {
@@ -133,6 +155,8 @@ model PartnerProfile {
   transactions BalanceTransaction[]
   geoUpdates   GeoUpdate[]
   serviceOfferings PartnerServiceOffering[]
+  gpsPoints    GpsPoint[]
+  trips        Trip[]
 }
 
 /** Подуслуга партнёра с отдельным статусом модерации (не блокирует весь аккаунт). */
@@ -207,9 +231,14 @@ model Order {
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
+  trip              Trip?
+  illegalDisposal   Boolean   @default(false)
+  etaMinutes        Int?
   items         OrderItem[]
   geoUpdates    GeoUpdate[]
+  gpsPoints     GpsPoint[]
   notifications Notification[]
+  disposalEvents DisposalEvent[]
 }
 
 model OrderItem {
@@ -255,4 +284,87 @@ model Notification {
   body      String
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+/// Официальные сливы, станции, полигоны
+model GeofenceZone {
+  id          String           @id @default(uuid())
+  name        String
+  type        GeofenceZoneType @default(SEPTIC_DISPOSAL)
+  lat         Float
+  lng         Float
+  radiusM     Float            @default(120)
+  polygon     Json?
+  city        String           @default("Уральск")
+  isOfficial  Boolean          @default(true)
+  active      Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  disposalEvents DisposalEvent[]
+}
+
+/// Рейс ассенизатора по заказу (септик)
+model Trip {
+  id                    String        @id @default(uuid())
+  orderId               String        @unique
+  order                 Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  partnerId             String
+  partner               PartnerProfile @relation(fields: [partnerId], references: [id])
+  startedAt             DateTime      @default(now())
+  endedAt               DateTime?
+  clientEnteredAt       DateTime?
+  clientDwellStartedAt  DateTime?
+  clientLeftAt          DateTime?
+  disposalEnteredAt     DateTime?
+  disposalDwellStartedAt DateTime?
+  disposalLeftAt        DateTime?
+  lastLat               Float?
+  lastLng               Float?
+  lastSpeedKmh          Float?
+  lastHeading           Float?
+  lastMovement          MovementState @default(IDLE)
+  lastPointAt           DateTime?
+  gpsPoints             GpsPoint[]
+  disposalEvents        DisposalEvent[]
+
+  @@index([partnerId])
+}
+
+model GpsPoint {
+  id         String         @id @default(uuid())
+  tripId     String?
+  trip       Trip?          @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  orderId    String
+  order      Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  partnerId  String
+  partner    PartnerProfile @relation(fields: [partnerId], references: [id])
+  lat        Float
+  lng        Float
+  speedKmh   Float?
+  heading    Float?
+  movement   MovementState?
+  recordedAt DateTime       @default(now())
+
+  @@index([orderId, recordedAt])
+  @@index([partnerId, recordedAt])
+}
+
+model DisposalEvent {
+  id         String            @id @default(uuid())
+  tripId     String
+  trip       Trip              @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  orderId    String
+  order      Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  zoneId     String?
+  zone       GeofenceZone?     @relation(fields: [zoneId], references: [id])
+  lat        Float
+  lng        Float
+  type       DisposalEventType
+  isOfficial Boolean           @default(false)
+  note       String?
+  createdAt  DateTime          @default(now())
+
+  @@index([orderId])
+  @@index([createdAt])
 }

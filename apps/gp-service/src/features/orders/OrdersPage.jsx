@@ -10,30 +10,62 @@ import {
   formatOrderSchedule,
   LAWN_WORK_TYPES,
 } from '@gp/shared/constants'
+import { api } from '@gp/shared/api'
+import { buildMockTracking } from '@gp/shared/utils'
+import { URALSK_DISPOSAL_ZONES } from '@gp/shared/constants'
+import { subscribeOrderTracking } from '@gp/shared/api/trackingSocket'
 import { useService } from '../../context/ServiceContext'
-import OrderMap from '../../components/OrderMap'
+import LiveTrackingMap from '../../components/LiveTrackingMap'
 import { KaspiButton, KaspiCard, SkeletonBlock, StatusTimeline } from '@gp/shared/ui/KaspiUI'
 
-const LIVE_STEPS = [
-  { id: 'search', label: 'Поиск' },
-  { id: 'found', label: 'Исполнитель найден' },
-  { id: 'way', label: 'В пути' },
-  { id: 'work', label: 'Начал работу' },
-  { id: 'done', label: 'Завершено' },
+const SEPTIC_STEPS = [
+  { id: 'accepted', label: 'Принят' },
+  { id: 'on_way', label: 'Выехал' },
+  { id: 'on_site', label: 'У вас' },
+  { id: 'started', label: 'Откачка' },
+  { id: 'loaded', label: 'Загружен' },
+  { id: 'disposal_arrived', label: 'На сливе' },
+  { id: 'disposal_completed', label: 'Слит' },
+  { id: 'done', label: 'Готово' },
 ]
 
+const SEPTIC_STATUS_INDEX = {
+  new: 0, accepted: 0, on_way: 1, on_site: 2, started: 3, loaded: 4,
+  disposal_arrived: 5, disposal_completed: 6, done: 7, client_confirmed: 7,
+}
+
 function statusToIndex(status) {
-  const map = { new: 0, pending: 0, assigned: 1, accepted: 1, on_way: 2, in_progress: 3, on_site: 3, started: 3, done: 4, client_confirmed: 4 }
-  return map[status] ?? 0
+  return SEPTIC_STATUS_INDEX[status] ?? 0
 }
 
 export default function OrdersPage() {
-  const { allOrders, refreshOrders, confirmOrder, isLoggedIn, ordersLoading } = useService()
+  const { allOrders, refreshOrders, confirmOrder, isLoggedIn, ordersLoading, notify } = useService()
   const [params, setParams] = useSearchParams()
   const [success, setSuccess] = useState(null)
   const [expanded, setExpanded] = useState(null)
   const [confirming, setConfirming] = useState(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [tracking, setTracking] = useState(null)
+  const [geofences, setGeofences] = useState(URALSK_DISPOSAL_ZONES)
+
+  const trackOrder = allOrders.find(
+    (o) => o.category === 'septic' && !['new', 'cancelled', 'done', 'client_confirmed'].includes(o.status),
+  )
+
+  useEffect(() => {
+    api.getGeofences().then((z) => setGeofences(z?.length ? z : URALSK_DISPOSAL_ZONES)).catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    if (!trackOrder?.id) {
+      setTracking(null)
+      return undefined
+    }
+    api.getOrderTracking(trackOrder.id).then(setTracking).catch(() => setTracking(buildMockTracking(trackOrder, geofences)))
+    return subscribeOrderTracking(trackOrder.id, (t) => setTracking(t || buildMockTracking(trackOrder, geofences)))
+  }, [trackOrder?.id, trackOrder?.status, geofences])
+
+  const mapTracking = tracking || (trackOrder ? buildMockTracking(trackOrder, geofences) : null)
 
   useEffect(() => {
     const id = params.get('success')
@@ -57,6 +89,8 @@ export default function OrdersPage() {
     setConfirming(orderId)
     try {
       await confirmOrder(orderId)
+    } catch (err) {
+      notify(err?.message || 'Не удалось подтвердить', 'error')
     } finally {
       setConfirming(null)
     }
@@ -75,6 +109,27 @@ export default function OrdersPage() {
           <RefreshCw className={`w-5 h-5 ${refreshing || ordersLoading ? 'animate-spin' : ''}`} />
         </button>
       </div>
+
+      {trackOrder && mapTracking && (
+        <KaspiCard className="!p-0 overflow-hidden mb-4">
+          <div className="p-4 border-b border-[var(--gp-border)]">
+            <p className="font-extrabold">{trackOrder.serviceName || 'Септик'}</p>
+            <p className="text-sm text-emerald-600 font-semibold mt-1">
+              {getClientStatusMessage(trackOrder.status)}
+            </p>
+            {mapTracking.distanceKm != null && (
+              <p className="text-xs text-[var(--gp-text-muted)] mt-1">
+                ~{mapTracking.distanceKm} км
+                {mapTracking.etaMinutes != null && ` · ETA ${mapTracking.etaMinutes} мин`}
+              </p>
+            )}
+            {mapTracking.illegalDisposal && (
+              <p className="text-xs font-bold text-red-600 mt-2">⚠ Зафиксирован подозрительный слив</p>
+            )}
+          </div>
+          <LiveTrackingMap tracking={mapTracking} className="h-64" />
+        </KaspiCard>
+      )}
 
       {success && (
         <KaspiCard className="!p-4 mb-4 flex gap-3 border-emerald-200 bg-emerald-50 dark:bg-emerald-900/20">
@@ -128,18 +183,8 @@ export default function OrdersPage() {
 
                   {open && (
                     <div className="px-4 pb-4 border-t border-[var(--gp-border)] pt-4 space-y-4">
-                      {o.category !== 'shop' && (
-                        <StatusTimeline steps={LIVE_STEPS} currentIndex={statusToIndex(o.status)} />
-                      )}
-                      {showMap && (
-                        <OrderMap
-                          clientLat={o.clientLat}
-                          clientLng={o.clientLng}
-                          executorLat={o.executorLat}
-                          executorLng={o.executorLng}
-                          statusLabel={getMapStatusText(o.status)}
-                          className="h-40 rounded-2xl overflow-hidden"
-                        />
+                      {o.category === 'septic' && open && (
+                        <StatusTimeline steps={SEPTIC_STEPS} currentIndex={statusToIndex(o.status)} />
                       )}
                       {o.category === 'lawn' && o.lawnAreaSqm && (
                         <p className="text-sm">{o.lawnAreaSqm} м² · {lawnLabel}</p>

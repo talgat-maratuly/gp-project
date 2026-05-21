@@ -1,6 +1,7 @@
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/http-exception.filter';
@@ -28,6 +29,7 @@ function resolveCorsOrigins(config: ConfigService): string[] | boolean {
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.useWebSocketAdapter(new IoAdapter(app));
   const configService = app.get(ConfigService);
 
   app.enableCors({
@@ -59,5 +61,15 @@ async function bootstrap() {
   const host = process.env.RENDER ? 'https://gp-api.onrender.com' : `http://localhost:${port}`;
   console.log(`GP API listening on port ${port}`);
   console.log(`Swagger ${host}/api/docs`);
+  console.log(`Health ${host}/health/full`);
 }
-bootstrap();
+
+bootstrap().catch((err: unknown) => {
+  const msg = err instanceof Error ? err.message : String(err);
+  if (msg.includes('EADDRINUSE')) {
+    console.error('[GP API] Порт 4000 занят (EADDRINUSE). Выполните: npm run kill:ports && npm run dev:api:safe');
+  } else {
+    console.error('[GP API] Ошибка запуска:', msg);
+  }
+  process.exit(1);
+});

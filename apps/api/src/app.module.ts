@@ -12,10 +12,12 @@ import { GeoModule } from './geo/geo.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AdminModule } from './admin/admin.module';
 import { HealthController } from './health.controller';
+import { HealthModule } from './health/health.module';
 
 @Module({
   controllers: [HealthController],
   imports: [
+    HealthModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: [

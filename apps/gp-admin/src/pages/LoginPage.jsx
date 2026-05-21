@@ -1,72 +1,51 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAdmin } from '../context/AdminContext'
-import { API_URL } from '@gp/shared/api'
+import { Shield } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
+import { useLanguage } from '../i18n/LanguageContext'
+import LanguageSwitcher from '../components/LanguageSwitcher'
 
 export default function LoginPage() {
+  const { login } = useAuth()
+  const { t } = useLanguage()
   const navigate = useNavigate()
-  const { login } = useAdmin()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [username, setUsername] = useState('superadmin')
+  const [password, setPassword] = useState('1234')
   const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
 
-  const submit = async (e) => {
+  const submit = (e) => {
     e.preventDefault()
     setError('')
-    setLoading(true)
     try {
-      await login(email, password)
-      navigate('/', { replace: true })
-    } catch (err) {
-      const msg = err.message || 'Ошибка входа'
-      if (msg.includes('fetch') || msg.includes('Failed')) {
-        setError(`API недоступен. Запустите backend (${API_URL || 'localhost:4000'}).`)
-      } else {
-        setError(msg)
-      }
-    } finally {
-      setLoading(false)
+      login(username, password)
+      navigate('/')
+    } catch {
+      setError(t('login_error'))
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="admin-card w-full max-w-md">
-        <h1 className="text-xl font-bold text-white mb-1">GP Admin</h1>
-        <p className="text-xs text-slate-500 mb-6">Доступ только для роли ADMIN в API</p>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-950 via-slate-900 to-sky-950">
+      <div className="absolute top-4 right-4"><LanguageSwitcher /></div>
+      <div className="w-full max-w-md admin-card">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-3 rounded-2xl bg-sky-500/20 text-sky-300"><Shield className="w-8 h-8" /></div>
+          <div>
+            <h1 className="text-2xl font-extrabold">{t('appName')}</h1>
+            <p className="text-sm text-slate-400">{t('appSubtitle')}</p>
+          </div>
+        </div>
         <form onSubmit={submit} className="space-y-4">
-          <div>
-            <label className="text-xs text-slate-400 block mb-1">Email</label>
-            <input
-              className="admin-input"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-              required
-            />
-          </div>
-          <div>
-            <label className="text-xs text-slate-400 block mb-1">Пароль</label>
-            <input
-              className="admin-input"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-              required
-            />
-          </div>
-          {error && <p className="text-sm text-rose-400">{error}</p>}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-xl bg-sky-600 hover:bg-sky-500 py-3 font-semibold text-white disabled:opacity-50"
-          >
-            {loading ? '…' : 'Войти'}
-          </button>
+          <label className="block"><span className="text-xs text-slate-400 mb-1 block">{t('username')}</span><input className="admin-input" value={username} onChange={(e) => setUsername(e.target.value)} /></label>
+          <label className="block"><span className="text-xs text-slate-400 mb-1 block">{t('password')}</span><input type="password" className="admin-input" value={password} onChange={(e) => setPassword(e.target.value)} /></label>
+          {error && <p className="text-red-400 text-sm">{error}</p>}
+          <button type="submit" className="w-full py-3 rounded-xl bg-sky-600 hover:bg-sky-500 font-bold text-sm">{t('login')}</button>
         </form>
+        <div className="mt-6 p-3 rounded-xl bg-white/5 text-xs text-slate-500 space-y-1">
+          <p className="font-semibold text-slate-400">{t('demoAccounts')}</p>
+          <p>superadmin · atyrau_admin · aktobe_admin · uralsk_admin</p>
+          <p>manager · finance · support (Уральск)</p>
+        </div>
       </div>
     </div>
   )

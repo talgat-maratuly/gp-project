@@ -9,6 +9,7 @@ import {
 } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { expandDirectionsToSubservices } from '../src/common/partner-offerings.util';
+import { SHOP_CATALOG, toProductSeedRow } from './shop-catalog';
 
 const prisma = new PrismaClient();
 
@@ -85,42 +86,26 @@ async function main() {
     skipDuplicates: true,
   });
 
-  await prisma.product.upsert({
-    where: { id: 'seed-product-1' },
-    update: {
-      specifications: 'Зоны полива: 4\nПитание: трансформатор 24 VAC\nУстановка: внутренний монтаж',
-    },
-    create: {
-      id: 'seed-product-1',
-      partnerId,
-      name: 'Контроллер полива Hunter XC 4 зоны',
-      price: 62500,
-      stock: 5,
-      category: 'irrigation',
-      brand: 'Hunter',
-      description: 'Демо-товар партнёра',
-      specifications: 'Зоны полива: 4\nПитание: трансформатор 24 VAC\nУстановка: внутренний монтаж',
-      inStock: true,
-    },
-  });
-
-  await prisma.product.upsert({
-    where: { id: 'seed-product-2' },
-    update: {
-      specifications: 'Резьба присоединения: 1"\nТип: сетчатый\nДавление испытания: 16 бар',
-    },
-    create: {
-      id: 'seed-product-2',
-      partnerId,
-      name: 'Фильтр сетчатый 1"',
-      price: 14000,
-      stock: 10,
-      category: 'filters',
-      description: 'Сетевой фильтр для водопровода.',
-      specifications: 'Резьба присоединения: 1"\nТип: сетчатый\nДавление испытания: 16 бар',
-      inStock: true,
-    },
-  });
+  let shopCount = 0;
+  for (const item of SHOP_CATALOG) {
+    const row = toProductSeedRow(item, partnerId);
+    await prisma.product.upsert({
+      where: { id: row.id },
+      update: {
+        name: row.name,
+        price: row.price,
+        stock: row.stock,
+        category: row.category,
+        brand: row.brand,
+        description: row.description,
+        specifications: row.specifications,
+        inStock: row.inStock,
+      },
+      create: row,
+    });
+    shopCount += 1;
+  }
+  console.log(`GP Shop: ${shopCount} товаров (partner ${partnerUser.email})`);
 
   const existingOrder = await prisma.order.findFirst({
     where: { clientId, status: OrderStatus.NEW },
@@ -156,6 +141,29 @@ async function main() {
       note: 'Стартовый баланс (seed)',
     },
   });
+
+  const disposalZones = [
+    { id: 'ural-disposal-1', name: 'Слив №1 — ЖМ Астана', lat: 51.248, lng: 51.385 },
+    { id: 'ural-disposal-2', name: 'Слив №2 — Промузон', lat: 51.215, lng: 51.412 },
+    { id: 'ural-disposal-3', name: 'Слив №3 — Зачагалка', lat: 51.262, lng: 51.335 },
+    { id: 'ural-disposal-4', name: 'Слив №4 — Северный', lat: 51.278, lng: 51.398 },
+  ];
+  for (const z of disposalZones) {
+    await prisma.geofenceZone.upsert({
+      where: { id: z.id },
+      update: { name: z.name, lat: z.lat, lng: z.lng },
+      create: {
+        id: z.id,
+        name: z.name,
+        type: 'SEPTIC_DISPOSAL',
+        lat: z.lat,
+        lng: z.lng,
+        radiusM: 120,
+        isOfficial: true,
+        city: 'Уральск',
+      },
+    });
+  }
 
   console.log('Seed OK');
   console.log('Admin:', admin.email, '/ password123');

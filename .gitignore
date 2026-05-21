@@ -64,6 +64,9 @@ Desktop.ini
 .vercel/
 .netlify/
 
+# --- GP dev (smart launcher) ---
+.gp-pids/
+
 # --- Misc ---
 *.local
 *.pem

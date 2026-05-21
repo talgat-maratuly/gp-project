@@ -1,5 +1,6 @@
 export * from './contacts.js'
 export * from './accountTypes.js'
+export * from './geoTracking.js'
 export * from './brands.js'
 export * from './payments.js'
 export * from './paymentsMarketplace.js'

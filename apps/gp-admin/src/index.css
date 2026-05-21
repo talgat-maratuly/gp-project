@@ -26,4 +26,10 @@
   .admin-table td {
     @apply border-b border-white/5 px-3 py-2 text-slate-300;
   }
+  .admin-table-wrap {
+    @apply rounded-2xl border border-white/10 bg-slate-900/60 overflow-hidden;
+  }
+  .admin-btn-icon {
+    @apply p-2 rounded-lg border border-white/10 hover:bg-sky-500/20 hover:border-sky-500/30 transition text-slate-300;
+  }
 }
