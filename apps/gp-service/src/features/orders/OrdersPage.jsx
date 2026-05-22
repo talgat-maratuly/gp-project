@@ -4,13 +4,14 @@ import { CheckCircle, Package, RefreshCw, Wrench, Pencil, X } from 'lucide-react
 import { formatDate, formatPrice } from '@gp/shared/utils'
 import { useLanguage, useOrderStatusLabel } from '../../i18n'
 import { useService } from '../../context/ServiceContext'
+import { AsyncState } from '@gp/shared/ui/AsyncState'
 import { KaspiButton, KaspiCard, SkeletonBlock } from '@gp/shared/ui/KaspiUI'
 
 export default function OrdersPage() {
   const { t } = useLanguage()
   const statusLabel = useOrderStatusLabel()
   const {
-    allOrders, refreshOrders, isLoggedIn, ordersLoading, notify,
+    allOrders, refreshOrders, isLoggedIn, ordersLoading, ordersError, notify,
     isDemoMode, cancelOrder, updateClientOrder,
   } = useService()
   const [params, setParams] = useSearchParams()
@@ -83,14 +84,14 @@ export default function OrdersPage() {
             <KaspiButton>{t('login')}</KaspiButton>
           </Link>
         </KaspiCard>
-      ) : ordersLoading && !allOrders.length ? (
-        <div className="space-y-3">
-          <SkeletonBlock className="h-28" />
-          <SkeletonBlock className="h-28" />
-        </div>
-      ) : !allOrders.length ? (
-        <KaspiCard className="!p-8 text-center text-[var(--gp-text-muted)]">{t('orders_empty')}</KaspiCard>
       ) : (
+        <AsyncState
+          loading={ordersLoading && !allOrders.length}
+          error={ordersError}
+          empty={!ordersLoading && !ordersError && !allOrders.length}
+          emptyMessage={t('orders_empty')}
+          onRetry={pullRefresh}
+        >
         <ul className="space-y-3">
           {allOrders.map((o) => {
             const open = expanded === o.id
@@ -145,6 +146,7 @@ export default function OrdersPage() {
             )
           })}
         </ul>
+        </AsyncState>
       )}
 
       {editId && (

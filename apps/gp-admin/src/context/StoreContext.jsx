@@ -43,15 +43,22 @@ function syncOrderFromRefs(order, state) {
 
 export function StoreProvider({ children }) {
   const [store, setStore] = useState(() => loadGlobalStore())
+  const [storeLoading, setStoreLoading] = useState(false)
+  const [storeError, setStoreError] = useState(null)
   const apiMode = !isDemoMode()
 
   const refreshFromApi = useCallback(async () => {
     if (!apiMode || !getToken()) return
+    setStoreLoading(true)
+    setStoreError(null)
     try {
       const data = await fetchAdminStore()
       setStore(data)
     } catch (e) {
+      setStoreError(e?.message || 'Не удалось загрузить данные')
       console.warn('[GP Admin] API store load failed', e?.message)
+    } finally {
+      setStoreLoading(false)
     }
   }, [apiMode])
 
@@ -268,6 +275,8 @@ export function StoreProvider({ children }) {
   const value = useMemo(
     () => ({
       store,
+      storeLoading,
+      storeError,
       orderStatuses: ORDER_STATUSES,
       addFranchise,
       updateFranchise,
@@ -300,6 +309,8 @@ export function StoreProvider({ children }) {
     }),
     [
       store,
+      storeLoading,
+      storeError,
       addFranchise,
       updateFranchise,
       removeFranchise,

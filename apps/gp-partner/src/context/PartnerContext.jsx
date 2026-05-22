@@ -41,7 +41,11 @@ export function PartnerProvider({ children }) {
   const [user, setUser] = useState(null)
   const [authReady, setAuthReady] = useState(false)
   const [orders, setOrders] = useState([])
+  const [ordersLoading, setOrdersLoading] = useState(false)
+  const [ordersError, setOrdersError] = useState(null)
   const [products, setProducts] = useState([])
+  const [productsLoading, setProductsLoading] = useState(false)
+  const [productsError, setProductsError] = useState(null)
   const [transactions, setTransactions] = useState([])
   const [activeOrderId, setActiveOrderId] = useState(() => load(KEYS.activeOrder, null))
   const [loading, setLoading] = useState(false)
@@ -111,10 +115,15 @@ export function PartnerProvider({ children }) {
 
   const refreshProducts = useCallback(async () => {
     if (!user?.partnerProfileId) return
+    setProductsLoading(true)
+    setProductsError(null)
     try {
       setProducts(await api.getProducts({ partnerId: user.partnerProfileId }))
     } catch (e) {
-      notify(e.message || 'Не удалось загрузить товары')
+      setProductsError(e?.message || 'Не удалось загрузить товары')
+      notify(e?.message || 'Не удалось загрузить товары')
+    } finally {
+      setProductsLoading(false)
     }
   }, [user?.partnerProfileId, notify])
 
@@ -351,7 +360,8 @@ export function PartnerProvider({ children }) {
   const activeOrder = useMemo(() => orders.find((o) => o.id === activeOrderId) || activeOrders[0], [orders, activeOrderId, activeOrders])
 
   const value = {
-    user, authReady, orders, newOrders, myOrders, activeOrders, activeOrder, products, transactions,
+    user, authReady, orders, ordersLoading, ordersError, newOrders, myOrders, activeOrders, activeOrder,
+    products, productsLoading, productsError, transactions,
     loading, toast, activeOrderId, setActiveOrderId,
     register, login, logout, setOnline, addPartnerOfferings, acceptOrder, advanceOrder, cancelOrder,
     updateOrderStatus: (orderId, status) => advanceOrder(orderId, status),

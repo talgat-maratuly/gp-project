@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { ConflictException, Injectable, Logger, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { AccountType, PartnerOfferingStatus, Role } from '@prisma/client';
@@ -20,6 +20,8 @@ import { PartnersService } from '../partners/partners.service';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger('GP:AUTH');
+
   constructor(
     private prisma: PrismaService,
     private jwt: JwtService,
@@ -168,6 +170,7 @@ export class AuthService {
     if (!user) throw new UnauthorizedException('Неверный email или пароль');
     const ok = await bcrypt.compare(dto.password, user.passwordHash);
     if (!ok) throw new UnauthorizedException('Неверный email или пароль');
+    this.logger.log(`login ok email=${user.email} role=${user.role}`);
     return this.signToken(user);
   }
 

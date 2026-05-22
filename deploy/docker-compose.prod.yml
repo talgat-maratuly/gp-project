@@ -1,0 +1,48 @@
+# Production stack: PostgreSQL + GP API
+# Usage: docker compose -f deploy/docker-compose.prod.yml --env-file apps/api/.env.production up -d
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: gp-postgres-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-gp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-gp_service}
+    volumes:
+      - gp_pg_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-gp}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gp-net
+
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    container_name: gp-api-prod
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gp}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-gp_service}?schema=public
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://gp-service.kz,https://partner.gp-service.kz,https://admin.gp-service.kz,https://market.gp-service.kz}
+    ports:
+      - '4000:4000'
+    networks:
+      - gp-net
+
+volumes:
+  gp_pg_prod:
+
+networks:
+  gp-net:
+    driver: bridge

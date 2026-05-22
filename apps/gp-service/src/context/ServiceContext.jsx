@@ -29,6 +29,7 @@ export function ServiceProvider({ children }) {
   const [products, setProducts] = useState([])
   const [orders, setOrders] = useState([])
   const [ordersLoading, setOrdersLoading] = useState(false)
+  const [ordersError, setOrdersError] = useState(null)
   const [productsLoading, setProductsLoading] = useState(true)
   const [productsError, setProductsError] = useState(null)
   const [objects, setObjects] = useState(() => load(KEYS.objects, [
@@ -103,7 +104,7 @@ export function ServiceProvider({ children }) {
         setProductsError(null)
       }
     } catch (e) {
-      setProductsError(e.message || 'Не удалось загрузить товары')
+      setProductsError(e?.message || 'Не удалось загрузить товары')
     } finally {
       setProductsLoading(false)
     }
@@ -130,10 +131,12 @@ export function ServiceProvider({ children }) {
       return
     }
     setOrdersLoading(true)
+    setOrdersError(null)
     try {
       setOrders(await api.getOrders())
-    } catch {
+    } catch (e) {
       setOrders([])
+      setOrdersError(e?.message || 'Не удалось загрузить заказы')
     } finally {
       setOrdersLoading(false)
     }
@@ -420,7 +423,7 @@ export function ServiceProvider({ children }) {
   const value = {
     authUser, authReady, isLoggedIn: !!authUser,
     products, productsLoading, productsError, refreshProducts, cart, cartItems, cartTotal, cartCount, favorites, favoriteProducts,
-    orders, ordersLoading, allOrders, objects, profile, checkoutDraft,
+    orders, ordersLoading, ordersError, allOrders, objects, profile, checkoutDraft,
     toast, SERVICE_CATALOG, recommendations,
     getProductById, addToCart, updateCartQty, removeFromCart, clearCart,
     toggleFavorite, isFavorite, placeShopOrder, placeServiceOrder,

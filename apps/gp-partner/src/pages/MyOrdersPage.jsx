@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { AsyncState } from '@gp/shared/ui/AsyncState'
 import { usePartner } from '../context/PartnerContext'
 import { useLanguage, useOrderStatusLabel } from '../i18n'
 import * as demoApi from '../lib/demoApi'
@@ -11,7 +12,7 @@ const FLOW = [
 ]
 
 export default function MyOrdersPage() {
-  const { myOrders, updateOrderStatus, isDemoMode, refreshAll } = usePartner()
+  const { myOrders, ordersLoading, ordersError, updateOrderStatus, isDemoMode, refreshAll } = usePartner()
   const { t } = useLanguage()
   const statusLabel = useOrderStatusLabel()
   const [filter, setFilter] = useState('all')
@@ -40,6 +41,13 @@ export default function MyOrdersPage() {
   return (
     <div>
       <h1 className="text-xl font-bold mb-4">{t('myOrders')}</h1>
+      <AsyncState
+        loading={ordersLoading && !myOrders.length}
+        error={ordersError}
+        empty={!ordersLoading && !ordersError && !filtered.length}
+        emptyMessage={t('orders_empty')}
+        onRetry={refreshAll}
+      >
       <div className="flex flex-wrap gap-2 mb-4">
         {['all', 'accepted', 'en_route', 'in_work', 'completed'].map((st) => (
           <button
@@ -80,8 +88,8 @@ export default function MyOrdersPage() {
             </li>
           )
         })}
-        {!filtered.length && <p className="text-slate-500">{t('orders_empty')}</p>}
       </ul>
+      </AsyncState>
     </div>
   )
 }

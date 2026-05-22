@@ -9,6 +9,7 @@ const PORTS = [
   { port: 4000, label: 'GP API', message: 'GP API уже запущен (порт 4000)' },
   { port: 5173, label: 'GP Service', message: 'GP Service уже запущен (порт 5173)' },
   { port: 5174, label: 'GP Partner', message: 'GP Partner уже запущен (порт 5174)' },
+  { port: 5175, label: 'GP Admin', message: 'GP Admin уже запущен (порт 5175)' },
 ]
 
 function pidsOnPort(port) {
@@ -23,7 +24,7 @@ function pidsOnPort(port) {
 const busy = PORTS.map((p) => ({ ...p, pids: pidsOnPort(p.port) })).filter((p) => p.pids.length)
 
 if (!busy.length) {
-  console.log('[check:ports] OK — 4000, 5173, 5174 свободны')
+  console.log('[check:ports] OK — 4000, 5173, 5174, 5175 свободны')
   process.exit(0)
 }
 

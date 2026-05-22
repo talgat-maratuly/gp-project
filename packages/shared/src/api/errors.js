@@ -91,6 +91,14 @@ export function parseApiErrorBody(data, status) {
   })
 }
 
+export function isNetworkError(err) {
+  return (
+    err instanceof TypeError ||
+    err?.name === 'TypeError' ||
+    String(err?.message || '').toLowerCase().includes('failed to fetch')
+  )
+}
+
 export function formatConnectionError(url) {
   return new ApiError(
     [

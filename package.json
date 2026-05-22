@@ -43,6 +43,8 @@
     "build:partner": "npm run build -w @gp/partner",
     "build:admin": "npm run build -w @gp/admin",
     "build": "npm run build:api && npm run build:service && npm run build:partner && npm run build:admin",
+    "build:prod": "bash scripts/prod-build.sh",
+    "health:api": "curl -sf http://localhost:4000/health && curl -sf http://localhost:4000/health/db && curl -sf http://localhost:4000/health/ws",
     "start:api": "npm run start:prod -w @gp/api",
     "prisma:generate": "npx prisma generate --schema apps/api/prisma/schema.prisma",
     "prisma:migrate:deploy": "npx prisma migrate deploy --schema apps/api/prisma/schema.prisma",

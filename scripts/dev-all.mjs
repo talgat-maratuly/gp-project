@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Стабильный запуск API + GP Service + GP Partner через concurrently.
- * Вызывается из npm run dev:all (после predev:all → kill:ports).
+ * Стабильный запуск API + GP Service + GP Partner + GP Admin.
+ * Market (GP Shop) — раздел /shop внутри GP Service (:5173).
  */
 import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
@@ -19,15 +19,16 @@ try {
 const concurrently = join(root, 'node_modules', '.bin', 'concurrently')
 
 const args = [
-  '-n', 'api,service,partner',
-  '-c', 'yellow,green,cyan',
+  '-n', 'api,service,partner,admin',
+  '-c', 'yellow,green,cyan,magenta',
   '--kill-others-on-fail',
   'npm run dev:api',
   'npm run dev:service',
   'npm run dev:partner',
+  'npm run dev:admin',
 ]
 
-console.log('\n▶ GP dev: API :4000 · Service :5173 · Partner :5174\n')
+console.log('\n▶ GP dev: API :4000 · Service/Market :5173 · Partner :5174 · Admin :5175\n')
 
 const child = spawn(concurrently, args, {
   cwd: root,

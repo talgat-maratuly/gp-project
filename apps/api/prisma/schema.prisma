@@ -362,6 +362,12 @@ model Order {
   gpsPoints     GpsPoint[]
   notifications Notification[]
   disposalEvents DisposalEvent[]
+
+  @@index([clientId])
+  @@index([partnerId])
+  @@index([status])
+  @@index([category])
+  @@index([createdAt])
 }
 
 model OrderItem {
@@ -582,6 +588,7 @@ model QRServiceOrder {
   updatedAt          DateTime       @updatedAt
 
   @@index([qrCode])
+  @@index([qrCodeObjectId])
   @@index([assignedPartnerId])
   @@index([status])
 }

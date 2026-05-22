@@ -6,6 +6,7 @@ import { CATEGORIES } from '../../data/categories'
 import { useLanguage } from '../../i18n'
 import { useService } from '../../context/ServiceContext'
 import { DEFAULT_FILTERS, SHOP_BRANDS, SORT_OPTIONS, filterProducts } from '../../utils/filters'
+import { AsyncState } from '@gp/shared/ui/AsyncState'
 import { Chip, KaspiCard, SkeletonBlock } from '@gp/shared/ui/KaspiUI'
 import ProductCard from './ProductCard'
 
@@ -114,29 +115,19 @@ export default function CatalogPage() {
         </KaspiCard>
       )}
 
-      {productsError && (
-        <KaspiCard className="!p-4 mb-4 text-red-600 text-sm">
-          {productsError}{' '}
-          <button type="button" className="underline font-bold" onClick={() => refreshProducts()}>Повторить</button>
-        </KaspiCard>
-      )}
-
-      {productsLoading && !products.length ? (
-        <div className="grid grid-cols-2 gap-3">
-          <SkeletonBlock className="h-56" />
-          <SkeletonBlock className="h-56" />
-          <SkeletonBlock className="h-56" />
-          <SkeletonBlock className="h-56" />
-        </div>
-      ) : filtered.length > 0 ? (
+      <AsyncState
+        loading={productsLoading && !products.length}
+        error={productsError}
+        empty={!productsLoading && !productsError && filtered.length === 0}
+        emptyMessage="Ничего не найдено"
+        onRetry={refreshProducts}
+      >
         <div className="grid grid-cols-2 gap-3 pb-4">
           {filtered.map((p) => (
             <ProductCard key={p.id} product={p} />
           ))}
         </div>
-      ) : (
-        <KaspiCard className="!p-8 text-center text-[var(--gp-text-muted)]">Ничего не найдено</KaspiCard>
-      )}
+      </AsyncState>
 
       {!categoryId && recommendations.length > 0 && filtered.length === products.length && (
         <p className="text-xs text-center text-[var(--gp-text-muted)] pb-6">Рекомендуем популярные товары выше</p>
