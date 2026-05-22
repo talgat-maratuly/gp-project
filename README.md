@@ -6,6 +6,7 @@
 | **GP Service** | 5173 | Клиентское приложение |
 | **GP Partner** | 5174 | Партнёры, магазины, исполнители |
 | **GP Admin** | 5175 | Панель администратора (модерация, аналитика) |
+| **GP Service Mobile** | Expo | OTP + биометрия (`apps/gp-service-mobile`) |
 
 > **GP Work** — отдельный проект, не входит в этот репозиторий.
 
@@ -56,6 +57,7 @@ npm run test:e2e
 
 ## Мобильные приложения
 
+- **[docs/MOBILE_AUTH.md](docs/MOBILE_AUTH.md)** — Expo OTP + Face ID (`npm run dev:mobile`)
 - **[docs/MOBILE_READY.md](docs/MOBILE_READY.md)** — тест на телефоне, Flutter, API URL
 - **[docs/FLUTTER.md](docs/FLUTTER.md)** — примеры Dart
 - **[apps/mobile/README.md](apps/mobile/README.md)** — создание Flutter-проектов

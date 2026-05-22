@@ -2,9 +2,11 @@ import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { BUSINESS_FORMS, isLegalBusinessForm } from '@gp/shared/constants'
 import { useService } from '../../context/ServiceContext'
+import { useLanguage } from '../../i18n'
 import { KaspiButton, KaspiCard } from '@gp/shared/ui/KaspiUI'
 
 export default function ClientAuthPage() {
+  const { t } = useLanguage()
   const navigate = useNavigate()
   const location = useLocation()
   const from = location.state?.from || '/'
@@ -46,8 +48,8 @@ export default function ClientAuthPage() {
 
   return (
     <div className="px-4 py-6 max-w-md mx-auto gp-animate-in">
-      <h1 className="text-2xl font-extrabold mb-2">{mode === 'login' ? 'Вход' : 'Регистрация'}</h1>
-      <p className="text-sm text-[var(--gp-text-muted)] mb-6">Для заказов услуг и товаров</p>
+      <h1 className="text-2xl font-extrabold mb-2">{mode === 'login' ? t('login') : t('register')}</h1>
+      <p className="text-sm text-[var(--gp-text-muted)] mb-6">{t('app_service')}</p>
 
       <div className="flex gap-2 mb-4 p-1 rounded-2xl bg-[var(--gp-surface)] border border-[var(--gp-border)]">
         {['login', 'register'].map((m) => (
@@ -59,7 +61,7 @@ export default function ClientAuthPage() {
               mode === m ? 'gp-gradient-kaspi text-white shadow-md' : 'text-[var(--gp-text-muted)]'
             }`}
           >
-            {m === 'login' ? 'Вход' : 'Регистрация'}
+            {m === 'login' ? t('login') : t('register')}
           </button>
         ))}
       </div>
@@ -176,14 +178,14 @@ export default function ClientAuthPage() {
             />
           </label>
           <label className="block">
-            <span className="text-sm font-semibold mb-1 block">Пароль</span>
+            <span className="text-sm font-semibold mb-1 block">{t('password')}</span>
             <input
               type="password"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               className="w-full p-4 rounded-2xl border border-[var(--gp-border)] bg-[var(--gp-surface)]"
               required
-              minLength={6}
+              minLength={mode === 'login' ? 4 : 6}
               autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
             />
           </label>
@@ -191,12 +193,12 @@ export default function ClientAuthPage() {
           {error && <p className="text-red-600 text-sm">{error}</p>}
 
           <KaspiButton type="submit" disabled={loading}>
-            {loading ? '…' : mode === 'login' ? 'Войти' : 'Создать аккаунт'}
+            {loading ? '…' : mode === 'login' ? t('login') : t('register')}
           </KaspiButton>
         </KaspiCard>
       </form>
 
-      <p className="text-xs text-[var(--gp-text-muted)] mt-4 text-center">Demo: client@gp.kz / password123</p>
+      <p className="text-xs text-[var(--gp-text-muted)] mt-4 text-center">Demo: uralsk_client / 1234</p>
     </div>
   )
 }

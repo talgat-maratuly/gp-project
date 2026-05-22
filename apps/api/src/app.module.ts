@@ -11,6 +11,10 @@ import { PartnerBalanceModule } from './partner-balance/partner-balance.module';
 import { GeoModule } from './geo/geo.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AdminModule } from './admin/admin.module';
+import { ServiceProjectsModule } from './service-projects/service-projects.module';
+import { MarketModule } from './market/market.module';
+import { QrModule } from './qr/qr.module';
+import { FurnitureExecutorModule } from './furniture-executor/furniture-executor.module';
 import { HealthController } from './health.controller';
 import { HealthModule } from './health/health.module';
 
@@ -37,6 +41,10 @@ import { HealthModule } from './health/health.module';
     GeoModule,
     NotificationsModule,
     AdminModule,
+    ServiceProjectsModule,
+    MarketModule,
+    QrModule,
+    FurnitureExecutorModule,
   ],
 })
 export class AppModule {}

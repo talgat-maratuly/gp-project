@@ -1,7 +1,13 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { ORDER_STATUSES, recalcAggregates } from '../data/seedData'
 import { uid } from '../lib/id'
-import { loadStore, saveStore, resetStore } from '../lib/storage'
+import {
+  loadGlobalStore,
+  saveGlobalStore,
+  resetGlobalStore,
+  subscribeGlobalStore,
+  syncFromHub,
+} from '@gp/shared/demo'
 
 const StoreContext = createContext(null)
 
@@ -33,13 +39,18 @@ function syncOrderFromRefs(order, state) {
 }
 
 export function StoreProvider({ children }) {
-  const [store, setStore] = useState(() => loadStore())
+  const [store, setStore] = useState(() => loadGlobalStore())
+
+  useEffect(() => {
+    syncFromHub().then(setStore)
+    return subscribeGlobalStore(setStore)
+  }, [])
 
   const persist = useCallback((updater) => {
     setStore((prev) => {
       const next = typeof updater === 'function' ? updater(prev) : updater
       const aggregated = recalcAggregates(next)
-      saveStore(aggregated)
+      saveGlobalStore(aggregated)
       return aggregated
     })
   }, [])
@@ -220,6 +231,20 @@ export function StoreProvider({ children }) {
     }))
   }, [persist])
 
+  const updateShop = useCallback((id, patch) => {
+    persist((s) => ({
+      ...s,
+      shops: (s.shops || []).map((x) => (x.id === id ? { ...x, ...patch } : x)),
+    }))
+  }, [persist])
+
+  const updateMarketProduct = useCallback((id, patch) => {
+    persist((s) => ({
+      ...s,
+      marketProducts: (s.marketProducts || []).map((x) => (x.id === id ? { ...x, ...patch, updatedAt: Date.now() } : x)),
+    }))
+  }, [persist])
+
   const value = useMemo(
     () => ({
       store,
@@ -247,7 +272,9 @@ export function StoreProvider({ children }) {
       removeDiscount,
       updateSettings,
       updateReviewStatus,
-      resetDemoData: () => setStore(resetStore()),
+      updateShop,
+      updateMarketProduct,
+      resetDemoData: () => setStore(resetGlobalStore()),
     }),
     [
       store,
@@ -274,6 +301,8 @@ export function StoreProvider({ children }) {
       removeDiscount,
       updateSettings,
       updateReviewStatus,
+      updateShop,
+      updateMarketProduct,
     ],
   )
 

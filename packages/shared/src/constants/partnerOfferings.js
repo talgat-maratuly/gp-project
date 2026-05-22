@@ -1,8 +1,12 @@
+import { FURNITURE_EXECUTOR_GROUP } from './furnitureExecutor.js'
+
 /**
  * Основные услуги и подуслуги для регистрации партнёра (два шага).
  * Идентификаторы подуслуг совпадают с каталогом GP Service и API Prisma.
  */
 export const GP_SHOP_SUBSERVICE_ID = 'gp-shop'
+
+export { FURNITURE_EXECUTOR_GROUP }
 
 export const PARTNER_REGISTRATION_GROUPS = [
   {
@@ -86,7 +90,7 @@ export function getPartnerOfferingStatusLabel(status) {
 }
 
 const ALL_SUB_LABELS = Object.fromEntries(
-  [...PARTNER_REGISTRATION_GROUPS, SHOP_REGISTRATION_GROUP].flatMap((g) =>
+  [...PARTNER_REGISTRATION_GROUPS, FURNITURE_EXECUTOR_GROUP, SHOP_REGISTRATION_GROUP].flatMap((g) =>
     g.subs.map((s) => [s.id, s.label]),
   ),
 )

@@ -21,6 +21,16 @@
     "dev:partner": "npm run dev -w @gp/partner",
     "dev:partner:safe": "node scripts/kill-ports.mjs && node scripts/wait-ports.mjs && npm run dev -w @gp/partner",
     "dev:admin": "npm run dev -w @gp/admin",
+    "demo:hub": "node scripts/demo-store-hub.mjs",
+    "demo:test": "node scripts/demo-flow-test.mjs",
+    "demo:market:test": "node scripts/demo-market-test.mjs",
+    "qa:all": "node scripts/qa/run-all.mjs",
+    "qa:e2e": "playwright test",
+    "qa:e2e:servers": "concurrently -n hub,service,partner,admin -c blue,green,cyan,magenta \"node scripts/demo-store-hub.mjs\" \"npm run dev:service\" \"npm run dev:partner\" \"npm run dev:admin\"",
+    "qa:merge-e2e": "node scripts/qa/merge-e2e-report.mjs",
+    "qa:full": "node scripts/qa/run-full.mjs",
+    "qa:stress": "node scripts/qa/run-all.mjs",
+    "playwright:install": "playwright install chromium",
     "dev:smart": "bash scripts/dev-smart.sh",
     "dev:all": "node scripts/dev-all.mjs",
     "restart:all": "node scripts/kill-ports.mjs && node scripts/wait-ports.mjs && node scripts/dev-all.mjs",
@@ -38,7 +48,9 @@
     "prisma:migrate:deploy": "npx prisma migrate deploy --schema apps/api/prisma/schema.prisma",
     "prisma:migrate:dev": "npx prisma migrate dev --schema apps/api/prisma/schema.prisma",
     "prisma:seed": "npm run prisma:seed -w @gp/api",
+    "dev:mobile": "npm run start -w @gp/service-mobile",
     "mobile:urls": "bash scripts/mobile-lan-url.sh",
+    "mobile:assets": "node scripts/gen-mobile-assets.mjs",
     "test:e2e": "npm run test:e2e -w @gp/api",
     "lint": "npm run lint -w @gp/service && npm run lint -w @gp/partner"
   },
@@ -46,6 +58,7 @@
     "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.52.0",
     "concurrently": "^9.2.1"
   }
 }

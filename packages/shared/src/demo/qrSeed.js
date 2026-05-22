@@ -1,0 +1,121 @@
+import { uid } from './store.js'
+
+/** Демо QR-объекты и заявки */
+export function buildQrSeed(marketProducts = []) {
+  const filterProduct = marketProducts.find((p) => p.linkedServiceType === 'filter' || p.categoryId === 'filters') || marketProducts[0]
+
+  const qrCodeObjects = [
+    {
+      id: 'qr-1',
+      qrCode: 'QR-FILTER-001',
+      title: 'Фильтр воды под мойкой',
+      type: 'filter',
+      serviceType: 'filter_replacement',
+      objectId: null,
+      productId: filterProduct?.id || null,
+      clientId: 'c1',
+      partnerId: 'p2',
+      franchiseId: 'fr-uralsk',
+      address: 'Уральск, ул. Мухит 112',
+      city: 'Уральск',
+      description: 'Фильтр Aquaphor под мойкой, квартира',
+      photo: null,
+      lastServiceDate: '2026-05-01',
+      nextServiceDate: '2026-08-01',
+      status: 'active',
+      phone: '+77012236262',
+      createdAt: Date.now() - 86400000 * 30,
+      updatedAt: Date.now(),
+    },
+    {
+      id: 'qr-2',
+      qrCode: 'QR-IRRIGATION-001',
+      title: 'Автополив Hunter',
+      type: 'irrigation',
+      serviceType: 'irrigation_service',
+      objectId: null,
+      productId: null,
+      clientId: 'c1',
+      partnerId: 'p2',
+      franchiseId: 'fr-uralsk',
+      address: 'Уральск, ЖМ Астана 45',
+      city: 'Уральск',
+      description: 'Контроллер Hunter, 6 зон',
+      photo: null,
+      lastServiceDate: '2026-04-10',
+      nextServiceDate: '2026-06-10',
+      status: 'active',
+      phone: '+77015550101',
+      createdAt: Date.now() - 86400000 * 20,
+      updatedAt: Date.now(),
+    },
+    {
+      id: 'qr-3',
+      qrCode: 'QR-FURNITURE-001',
+      title: 'Кухонный гарнитур',
+      type: 'furniture',
+      serviceType: 'furniture_repair',
+      objectId: null,
+      productId: null,
+      clientId: 'c2',
+      partnerId: 'p1',
+      franchiseId: 'fr-uralsk',
+      address: 'Уральск, ул. Ермекова 8',
+      city: 'Уральск',
+      description: 'Кухня LDSP, фасады белые',
+      photo: null,
+      lastServiceDate: '2026-05-05',
+      nextServiceDate: '2026-11-05',
+      status: 'active',
+      phone: '+77015550101',
+      createdAt: Date.now() - 86400000 * 10,
+      updatedAt: Date.now(),
+    },
+  ]
+
+  const qrServiceOrders = [
+    {
+      id: 'qro-1',
+      qrCodeObjectId: 'qr-1',
+      qrCode: 'QR-FILTER-001',
+      franchiseId: 'fr-uralsk',
+      serviceType: 'filter_replacement',
+      clientName: 'Айдар',
+      phone: '+77019998877',
+      address: 'Уральск, ул. Мухит 112',
+      comment: 'Просьба позвонить за час',
+      photo: null,
+      status: 'new',
+      assignedPartnerId: 'p2',
+      totalPrice: 6000,
+      gpCommission: 1000,
+      createdAt: Date.now() - 3600000,
+      updatedAt: Date.now() - 3600000,
+    },
+  ]
+
+  const qrScanLogs = [
+    {
+      id: uid('scan'),
+      qrCodeObjectId: 'qr-1',
+      qrCode: 'QR-FILTER-001',
+      scannedAt: Date.now() - 7200000,
+      userAgent: 'Mozilla/5.0 (iPhone)',
+      ipAddress: 'demo',
+      deviceType: 'mobile',
+      action: 'view',
+    },
+    {
+      id: uid('scan'),
+      qrCodeObjectId: 'qr-1',
+      qrCode: 'QR-FILTER-001',
+      scannedAt: Date.now() - 3600000,
+      userAgent: 'Mozilla/5.0 (Android)',
+      ipAddress: 'demo',
+      deviceType: 'mobile',
+      action: 'order_start',
+    },
+  ]
+
+  return { qrCodeObjects, qrServiceOrders, qrScanLogs }
+}

@@ -9,7 +9,7 @@ import Modal from '../components/ui/Modal'
 import FormActions from '../components/FormActions'
 import { formatMoney, formatDate } from '../lib/format'
 
-const STATUS_COLORS = { new: 'sky', assigned: 'violet', in_progress: 'amber', completed: 'emerald', cancelled: 'slate', problem: 'red' }
+const STATUS_COLORS = { new: 'sky', assigned: 'violet', in_progress: 'amber', in_work: 'orange', completed: 'emerald', cancelled: 'slate', problem: 'red' }
 
 export default function OrdersPage() {
   const { scoped } = useAccess()

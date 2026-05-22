@@ -11,6 +11,15 @@ import {
   Building2,
   Percent,
   X,
+  ShoppingBag,
+  Store,
+  Package,
+  ShoppingCart,
+  Truck,
+  Droplets,
+  LayoutGrid,
+  FlaskConical,
+  QrCode,
 } from 'lucide-react'
 import { navForRole } from '../lib/permissions'
 import { useLanguage } from '../i18n/LanguageContext'
@@ -26,6 +35,15 @@ const ICONS = {
   Settings,
   Building2,
   Percent,
+  ShoppingBag,
+  Store,
+  Package,
+  ShoppingCart,
+  Truck,
+  Droplets,
+  LayoutGrid,
+  FlaskConical,
+  QrCode,
 }
 
 export default function Sidebar({ role, open, onClose }) {

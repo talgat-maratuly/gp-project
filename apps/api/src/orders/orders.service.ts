@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { OrderCategory, OrderStatus, Role } from '@prisma/client';
+import { FurnitureServiceType, OrderCategory, OrderStatus, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PartnersService } from '../partners/partners.service';
 import { PartnerBalanceService } from '../partner-balance/partner-balance.service';
@@ -23,6 +23,13 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { sanitizeOrderForRole, sanitizeOrdersForRole } from '../common/order-response.util';
 import { ORDER_STATUS_UI } from '../common/order-status-ui.util';
+import { FurnitureExecutorService } from '../furniture-executor/furniture-executor.service';
+
+const FURNITURE_SERVICE_ID_TO_TYPE: Record<string, FurnitureServiceType> = {
+  'furniture-manufacturing': FurnitureServiceType.furniture_manufacturing,
+  'furniture-assembly': FurnitureServiceType.furniture_assembly,
+  'furniture-repair': FurnitureServiceType.furniture_repair,
+};
 import { GeoGateway } from '../geo/geo.gateway';
 
 const PARTNER_FLOW: Partial<Record<OrderStatus, OrderStatus>> = {
@@ -40,6 +47,7 @@ export class OrdersService {
     private partners: PartnersService,
     private balance: PartnerBalanceService,
     private notifications: NotificationsService,
+    private furnitureExecutor: FurnitureExecutorService,
     private gateway: GeoGateway,
   ) {}
 
@@ -159,6 +167,20 @@ export class OrdersService {
       },
       include: this.orderInclude(),
     });
+
+    const furnitureType = dto.serviceId ? FURNITURE_SERVICE_ID_TO_TYPE[dto.serviceId] : undefined;
+    if (furnitureType) {
+      await this.furnitureExecutor.createFromServiceRequest({
+        serviceType: furnitureType,
+        clientName: user?.name || 'Клиент',
+        phone: user?.phone || '',
+        address: dto.address,
+        comment: dto.comment,
+        city: client.city || undefined,
+        totalPrice: Number(total),
+        franchiseId: undefined,
+      });
+    }
 
     await this.notifications.notifyOrderStatusChange(order.id, OrderStatus.NEW);
     this.broadcastOrderStatus(order.id, OrderStatus.NEW);

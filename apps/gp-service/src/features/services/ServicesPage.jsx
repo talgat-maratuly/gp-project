@@ -1,7 +1,8 @@
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, Droplets, Filter, Gauge, LandPlot, Lightbulb, RefreshCw, Scissors, Trees, Truck, UserCheck } from 'lucide-react'
 import { formatPrice } from '@gp/shared/utils'
 import { SERVICE_CATALOG, SERVICE_GROUPS } from '../../data/services'
+import { useLanguage } from '../../i18n'
 
 const ICONS = {
   Droplets,
@@ -16,14 +17,29 @@ const ICONS = {
   UserCheck,
 }
 
+const SPECIAL = [
+  { to: '/services/hunter-irrigation', titleKey: 'hunter_title', descKey: 'hunter_subtitle', color: 'from-emerald-600 to-emerald-800' },
+  { to: '/services/furniture', titleKey: 'furniture_title', descKey: 'furniture_subtitle', color: 'from-slate-600 to-slate-800' },
+]
+
 export default function ServicesPage() {
   const navigate = useNavigate()
+  const { t } = useLanguage()
   const byId = Object.fromEntries(SERVICE_CATALOG.map((s) => [s.id, s]))
 
   return (
     <div className="px-4 py-4">
       <h1 className="text-2xl font-bold mb-1">Услуги</h1>
       <p className="text-sm text-slate-500 mb-6">Заказ услуг по вашему адресу</p>
+
+      <section className="mb-6 space-y-2">
+        {SPECIAL.map((s) => (
+          <Link key={s.to} to={s.to} className={`block rounded-2xl bg-gradient-to-r ${s.color} text-white p-4 shadow-md`}>
+            <p className="font-bold">{t(s.titleKey)}</p>
+            <p className="text-xs opacity-90 mt-1">{t(s.descKey)}</p>
+          </Link>
+        ))}
+      </section>
 
       {SERVICE_GROUPS.map((group) => (
         <section key={group.id} className="mb-6">

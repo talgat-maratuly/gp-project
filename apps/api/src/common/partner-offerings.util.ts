@@ -1,5 +1,6 @@
 import { OrderCategory, PartnerDirection } from '@prisma/client';
 import { categoryMatchesDirection } from './commission.util';
+import { isFurnitureExecutorAccessId } from './furniture-executor.util';
 
 /** Синтетический идентификатор подуслуги для заказов категории SHOP (магазин) */
 export const GP_SHOP_SUBSERVICE_ID = 'gp-shop';
@@ -30,7 +31,7 @@ export const SUBSERVICE_TO_DIRECTION: Record<string, PartnerDirection> = {
 };
 
 export function isKnownSubserviceId(id: string): boolean {
-  return Boolean(SUBSERVICE_TO_DIRECTION[id]);
+  return Boolean(SUBSERVICE_TO_DIRECTION[id]) || isFurnitureExecutorAccessId(id);
 }
 
 export function deriveDirectionsFromSubservices(subserviceIds: string[]): PartnerDirection[] {

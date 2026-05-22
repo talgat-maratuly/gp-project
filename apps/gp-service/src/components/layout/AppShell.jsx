@@ -1,5 +1,7 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { Heart, Moon, ShoppingCart, Sun } from 'lucide-react'
+import LanguageSwitcher from '@gp/shared/components/LanguageSwitcher'
+import { useLanguage } from '../../i18n'
 import { useService } from '../../context/ServiceContext'
 import { useTheme } from '../../hooks/useTheme'
 import BottomNav from './BottomNav'
@@ -10,6 +12,7 @@ const HIDE_NAV = /^\/(login|shop\/checkout)/
 export default function AppShell() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { t } = useLanguage()
   const { cartCount, favorites } = useService()
   const { dark, toggle } = useTheme()
   const hideNav = HIDE_NAV.test(location.pathname)
@@ -23,9 +26,10 @@ export default function AppShell() {
             onClick={() => navigate('/')}
             className="font-extrabold text-lg gp-text-gradient tracking-tight"
           >
-            GP Service
+            {t('app_service')}
           </button>
           <div className="flex items-center gap-0.5">
+            <LanguageSwitcher className="!border-[var(--gp-border)] scale-90 origin-right" />
             <button
               type="button"
               onClick={toggle}

@@ -3,6 +3,8 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { MobileAuthController } from './mobile-auth.controller';
+import { MobileAuthService } from './mobile-auth.service';
 import { JwtStrategy } from './jwt.strategy';
 import { PartnersModule } from '../partners/partners.module';
 
@@ -15,8 +17,8 @@ import { PartnersModule } from '../partners/partners.module';
     }),
     PartnersModule,
   ],
-  controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
-  exports: [AuthService, JwtModule],
+  controllers: [AuthController, MobileAuthController],
+  providers: [AuthService, MobileAuthService, JwtStrategy],
+  exports: [AuthService, MobileAuthService, JwtModule],
 })
 export class AuthModule {}

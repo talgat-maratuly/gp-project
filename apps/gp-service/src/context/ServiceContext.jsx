@@ -1,5 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { api, clearToken, getToken } from '@gp/shared/api'
+import { isDemoMode, subscribeGlobalStore, syncFromHub } from '@gp/shared/demo'
+import * as demoApi from '../lib/demoApi'
+import * as marketDemo from '../lib/marketDemoApi'
 import { subscribeGlobalOrderStatus, resetTrackingSocket } from '@gp/shared/api/trackingSocket'
 import { CATEGORY_TO_API, PAYMENT_TO_API } from '@gp/shared/api/mappers'
 import { calcServiceTotal, computeShopDeliveryFee, LAWN_SERVICE_IDS } from '@gp/shared/constants'
@@ -66,15 +69,39 @@ export function ServiceProvider({ children }) {
   }, [])
 
   useEffect(() => {
+    if (isDemoMode()) {
+      const session = demoApi.getDemoSession()
+      if (session) {
+        setAuthUser({ ...session, role: 'CLIENT', clientProfile: { id: session.clientId } })
+        setProfile((p) => ({ ...p, name: session.name, city: session.city }))
+      }
+      setAuthReady(true)
+      syncFromHub()
+      return subscribeGlobalStore(() => {
+        syncFromHub().then(() => {
+          refreshProducts()
+          if (demoApi.getDemoSession()) refreshOrders()
+        })
+      })
+    }
     syncAuth().finally(() => setAuthReady(true))
   }, [syncAuth])
 
   const refreshProducts = useCallback(async () => {
     setProductsLoading(true)
     try {
-      const list = await api.getProducts()
-      setProducts(list)
-      setProductsError(null)
+      if (isDemoMode()) {
+        const session = demoApi.getDemoSession()
+        const list = session
+          ? await marketDemo.demoGetMarketProducts({})
+          : []
+        setProducts(list)
+        setProductsError(null)
+      } else {
+        const list = await api.getProducts()
+        setProducts(list)
+        setProductsError(null)
+      }
     } catch (e) {
       setProductsError(e.message || 'Не удалось загрузить товары')
     } finally {
@@ -83,6 +110,21 @@ export function ServiceProvider({ children }) {
   }, [])
 
   const refreshOrders = useCallback(async () => {
+    if (isDemoMode()) {
+      if (!demoApi.getDemoSession()) {
+        setOrders([])
+        return
+      }
+      setOrdersLoading(true)
+      try {
+        const service = await demoApi.demoGetOrders()
+        const market = await marketDemo.demoGetMarketOrders()
+        setOrders([...service, ...market])
+      } finally {
+        setOrdersLoading(false)
+      }
+      return
+    }
     if (!getToken()) {
       setOrders([])
       return
@@ -106,6 +148,10 @@ export function ServiceProvider({ children }) {
   useEffect(() => {
     if (!authUser) return
     refreshOrders()
+    if (isDemoMode()) {
+      const t = setInterval(refreshOrders, 3000)
+      return () => clearInterval(t)
+    }
     const t = setInterval(refreshOrders, 8000)
     const unsubWs = subscribeGlobalOrderStatus(() => {
       refreshOrders()
@@ -130,6 +176,14 @@ export function ServiceProvider({ children }) {
   }, [checkoutDraft])
 
   const login = useCallback(async (email, password) => {
+    if (isDemoMode()) {
+      const session = await demoApi.demoLogin(email, password)
+      setAuthUser({ ...session, role: 'CLIENT', clientProfile: { id: session.clientId } })
+      setProfile((p) => ({ ...p, name: session.name, city: session.city, phone: session.phone }))
+      await refreshOrders()
+      notify('Вход выполнен')
+      return true
+    }
     await api.login(email, password)
     const me = await api.me()
     if (me.role !== 'CLIENT' || !me.clientProfile) {
@@ -145,7 +199,7 @@ export function ServiceProvider({ children }) {
     }))
     notify('Вход выполнен')
     return true
-  }, [notify])
+  }, [notify, refreshOrders])
 
   const register = useCallback(async (data) => {
     await api.registerClient({
@@ -165,6 +219,13 @@ export function ServiceProvider({ children }) {
   }, [syncAuth, notify])
 
   const logout = useCallback(() => {
+    if (isDemoMode()) {
+      demoApi.demoLogout()
+      setAuthUser(null)
+      setOrders([])
+      notify('Вы вышли', 'info')
+      return
+    }
     api.logout()
     setAuthUser(null)
     setOrders([])
@@ -172,6 +233,10 @@ export function ServiceProvider({ children }) {
   }, [notify])
 
   const requireAuth = useCallback(() => {
+    if (isDemoMode()) {
+      if (!demoApi.getDemoSession()) throw new Error('auth_required')
+      return
+    }
     if (!getToken()) throw new Error('Войдите как клиент: Профиль → Вход (demo: client@gp.kz)')
     if (authUser && authUser.role !== 'CLIENT') {
       throw new Error('Аккаунт партнёра не подходит для заказа услуг. Используйте client@gp.kz')
@@ -226,7 +291,7 @@ export function ServiceProvider({ children }) {
   const allOrders = useMemo(() => {
     return [...orders].map((o) => ({
       ...o,
-      kind: o.category === 'shop' ? 'shop' : 'service',
+      kind: o.kind === 'market' ? 'market' : o.category === 'shop' ? 'shop' : 'service',
     })).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
   }, [orders])
 
@@ -235,6 +300,29 @@ export function ServiceProvider({ children }) {
     const mode = data.deliveryMode === 'pickup' ? 'pickup' : 'courier'
     const deliveryFee = computeShopDeliveryFee(cartTotal, mode)
     const orderTotal = cartTotal + deliveryFee
+
+    if (isDemoMode()) {
+      const payMap = { kaspi_partner: 'kaspi_qr', kaspi: 'kaspi_qr', cash: 'cash', card: 'card' }
+      const order = await marketDemo.demoPlaceMarketOrder({
+        items: cartItems.map((i) => ({
+          productId: i.product.id,
+          name: i.product.name,
+          price: Number(i.product.price),
+          qty: i.qty,
+          unit: i.product.unit || 'шт',
+        })),
+        deliveryType: mode === 'pickup' ? 'PICKUP' : 'DELIVERY',
+        deliveryAddress: data.address,
+        paymentMethod: payMap[data.paymentMethod] || 'cash',
+        deliveryPrice: deliveryFee,
+      })
+      await refreshOrders()
+      clearCart()
+      setCheckoutDraft(null)
+      notify('Заказ GP Market оформлен')
+      return order
+    }
+
     const deliveryLine =
       mode === 'pickup'
         ? 'Доставка: самовывоз'
@@ -269,6 +357,12 @@ export function ServiceProvider({ children }) {
 
   const placeServiceOrder = useCallback(async (data) => {
     requireAuth()
+    if (isDemoMode()) {
+      await demoApi.demoPlaceServiceOrder(data)
+      await refreshOrders()
+      notify('Заявка отправлена! Партнёр увидит её в GP Partner.')
+      return { id: 'demo' }
+    }
     const obj = objects.find((o) => o.id === data.objectId)
     const cat = getServiceOrderCategory(data.serviceId)
     const apiCategory = CATEGORY_TO_API[cat]
@@ -332,6 +426,30 @@ export function ServiceProvider({ children }) {
     toggleFavorite, isFavorite, placeShopOrder, placeServiceOrder,
     setCheckoutDraft, setProfile, setObjects, submitPartnerLead, notify,
     login, register, logout, refreshOrders,
+    isDemoMode: isDemoMode(),
+    demoFranchises: isDemoMode() ? demoApi.demoFranchises() : [],
+    cancelOrder: async (orderId) => {
+      requireAuth()
+      if (isDemoMode()) {
+        const o = orders.find((x) => x.id === orderId)
+        if (o?.kind === 'market') await marketDemo.demoCancelMarketOrder(orderId)
+        else await demoApi.demoCancelOrder(orderId)
+        await refreshOrders()
+        notify('Заявка отменена', 'info')
+        return
+      }
+      throw new Error('API only')
+    },
+    updateClientOrder: async (orderId, patch) => {
+      requireAuth()
+      if (isDemoMode()) {
+        await demoApi.demoUpdateOrder(orderId, patch)
+        await refreshOrders()
+        notify('Заявка обновлена')
+        return
+      }
+      throw new Error('API only')
+    },
     confirmOrder: async (orderId) => {
       requireAuth()
       const order = await api.confirmOrder(orderId)

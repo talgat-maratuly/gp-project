@@ -1,16 +1,19 @@
 import { useMemo, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { RefreshCw, SlidersHorizontal } from 'lucide-react'
+import { MARKET_CATEGORIES } from '@gp/shared/constants'
 import { CATEGORIES } from '../../data/categories'
+import { useLanguage } from '../../i18n'
 import { useService } from '../../context/ServiceContext'
 import { DEFAULT_FILTERS, SHOP_BRANDS, SORT_OPTIONS, filterProducts } from '../../utils/filters'
 import { Chip, KaspiCard, SkeletonBlock } from '@gp/shared/ui/KaspiUI'
 import ProductCard from './ProductCard'
 
 export default function CatalogPage() {
+  const { t } = useLanguage()
   const { categoryId } = useParams()
   const [params, setParams] = useSearchParams()
-  const { products, recommendations, productsLoading, productsError, refreshProducts } = useService()
+  const { products, recommendations, productsLoading, productsError, refreshProducts, isDemoMode } = useService()
   const [showFilters, setShowFilters] = useState(false)
 
   const filters = {
@@ -34,12 +37,15 @@ export default function CatalogPage() {
 
   const scoped = categoryId ? products.filter((p) => p.categoryId === categoryId) : products
   const filtered = useMemo(() => filterProducts(scoped, filters), [scoped, filters])
-  const cat = CATEGORIES.find((c) => c.id === categoryId)
+  const displayCategories = isDemoMode
+    ? MARKET_CATEGORIES.map((c) => ({ id: c.id, name: t(c.labelKey) }))
+    : CATEGORIES
+  const cat = displayCategories.find((c) => c.id === categoryId)
 
   return (
     <div className="px-4 py-4 gp-animate-in">
       <div className="flex items-start justify-between gap-2 mb-1">
-        <h1 className="text-2xl font-extrabold">{cat?.name || 'GP Shop'}</h1>
+        <h1 className="text-2xl font-extrabold">{cat?.name || t('nav_market')}</h1>
         <button
           type="button"
           onClick={() => refreshProducts()}
@@ -54,7 +60,7 @@ export default function CatalogPage() {
 
       <input
         type="search"
-        placeholder="Поиск товаров…"
+        placeholder={t('market_search')}
         value={filters.search}
         onChange={(e) => setFilter('search', e.target.value)}
         className="w-full px-4 py-4 rounded-2xl border border-[var(--gp-border)] bg-[var(--gp-surface)] mb-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 shadow-sm"
@@ -67,7 +73,7 @@ export default function CatalogPage() {
         >
           Все
         </Link>
-        {CATEGORIES.map((c) => (
+        {displayCategories.map((c) => (
           <Link
             key={c.id}
             to={`/shop/catalog/${c.id}`}

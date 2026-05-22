@@ -193,6 +193,7 @@ export const api = {
     balance: Number(p.balance),
     directions: p.directions || [],
     serviceOfferings: p.serviceOfferings || [],
+    serviceAccess: p.serviceAccess || [],
     accountType: p.accountType,
     bin: p.bin,
     legalAddress: p.legalAddress,
@@ -211,7 +212,25 @@ export const api = {
       balance: Number(p.balance),
       directions: p.directions || [],
       serviceOfferings: p.serviceOfferings || [],
+      serviceAccess: p.serviceAccess || [],
     })),
+
+  getFurnitureExecutorOrders: (serviceType) => {
+    const q = serviceType ? `?serviceType=${encodeURIComponent(serviceType)}` : ''
+    return request(`/furniture-executor/partner/orders${q}`)
+  },
+
+  acceptFurnitureExecutorOrder: (orderId) =>
+    request(`/furniture-executor/partner/orders/${orderId}/accept`, { method: 'POST' }),
+
+  updateFurnitureExecutorOrderStatus: (orderId, status) =>
+    request(`/furniture-executor/partner/orders/${orderId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    }),
+
+  declineFurnitureExecutorOrder: (orderId) =>
+    request(`/furniture-executor/partner/orders/${orderId}/decline`, { method: 'POST' }),
 
   getBalance: () => request('/partners/balance').then((r) => ({ balance: Number(r.balance) })),
 
@@ -275,6 +294,38 @@ export const api = {
       if (isNetworkError(err)) throw new Error(formatConnectionError(url))
       throw err
     }
+  },
+
+  getServiceProjects: (params = {}) => {
+    const q = new URLSearchParams(params).toString()
+    return request(`/service-projects${q ? `?${q}` : ''}`)
+  },
+
+  getServiceProject: (id) => request(`/service-projects/${id}`),
+
+  patchServiceProjectStatus: (id, status) =>
+    request(`/service-projects/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    }),
+
+  createHunterProject: (body) =>
+    request('/hunter-projects', { method: 'POST', body: JSON.stringify(body) }),
+
+  getHunterProjects: () => request('/hunter-projects'),
+
+  getHunterProject: (id) => request(`/hunter-projects/${id}`),
+
+  createFurnitureProject: (body) =>
+    request('/furniture-projects', { method: 'POST', body: JSON.stringify(body) }),
+
+  getFurnitureProjects: () => request('/furniture-projects'),
+
+  getFurnitureProject: (id) => request(`/furniture-projects/${id}`),
+
+  getMarketProducts: (params = {}) => {
+    const q = new URLSearchParams(params).toString()
+    return request(`/market/products${q ? `?${q}` : ''}`).then((list) => list.map(mapProduct))
   },
 
   health: async () => {

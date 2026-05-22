@@ -1,46 +1,86 @@
-import { Navigation } from 'lucide-react'
+import { useState } from 'react'
 import { usePartner } from '../context/PartnerContext'
+import { useLanguage, useOrderStatusLabel } from '../i18n'
+import * as demoApi from '../lib/demoApi'
 import { formatPrice } from '@gp/shared/utils'
-import { getOrderCategoryLabel, getOrderStatusLabel } from '@gp/shared/constants'
 
-const STATUS_FLOW = {
-  accepted: { next: 'on_way', label: 'В пути' },
-  on_way: { next: 'done', label: 'Выполнено' },
-}
+const FLOW = [
+  { from: 'accepted', to: 'en_route', key: 'partner_en_route' },
+  { from: 'en_route', to: 'in_work', key: 'partner_in_work' },
+  { from: 'in_work', to: 'completed', key: 'partner_completed' },
+]
 
 export default function MyOrdersPage() {
-  const { myOrders, updateOrderStatus } = usePartner()
+  const { myOrders, updateOrderStatus, isDemoMode, refreshAll } = usePartner()
+  const { t } = useLanguage()
+  const statusLabel = useOrderStatusLabel()
+  const [filter, setFilter] = useState('all')
+  const [comment, setComment] = useState({})
+
+  const filtered = myOrders.filter((o) => filter === 'all' || o.status === filter)
+
+  const saveComment = async (orderId) => {
+    if (!isDemoMode) return
+    await demoApi.demoPatchOrder(orderId, { partnerComment: comment[orderId] || '' })
+    await refreshAll()
+  }
+
+  const addPhoto = async (orderId, type) => {
+    if (!isDemoMode) return
+    const o = myOrders.find((x) => x.id === orderId)
+    const url = `demo-${type}-${Date.now()}.jpg`
+    const patch =
+      type === 'before'
+        ? { photosBefore: [...(o?.photosBefore || []), url], partnerComment: comment[orderId] || '' }
+        : { photosAfter: [...(o?.photosAfter || []), url], partnerComment: comment[orderId] || '' }
+    await demoApi.demoPatchOrder(orderId, patch)
+    await refreshAll()
+  }
 
   return (
     <div>
-      <h1 className="text-xl font-bold mb-4">Мои заказы</h1>
+      <h1 className="text-xl font-bold mb-4">{t('myOrders')}</h1>
+      <div className="flex flex-wrap gap-2 mb-4">
+        {['all', 'accepted', 'en_route', 'in_work', 'completed'].map((st) => (
+          <button
+            key={st}
+            type="button"
+            onClick={() => setFilter(st)}
+            className={`px-3 py-1.5 rounded-lg text-xs border ${filter === st ? 'border-emerald-500 bg-emerald-500/20' : 'border-white/10'}`}
+          >
+            {st === 'all' ? t('all') : t(`status_${st}`) || statusLabel(st)}
+          </button>
+        ))}
+      </div>
       <ul className="space-y-3">
-        {myOrders.map((o) => {
-          const flow = STATUS_FLOW[o.status]
+        {filtered.map((o) => {
+          const step = FLOW.find((f) => f.from === o.status)
           return (
             <li key={o.id} className="partner-card p-4">
-              <div className="flex justify-between text-[10px] mb-1">
-                <span className="text-emerald-500/80 font-bold uppercase">{getOrderCategoryLabel(o.category)}</span>
-                <span className="text-slate-500">{getOrderStatusLabel(o.status)}</span>
-              </div>
-              <p className="font-bold">{o.id}</p>
-              <p className="text-sm">{o.serviceName || `Магазин · ${o.items?.length || 0} поз.`}</p>
-              <p className="text-sm text-slate-400">{o.clientName} · {o.address}</p>
+              <p className="font-bold">{o.serviceName}</p>
+              <p className="text-sm text-slate-400">{o.clientName} · {o.city}</p>
               <p className="text-emerald-400 font-bold mt-1">{formatPrice(o.total)}</p>
-              {flow && (
-                <button
-                  type="button"
-                  onClick={() => updateOrderStatus(o.id, flow.next)}
-                  className="mt-3 flex items-center justify-center gap-1 w-full py-2.5 rounded-xl partner-gradient font-semibold text-sm"
-                >
-                  {o.status === 'accepted' && <Navigation className="w-4 h-4" />}
-                  {flow.label}
+              <p className="text-xs text-slate-500 mt-1">{t('status')}: {statusLabel(o.status === 'completed' ? 'completed' : o.status === 'en_route' ? 'in_progress' : o.status === 'accepted' ? 'assigned' : o.status)}</p>
+              {step && (
+                <button type="button" onClick={() => updateOrderStatus(o.id, step.to)} className="mt-3 w-full py-2.5 rounded-xl partner-gradient font-semibold text-sm">
+                  {t(step.key)}
                 </button>
               )}
+              <textarea
+                className="mt-2 w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm"
+                placeholder={t('comment')}
+                value={comment[o.id] || o.partnerComment || ''}
+                onChange={(e) => setComment((c) => ({ ...c, [o.id]: e.target.value }))}
+                onBlur={() => saveComment(o.id)}
+              />
+              <div className="flex gap-2 mt-2">
+                <button type="button" className="text-xs text-sky-400" onClick={() => addPhoto(o.id, 'before')}>{t('photoBefore')}</button>
+                <button type="button" className="text-xs text-sky-400" onClick={() => addPhoto(o.id, 'after')}>{t('photoAfter')}</button>
+              </div>
             </li>
           )
         })}
-        {!myOrders.length && <p className="text-slate-500">Пока нет активных заказов</p>}
+        {!filtered.length && <p className="text-slate-500">{t('orders_empty')}</p>}
       </ul>
     </div>
   )

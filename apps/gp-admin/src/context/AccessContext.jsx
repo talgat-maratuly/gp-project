@@ -36,6 +36,11 @@ export function AccessProvider({ children }) {
     [user, selectedFranchiseId],
   )
 
+  const scopeList = useCallback(
+    (list) => (effectiveFranchiseId ? scopeByFranchise(list || [], effectiveFranchiseId) : list || []),
+    [effectiveFranchiseId],
+  )
+
   const scoped = useMemo(() => {
     if (!effectiveFranchiseId) return store
     return {
@@ -47,8 +52,43 @@ export function AccessProvider({ children }) {
       reviews: scopeByFranchise(store.reviews, effectiveFranchiseId),
       discounts: scopeByFranchise(store.discounts, effectiveFranchiseId),
       payouts: scopeByFranchise(store.payouts, effectiveFranchiseId),
+      shops: scopeByFranchise(store.shops || [], effectiveFranchiseId),
+      marketProducts: scopeByFranchise(store.marketProducts || [], effectiveFranchiseId),
+      marketOrders: scopeByFranchise(store.marketOrders || [], effectiveFranchiseId),
+      qrCodeObjects: scopeByFranchise(store.qrCodeObjects || [], effectiveFranchiseId),
+      qrServiceOrders: scopeByFranchise(store.qrServiceOrders || [], effectiveFranchiseId),
+      qrScanLogs: (store.qrScanLogs || []).filter((s) => {
+        const obj = (store.qrCodeObjects || []).find((o) => o.id === s.qrCodeObjectId)
+        return !effectiveFranchiseId || obj?.franchiseId === effectiveFranchiseId
+      }),
+      deliveryCompanies: (store.deliveryCompanies || []).filter(
+        (d) => !d.franchiseId || d.franchiseId === effectiveFranchiseId,
+      ),
     }
   }, [store, effectiveFranchiseId])
+
+  const scopedShops = useMemo(() => scopeList(store.shops), [store.shops, scopeList])
+  const scopedProducts = useMemo(() => scopeList(store.marketProducts), [store.marketProducts, scopeList])
+  const scopedMarketOrders = useMemo(() => scopeList(store.marketOrders), [store.marketOrders, scopeList])
+  const scopedDelivery = useMemo(() => {
+    const list = store.deliveryCompanies || []
+    if (!effectiveFranchiseId) return list
+    return list.filter((d) => !d.franchiseId || d.franchiseId === effectiveFranchiseId)
+  }, [store.deliveryCompanies, effectiveFranchiseId])
+
+  const marketStats = useMemo(() => {
+    const products = scopedProducts
+    const orders = scopedMarketOrders
+    const delivered = orders.filter((o) => o.status === 'DELIVERED')
+    return {
+      totalProducts: products.length,
+      activeProducts: products.filter((p) => p.status === 'ACTIVE').length,
+      shops: scopedShops.length,
+      orders: orders.length,
+      turnover: delivered.reduce((s, o) => s + o.finalAmount, 0),
+      problemOrders: orders.filter((o) => o.status === 'PROBLEM').length,
+    }
+  }, [scopedProducts, scopedMarketOrders, scopedShops])
 
   const stats = useMemo(() => {
     const orders = scoped.orders
@@ -56,7 +96,7 @@ export function AccessProvider({ children }) {
     return {
       totalOrders: orders.length,
       newOrders: orders.filter((o) => o.status === 'new').length,
-      inProgress: orders.filter((o) => ['assigned', 'in_progress'].includes(o.status)).length,
+      inProgress: orders.filter((o) => ['assigned', 'in_progress', 'in_work'].includes(o.status)).length,
       completed: completed.length,
       cancelled: orders.filter((o) => o.status === 'cancelled').length,
       partners: scoped.partners.length,
@@ -89,8 +129,18 @@ export function AccessProvider({ children }) {
       setSelectedFranchiseId,
       isSuperAdmin: user ? isSuperAdmin(user.role) : false,
       can: (action) => (user ? canPerform(user.role, action) : false),
+      scopedStore: scoped,
+      scopedShops,
+      scopedProducts,
+      scopedMarketOrders,
+      scopedDelivery,
+      marketStats,
+      canBlockShop: user && ['SUPER_ADMIN', 'FRANCHISE_ADMIN'].includes(user.role),
     }),
-    [scoped, stats, franchiseList, currentFranchise, effectiveFranchiseId, selectedFranchiseId, setSelectedFranchiseId, user],
+    [
+      scoped, stats, franchiseList, currentFranchise, effectiveFranchiseId, selectedFranchiseId,
+      setSelectedFranchiseId, user, scopedShops, scopedProducts, scopedMarketOrders, scopedDelivery, marketStats,
+    ],
   )
 
   return <AccessContext.Provider value={value}>{children}</AccessContext.Provider>

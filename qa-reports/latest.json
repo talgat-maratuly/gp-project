@@ -1,0 +1,190 @@
+{
+  "runAt": "2026-05-21T19:52:07.782Z",
+  "durationMs": 1240,
+  "summary": {
+    "totalTests": 63,
+    "passed": 63,
+    "failed": 0,
+    "warnings": 7,
+    "systemStatus": "degraded",
+    "successRate": 100,
+    "avgApiResponseMs": 9,
+    "serverStatus": "offline"
+  },
+  "metrics": {
+    "hunterCreated": 101,
+    "furnitureCreated": 101,
+    "marketOrdersCreated": 101,
+    "serviceOrdersCreated": 1,
+    "testUsersGenerated": 100,
+    "partnersGenerated": 50,
+    "apiReachable": false
+  },
+  "modules": [
+    {
+      "module": "Routes",
+      "tests": 22,
+      "passed": 22,
+      "failed": 0,
+      "warnings": 0,
+      "avgResponseTimeMs": 0
+    },
+    {
+      "module": "Auth",
+      "tests": 14,
+      "passed": 14,
+      "failed": 0,
+      "warnings": 0,
+      "avgResponseTimeMs": 0
+    },
+    {
+      "module": "Service Orders",
+      "tests": 6,
+      "passed": 6,
+      "failed": 0,
+      "warnings": 0,
+      "avgResponseTimeMs": 2
+    },
+    {
+      "module": "Hunter",
+      "tests": 3,
+      "passed": 3,
+      "failed": 0,
+      "warnings": 0,
+      "avgResponseTimeMs": 3
+    },
+    {
+      "module": "Furniture",
+      "tests": 2,
+      "passed": 2,
+      "failed": 0,
+      "warnings": 0,
+      "avgResponseTimeMs": 1
+    },
+    {
+      "module": "GP Market",
+      "tests": 3,
+      "passed": 3,
+      "failed": 0,
+      "warnings": 0,
+      "avgResponseTimeMs": 1
+    },
+    {
+      "module": "Data",
+      "tests": 2,
+      "passed": 2,
+      "failed": 0,
+      "warnings": 0,
+      "avgResponseTimeMs": 0
+    },
+    {
+      "module": "Stress",
+      "tests": 5,
+      "passed": 5,
+      "failed": 0,
+      "warnings": 0,
+      "avgResponseTimeMs": 10
+    },
+    {
+      "module": "API",
+      "tests": 6,
+      "passed": 6,
+      "failed": 0,
+      "warnings": 7,
+      "avgResponseTimeMs": 9
+    }
+  ],
+  "errors": [],
+  "warnings": [
+    {
+      "module": "API",
+      "message": "fetch failed",
+      "at": "2026-05-21T19:52:07.778Z"
+    },
+    {
+      "module": "API",
+      "message": "/health/full → fetch failed (API may be down)",
+      "at": "2026-05-21T19:52:07.779Z"
+    },
+    {
+      "module": "API",
+      "message": "/products → fetch failed (API may be down)",
+      "at": "2026-05-21T19:52:07.780Z"
+    },
+    {
+      "module": "API",
+      "message": "/market/products → fetch failed (API may be down)",
+      "at": "2026-05-21T19:52:07.780Z"
+    },
+    {
+      "module": "API",
+      "message": "/market/products?linkedServiceType=hunter_irrigation → fetch failed (API may be down)",
+      "at": "2026-05-21T19:52:07.781Z"
+    },
+    {
+      "module": "API",
+      "message": "/auth/login → fetch failed (API may be down)",
+      "at": "2026-05-21T19:52:07.782Z"
+    },
+    {
+      "module": "API",
+      "message": "Backend offline — API tests skipped (demo store tests still valid)",
+      "at": "2026-05-21T19:52:07.782Z"
+    }
+  ],
+  "slowApis": [],
+  "brokenPages": [],
+  "failedRequests": [
+    {
+      "method": "GET",
+      "path": "/health",
+      "ms": 47,
+      "status": 0,
+      "error": "fetch failed"
+    },
+    {
+      "method": "GET",
+      "path": "/health/full",
+      "ms": 1,
+      "status": 0,
+      "error": "fetch failed"
+    },
+    {
+      "method": "GET",
+      "path": "/products",
+      "ms": 1,
+      "status": 0,
+      "error": "fetch failed"
+    },
+    {
+      "method": "GET",
+      "path": "/market/products",
+      "ms": 1,
+      "status": 0,
+      "error": "fetch failed"
+    },
+    {
+      "method": "GET",
+      "path": "/market/products?linkedServiceType=hunter_irrigation",
+      "ms": 1,
+      "status": 0,
+      "error": "fetch failed"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/login",
+      "ms": 1,
+      "status": 0,
+      "error": "fetch failed"
+    }
+  ],
+  "dataLoss": [],
+  "duplicateIssues": [],
+  "logs": {
+    "testLog": "qa-logs/test-run.log",
+    "apiLog": "qa-logs/api-requests.json",
+    "failedLog": "qa-logs/failed-requests.json"
+  },
+  "e2e": null,
+  "note": "Store/API: npm run qa:all · UI: npm run qa:e2e · Full: npm run qa:full"
+}

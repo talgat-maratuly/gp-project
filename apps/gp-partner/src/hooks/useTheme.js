@@ -1,21 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 
-const KEY = 'gp-partner-theme'
-
+/** GP Partner — всегда светлая тема (читаемый текст) */
 export function useTheme() {
-  const [dark, setDark] = useState(() => {
-    if (typeof window === 'undefined') return false
-    const saved = localStorage.getItem(KEY)
-    if (saved === 'dark') return true
-    if (saved === 'light') return false
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
-  })
-
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', dark)
-    document.documentElement.dataset.theme = dark ? 'dark' : 'light'
-    localStorage.setItem(KEY, dark ? 'dark' : 'light')
-  }, [dark])
+    document.documentElement.classList.remove('dark')
+    document.documentElement.dataset.theme = 'light'
+    localStorage.setItem('gp-partner-theme', 'light')
+  }, [])
 
-  return { dark, toggle: () => setDark((d) => !d) }
+  return { dark: false, toggle: () => {} }
 }

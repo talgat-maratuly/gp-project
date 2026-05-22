@@ -5,9 +5,10 @@ import { PartnersModule } from '../partners/partners.module';
 import { PartnerBalanceModule } from '../partner-balance/partner-balance.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { GeoModule } from '../geo/geo.module';
+import { FurnitureExecutorModule } from '../furniture-executor/furniture-executor.module';
 
 @Module({
-  imports: [PartnersModule, PartnerBalanceModule, NotificationsModule, GeoModule],
+  imports: [PartnersModule, PartnerBalanceModule, NotificationsModule, GeoModule, FurnitureExecutorModule],
   controllers: [OrdersController],
   providers: [OrdersService],
   exports: [OrdersService],

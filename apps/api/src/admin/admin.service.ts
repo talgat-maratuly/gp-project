@@ -82,6 +82,7 @@ export class AdminService {
       },
     });
     await this.partners.syncDirectionsFromOfferings(offering.partnerId);
+    await this.partners.syncServiceAccessFromOfferings(offering.partnerId);
     return updated;
   }
 }

@@ -49,6 +49,21 @@ enum OrderCategory {
   ELECTRICAL
 }
 
+enum ServiceProjectType {
+  hunter_irrigation
+  furniture
+}
+
+enum ServiceProjectStatus {
+  draft
+  submitted
+  review
+  assigned
+  in_progress
+  completed
+  cancelled
+}
+
 enum OrderStatus {
   NEW
   ACCEPTED
@@ -110,6 +125,8 @@ model User {
 
   clientProfile  ClientProfile?
   partnerProfile PartnerProfile?
+  refreshTokens  AuthRefreshToken[]
+  devices        UserDevice[]
 }
 
 model ClientProfile {
@@ -125,6 +142,7 @@ model ClientProfile {
   createdAt DateTime    @default(now())
 
   orders Order[]
+  serviceProjects ServiceProject[]
 }
 
 model PartnerProfile {
@@ -142,6 +160,8 @@ model PartnerProfile {
   /** Необязательный код приглашения при регистрации */
   referralCode String?
   directions   PartnerDirection[]
+  /// furniture_manufacturing | furniture_assembly | furniture_repair
+  serviceAccess FurnitureServiceType[] @default([])
   balance    Decimal            @default(10000) @db.Decimal(12, 2)
   isOnline   Boolean            @default(false)
   lat        Float?             @default(51.243)
@@ -152,11 +172,45 @@ model PartnerProfile {
 
   products     Product[]
   orders       Order[]              @relation("AssignedPartner")
+  qrCodeObjects QRCodeObject[]
+  qrServiceOrders QRServiceOrder[] @relation("QrAssignedPartner")
   transactions BalanceTransaction[]
   geoUpdates   GeoUpdate[]
   serviceOfferings PartnerServiceOffering[]
   gpsPoints    GpsPoint[]
   trips        Trip[]
+  serviceProjects ServiceProject[] @relation("AssignedPartnerProjects")
+  furnitureExecutorOrders FurnitureExecutorOrder[] @relation("FurnitureExecutorPartner")
+}
+
+enum FurnitureServiceType {
+  furniture_manufacturing
+  furniture_assembly
+  furniture_repair
+}
+
+model FurnitureExecutorOrder {
+  id                String              @id @default(uuid())
+  serviceType       FurnitureServiceType
+  serviceProjectId  String?             @unique
+  clientName        String
+  phone             String
+  address           String
+  comment           String?
+  city              String?             @default("Уральск")
+  status            QrOrderStatus       @default(new)
+  assignedPartnerId String?
+  partner           PartnerProfile?     @relation("FurnitureExecutorPartner", fields: [assignedPartnerId], references: [id])
+  executorInternal  Boolean             @default(true)
+  totalPrice        Float               @default(0)
+  gpCommission      Float               @default(0)
+  franchiseId       String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@index([assignedPartnerId])
+  @@index([serviceType])
+  @@index([status])
 }
 
 /** Подуслуга партнёра с отдельным статусом модерации (не блокирует весь аккаунт). */
@@ -189,10 +243,75 @@ model Product {
   /** Многострочные характеристики: обычно «Название: значение» по одной строке */
   specifications String?
   inStock     Boolean  @default(true)
+  /// hunter_irrigation | furniture — связь с GP Market / расчётами
+  linkedServiceType String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   orderItems OrderItem[]
+  qrCodeObjects QRCodeObject[]
+}
+
+model ServiceProject {
+  id            String               @id @default(uuid())
+  type          ServiceProjectType
+  status        ServiceProjectStatus @default(draft)
+  clientId      String
+  client        ClientProfile        @relation(fields: [clientId], references: [id])
+  partnerId     String?
+  partner       PartnerProfile?      @relation("AssignedPartnerProjects", fields: [partnerId], references: [id])
+  totalPrice    Decimal              @db.Decimal(12, 2)
+  gpCommission  Decimal              @default(0) @db.Decimal(12, 2)
+  franchiseId   String?
+  city          String?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  hunter    HunterIrrigationProject?
+  furniture FurnitureProject?
+
+  @@index([clientId])
+  @@index([partnerId])
+  @@index([type, status])
+}
+
+model HunterIrrigationProject {
+  id               String         @id @default(uuid())
+  serviceProjectId String         @unique
+  serviceProject   ServiceProject @relation(fields: [serviceProjectId], references: [id], onDelete: Cascade)
+  photo            String?
+  length           Float
+  width            Float
+  area             Float
+  waterSource      String
+  pressure         Float
+  waterFlow        Float
+  zones            Int
+  sprinklers       Json
+  pipes            Json
+  valves           Json
+  controller       Json
+  estimate         Json
+  drawing2D        Json
+}
+
+model FurnitureProject {
+  id               String         @id @default(uuid())
+  serviceProjectId String         @unique
+  serviceProject   ServiceProject @relation(fields: [serviceProjectId], references: [id], onDelete: Cascade)
+  photo            String?
+  roomWidth        Float
+  roomHeight       Float
+  furnitureLength  Float
+  furnitureDepth   Float
+  material         String
+  facadeMaterial   String
+  color            String
+  modules          Int
+  parts            Json
+  hardware         Json
+  estimate         Json
+  drawing2D        Json
 }
 
 model Order {
@@ -367,4 +486,167 @@ model DisposalEvent {
 
   @@index([orderId])
   @@index([createdAt])
+}
+
+enum QrObjectType {
+  filter
+  irrigation
+  furniture
+  septic
+  lawn
+  flowerbed
+  equipment
+  other
+}
+
+enum QrServiceType {
+  filter_replacement
+  irrigation_service
+  furniture_repair
+  furniture_assembly
+  septic_pumping
+  lawn_care
+  flowerbed_care
+  equipment_repair
+  other_service
+}
+
+enum QrObjectStatus {
+  active
+  inactive
+  archived
+}
+
+enum QrOrderStatus {
+  new
+  assigned
+  accepted
+  on_the_way
+  in_progress
+  completed
+  cancelled
+}
+
+model QRCodeObject {
+  id              String         @id @default(uuid())
+  qrCode          String         @unique
+  title           String
+  type            QrObjectType
+  serviceType     QrServiceType
+  objectId        String?
+  productId       String?
+  product         Product?       @relation(fields: [productId], references: [id])
+  clientId        String?
+  partnerId       String?
+  partner         PartnerProfile? @relation(fields: [partnerId], references: [id])
+  address         String
+  city            String         @default("")
+  description     String?
+  photo           String?
+  lastServiceDate DateTime?
+  nextServiceDate DateTime?
+  status          QrObjectStatus @default(active)
+  phone           String?
+  franchiseId     String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  orders          QRServiceOrder[]
+  scanLogs        QRScanLog[]
+
+  @@index([franchiseId])
+  @@index([partnerId])
+}
+
+model QRServiceOrder {
+  id                 String         @id @default(uuid())
+  qrCodeObjectId     String
+  qrCodeObject       QRCodeObject   @relation(fields: [qrCodeObjectId], references: [id])
+  qrCode             String
+  serviceType        QrServiceType
+  clientName         String
+  phone              String
+  address            String
+  comment            String?
+  photo              String?
+  status             QrOrderStatus  @default(new)
+  assignedPartnerId  String?
+  partner            PartnerProfile? @relation("QrAssignedPartner", fields: [assignedPartnerId], references: [id])
+  totalPrice         Float          @default(0)
+  gpCommission       Float          @default(0)
+  franchiseId        String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  @@index([qrCode])
+  @@index([assignedPartnerId])
+  @@index([status])
+}
+
+enum OtpChannel {
+  sms
+  whatsapp
+}
+
+model OtpChallenge {
+  id        String     @id @default(uuid())
+  phone     String
+  codeHash  String
+  channel   OtpChannel
+  expiresAt DateTime
+  attempts  Int        @default(0)
+  verified  Boolean    @default(false)
+  createdAt DateTime   @default(now())
+
+  @@index([phone, createdAt])
+}
+
+model AuthRefreshToken {
+  id         String    @id @default(uuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String    @unique
+  familyId   String
+  deviceId   String
+  deviceName String?
+  platform   String?
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+  @@index([familyId])
+  @@index([deviceId])
+}
+
+model UserDevice {
+  id                 String    @id @default(uuid())
+  userId             String
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceId           String
+  deviceName         String?
+  platform           String?
+  trustedAt          DateTime?
+  lastSeenAt         DateTime  @default(now())
+  biometricEnabled   Boolean   @default(false)
+  pushToken          String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@unique([userId, deviceId])
+  @@index([userId])
+}
+
+model QRScanLog {
+  id             String       @id @default(uuid())
+  qrCodeObjectId String
+  qrCodeObject   QRCodeObject @relation(fields: [qrCodeObjectId], references: [id], onDelete: Cascade)
+  qrCode         String
+  scannedAt      DateTime     @default(now())
+  userAgent      String?
+  ipAddress      String?
+  deviceType     String?
+  action         String       @default("view")
+
+  @@index([qrCodeObjectId])
+  @@index([scannedAt])
 }

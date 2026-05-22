@@ -1,83 +1,39 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { CheckCircle, Package, RefreshCw, Wrench } from 'lucide-react'
+import { CheckCircle, Package, RefreshCw, Wrench, Pencil, X } from 'lucide-react'
 import { formatDate, formatPrice } from '@gp/shared/utils'
-import {
-  getClientCategoryLabel,
-  getClientStatusMessage,
-  getMapStatusText,
-  getOrderStatusLabel,
-  formatOrderSchedule,
-  LAWN_WORK_TYPES,
-} from '@gp/shared/constants'
-import { api } from '@gp/shared/api'
-import { buildMockTracking } from '@gp/shared/utils'
-import { URALSK_DISPOSAL_ZONES } from '@gp/shared/constants'
-import { subscribeOrderTracking } from '@gp/shared/api/trackingSocket'
+import { useLanguage, useOrderStatusLabel } from '../../i18n'
 import { useService } from '../../context/ServiceContext'
-import LiveTrackingMap from '../../components/LiveTrackingMap'
-import { KaspiButton, KaspiCard, SkeletonBlock, StatusTimeline } from '@gp/shared/ui/KaspiUI'
-
-const SEPTIC_STEPS = [
-  { id: 'accepted', label: 'Принят' },
-  { id: 'on_way', label: 'Выехал' },
-  { id: 'on_site', label: 'У вас' },
-  { id: 'started', label: 'Откачка' },
-  { id: 'loaded', label: 'Загружен' },
-  { id: 'disposal_arrived', label: 'На сливе' },
-  { id: 'disposal_completed', label: 'Слит' },
-  { id: 'done', label: 'Готово' },
-]
-
-const SEPTIC_STATUS_INDEX = {
-  new: 0, accepted: 0, on_way: 1, on_site: 2, started: 3, loaded: 4,
-  disposal_arrived: 5, disposal_completed: 6, done: 7, client_confirmed: 7,
-}
-
-function statusToIndex(status) {
-  return SEPTIC_STATUS_INDEX[status] ?? 0
-}
+import { KaspiButton, KaspiCard, SkeletonBlock } from '@gp/shared/ui/KaspiUI'
 
 export default function OrdersPage() {
-  const { allOrders, refreshOrders, confirmOrder, isLoggedIn, ordersLoading, notify } = useService()
+  const { t } = useLanguage()
+  const statusLabel = useOrderStatusLabel()
+  const {
+    allOrders, refreshOrders, isLoggedIn, ordersLoading, notify,
+    isDemoMode, cancelOrder, updateClientOrder,
+  } = useService()
   const [params, setParams] = useSearchParams()
   const [success, setSuccess] = useState(null)
   const [expanded, setExpanded] = useState(null)
-  const [confirming, setConfirming] = useState(null)
   const [refreshing, setRefreshing] = useState(false)
-  const [tracking, setTracking] = useState(null)
-  const [geofences, setGeofences] = useState(URALSK_DISPOSAL_ZONES)
-
-  const trackOrder = allOrders.find(
-    (o) => o.category === 'septic' && !['new', 'cancelled', 'done', 'client_confirmed'].includes(o.status),
-  )
-
-  useEffect(() => {
-    api.getGeofences().then((z) => setGeofences(z?.length ? z : URALSK_DISPOSAL_ZONES)).catch(() => {})
-  }, [])
-
-  useEffect(() => {
-    if (!trackOrder?.id) {
-      setTracking(null)
-      return undefined
-    }
-    api.getOrderTracking(trackOrder.id).then(setTracking).catch(() => setTracking(buildMockTracking(trackOrder, geofences)))
-    return subscribeOrderTracking(trackOrder.id, (t) => setTracking(t || buildMockTracking(trackOrder, geofences)))
-  }, [trackOrder?.id, trackOrder?.status, geofences])
-
-  const mapTracking = tracking || (trackOrder ? buildMockTracking(trackOrder, geofences) : null)
+  const [editId, setEditId] = useState(null)
+  const [editForm, setEditForm] = useState({ address: '', note: '' })
 
   useEffect(() => {
     const id = params.get('success')
-    if (id) { setSuccess(id); setParams({}, { replace: true }) }
+    if (id) {
+      setSuccess(id)
+      setParams({}, { replace: true })
+    }
   }, [params, setParams])
 
   useEffect(() => {
     if (!isLoggedIn) return
     refreshOrders()
-    const t = setInterval(refreshOrders, 6000)
-    return () => clearInterval(t)
-  }, [isLoggedIn, refreshOrders])
+    const iv = setInterval(refreshOrders, isDemoMode ? 3000 : 6000)
+    return () => clearInterval(iv)
+  }, [isLoggedIn, refreshOrders, isDemoMode])
 
   const pullRefresh = async () => {
     setRefreshing(true)
@@ -85,64 +41,46 @@ export default function OrdersPage() {
     setRefreshing(false)
   }
 
-  const handleConfirm = async (orderId) => {
-    setConfirming(orderId)
+  const openEdit = (o) => {
+    setEditId(o.id)
+    setEditForm({ address: o.address || '', note: o.note || '' })
+  }
+
+  const saveEdit = async () => {
     try {
-      await confirmOrder(orderId)
-    } catch (err) {
-      notify(err?.message || 'Не удалось подтвердить', 'error')
-    } finally {
-      setConfirming(null)
+      await updateClientOrder(editId, editForm)
+      setEditId(null)
+    } catch (e) {
+      notify(e.message, 'error')
     }
   }
 
   return (
     <div className="px-4 py-4 gp-animate-in">
       <div className="flex items-center justify-between mb-5">
-        <h1 className="text-2xl font-extrabold">Заказы</h1>
+        <h1 className="text-2xl font-extrabold">{t('orders_title')}</h1>
         <button
           type="button"
           onClick={pullRefresh}
           className="p-3 rounded-2xl bg-[var(--gp-surface)] border border-[var(--gp-border)] shadow-sm"
-          aria-label="Обновить"
+          aria-label={t('refresh')}
         >
           <RefreshCw className={`w-5 h-5 ${refreshing || ordersLoading ? 'animate-spin' : ''}`} />
         </button>
       </div>
 
-      {trackOrder && mapTracking && (
-        <KaspiCard className="!p-0 overflow-hidden mb-4">
-          <div className="p-4 border-b border-[var(--gp-border)]">
-            <p className="font-extrabold">{trackOrder.serviceName || 'Септик'}</p>
-            <p className="text-sm text-emerald-600 font-semibold mt-1">
-              {getClientStatusMessage(trackOrder.status)}
-            </p>
-            {mapTracking.distanceKm != null && (
-              <p className="text-xs text-[var(--gp-text-muted)] mt-1">
-                ~{mapTracking.distanceKm} км
-                {mapTracking.etaMinutes != null && ` · ETA ${mapTracking.etaMinutes} мин`}
-              </p>
-            )}
-            {mapTracking.illegalDisposal && (
-              <p className="text-xs font-bold text-red-600 mt-2">⚠ Зафиксирован подозрительный слив</p>
-            )}
-          </div>
-          <LiveTrackingMap tracking={mapTracking} className="h-64" />
-        </KaspiCard>
-      )}
-
       {success && (
         <KaspiCard className="!p-4 mb-4 flex gap-3 border-emerald-200 bg-emerald-50 dark:bg-emerald-900/20">
           <CheckCircle className="w-6 h-6 text-emerald-600 shrink-0" />
-          <p className="text-sm font-medium">Заказ <strong>{success}</strong> создан</p>
+          <p className="text-sm font-medium">{t('order_created')}: <strong>{success}</strong></p>
         </KaspiCard>
       )}
 
       {!isLoggedIn ? (
         <KaspiCard className="!p-6 text-center">
-          <p className="text-[var(--gp-text-muted)] mb-4">Войдите, чтобы видеть заказы</p>
+          <p className="text-[var(--gp-text-muted)] mb-4">{t('orders_login_prompt')}</p>
           <Link to="/login" className="inline-block w-full">
-            <KaspiButton>Войти</KaspiButton>
+            <KaspiButton>{t('login')}</KaspiButton>
           </Link>
         </KaspiCard>
       ) : ordersLoading && !allOrders.length ? (
@@ -151,48 +89,54 @@ export default function OrdersPage() {
           <SkeletonBlock className="h-28" />
         </div>
       ) : !allOrders.length ? (
-        <KaspiCard className="!p-8 text-center text-[var(--gp-text-muted)]">Заказов пока нет</KaspiCard>
+        <KaspiCard className="!p-8 text-center text-[var(--gp-text-muted)]">{t('orders_empty')}</KaspiCard>
       ) : (
         <ul className="space-y-3">
           {allOrders.map((o) => {
             const open = expanded === o.id
-            const showMap = ['accepted', 'on_way', 'on_site', 'started', 'in_progress', 'done'].includes(o.status)
-            const lawnLabel = LAWN_WORK_TYPES.find((t) => t.id === o.lawnWorkType)?.label
-
+            const st = o.rawStatus || o.status
             return (
               <li key={o.id}>
                 <KaspiCard className="!p-0 overflow-hidden">
                   <button type="button" className="w-full p-4 text-left" onClick={() => setExpanded(open ? null : o.id)}>
                     <div className="flex justify-between mb-2">
                       <span className="font-bold flex items-center gap-2 text-sm">
-                        {o.kind === 'shop' ? <Package className="w-4 h-4 text-blue-600" /> : <Wrench className="w-4 h-4 text-emerald-600" />}
-                        {getClientCategoryLabel(o.category)}
+                        {o.kind === 'shop' ? <Package className="w-4 h-4" /> : <Wrench className="w-4 h-4 text-emerald-600" />}
+                        {o.city}
                       </span>
                       <span className="text-xs px-2.5 py-1 rounded-full bg-[var(--gp-surface-2)] font-bold">
-                        {getOrderStatusLabel(o.status)}
+                        {o.kind === 'market'
+                          ? t(`market_status_${st}`)
+                          : statusLabel(
+                            st === 'done' ? 'completed'
+                            : st === 'accepted' ? 'assigned'
+                            : st === 'on_way' ? 'in_progress'
+                            : st === 'in_work' ? 'in_work'
+                            : st,
+                          )}
                       </span>
                     </div>
                     <p className="font-extrabold">{o.serviceName || o.id}</p>
-                    <p className="text-sm text-emerald-600 font-semibold mt-1">{getClientStatusMessage(o.status)}</p>
-                    {formatOrderSchedule(o) && (
-                      <p className="text-xs text-[var(--gp-text-muted)] mt-1">{formatOrderSchedule(o)}</p>
-                    )}
                     <p className="text-lg font-extrabold gp-text-gradient mt-2">{formatPrice(o.total)}</p>
                     <p className="text-xs text-[var(--gp-text-muted)] mt-1">{formatDate(o.createdAt)}</p>
                   </button>
-
                   {open && (
-                    <div className="px-4 pb-4 border-t border-[var(--gp-border)] pt-4 space-y-4">
-                      {o.category === 'septic' && open && (
-                        <StatusTimeline steps={SEPTIC_STEPS} currentIndex={statusToIndex(o.status)} />
+                    <div className="px-4 pb-4 border-t border-[var(--gp-border)] pt-4 space-y-2">
+                      <p className="text-sm">{o.address}</p>
+                      {o.partnerName && <p className="text-xs text-[var(--gp-text-muted)]">{t('partner')}: {o.partnerName}</p>}
+                      {isDemoMode && o.canEdit && (
+                        <button type="button" className="flex items-center gap-2 text-sm text-sky-600 font-semibold" onClick={() => openEdit(o)}>
+                          <Pencil className="w-4 h-4" /> {t('editOrder')}
+                        </button>
                       )}
-                      {o.category === 'lawn' && o.lawnAreaSqm && (
-                        <p className="text-sm">{o.lawnAreaSqm} м² · {lawnLabel}</p>
-                      )}
-                      {o.status === 'done' && (
-                        <KaspiButton size="md" disabled={confirming === o.id} onClick={() => handleConfirm(o.id)}>
-                          {confirming === o.id ? '…' : 'Подтвердить выполнение'}
-                        </KaspiButton>
+                      {isDemoMode && o.canCancel && st === 'new' && (
+                        <button
+                          type="button"
+                          className="flex items-center gap-2 text-sm text-red-600 font-semibold"
+                          onClick={() => cancelOrder(o.id)}
+                        >
+                          <X className="w-4 h-4" /> {t('cancelOrder')}
+                        </button>
                       )}
                     </div>
                   )}
@@ -201,6 +145,26 @@ export default function OrdersPage() {
             )
           })}
         </ul>
+      )}
+
+      {editId && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-[var(--gp-surface)] p-5 space-y-3">
+            <h3 className="font-bold">{t('editOrder')}</h3>
+            <label className="block text-sm">
+              <span className="text-xs text-[var(--gp-text-muted)]">{t('address')}</span>
+              <input className="w-full mt-1 rounded-xl border px-3 py-2" value={editForm.address} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} />
+            </label>
+            <label className="block text-sm">
+              <span className="text-xs text-[var(--gp-text-muted)]">{t('comment')}</span>
+              <textarea className="w-full mt-1 rounded-xl border px-3 py-2" rows={2} value={editForm.note} onChange={(e) => setEditForm({ ...editForm, note: e.target.value })} />
+            </label>
+            <div className="flex gap-2">
+              <KaspiButton className="flex-1" onClick={saveEdit}>{t('save')}</KaspiButton>
+              <button type="button" className="px-4 py-2 rounded-xl border" onClick={() => setEditId(null)}>{t('cancel')}</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

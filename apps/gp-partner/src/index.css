@@ -26,4 +26,10 @@
   .safe-pb {
     padding-bottom: calc(var(--gp-nav-h) + var(--gp-safe-bottom) + 0.75rem);
   }
+  .partner-card {
+    @apply rounded-2xl border border-[var(--gp-border)] bg-[var(--gp-surface)] text-[var(--gp-text)] shadow-[var(--gp-shadow-sm)];
+  }
+  .partner-muted {
+    color: var(--gp-text-muted);
+  }
 }

@@ -12,7 +12,7 @@ const MVP_PORTS = [
 ]
 
 /** Vite fallback / admin — тоже чистим, чтобы не мешали */
-const EXTRA_PORTS = [5175, 5176]
+const EXTRA_PORTS = [5175, 5176, 5190]
 
 function pidsOnPort(port) {
   try {

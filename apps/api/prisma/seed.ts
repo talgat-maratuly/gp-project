@@ -9,6 +9,7 @@ import {
 } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { expandDirectionsToSubservices } from '../src/common/partner-offerings.util';
+import { FURNITURE_EXECUTOR_ACCESS_IDS } from '../src/common/furniture-executor.util';
 import { SHOP_CATALOG, toProductSeedRow } from './shop-catalog';
 
 const prisma = new PrismaClient();
@@ -74,9 +75,12 @@ async function main() {
   const partnerId = partnerUser.partnerProfile!.id;
   const clientId = clientUser.clientProfile!.id;
 
-  const demoSubserviceIds = expandDirectionsToSubservices([
-    ...partnerUser.partnerProfile!.directions,
-  ]);
+  const demoSubserviceIds = [
+    ...new Set([
+      ...expandDirectionsToSubservices([...partnerUser.partnerProfile!.directions]),
+      ...FURNITURE_EXECUTOR_ACCESS_IDS,
+    ]),
+  ];
   await prisma.partnerServiceOffering.createMany({
     data: demoSubserviceIds.map((subserviceId) => ({
       partnerId,
@@ -84,6 +88,10 @@ async function main() {
       status: PartnerOfferingStatus.ACTIVE,
     })),
     skipDuplicates: true,
+  });
+  await prisma.partnerProfile.update({
+    where: { id: partnerId },
+    data: { serviceAccess: [...FURNITURE_EXECUTOR_ACCESS_IDS] },
   });
 
   let shopCount = 0;

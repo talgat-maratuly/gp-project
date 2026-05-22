@@ -1,22 +1,25 @@
 import { NavLink } from 'react-router-dom'
 import { ClipboardList, Home, ShoppingBag, User, Package } from 'lucide-react'
+import { useLanguage } from '../../i18n'
 
 const ITEMS = [
-  { to: '/', icon: Home, label: 'Главная', end: true },
-  { to: '/services', icon: ClipboardList, label: 'Услуги' },
-  { to: '/shop', icon: ShoppingBag, label: 'Магазин' },
-  { to: '/orders', icon: Package, label: 'Заказы' },
-  { to: '/profile', icon: User, label: 'Профиль' },
+  { to: '/', icon: Home, labelKey: 'nav_home', end: true },
+  { to: '/services', icon: ClipboardList, labelKey: 'nav_services' },
+  { to: '/shop', icon: ShoppingBag, labelKey: 'nav_shop' },
+  { to: '/orders', icon: Package, labelKey: 'nav_orders' },
+  { to: '/profile', icon: User, labelKey: 'nav_profile' },
 ]
 
 export default function BottomNav() {
+  const { t } = useLanguage()
+
   return (
     <nav
       className="fixed bottom-0 inset-x-0 z-50 bg-[var(--gp-surface)]/95 backdrop-blur-xl border-t border-[var(--gp-border)] shadow-[var(--gp-shadow-md)] pb-[env(safe-area-inset-bottom)]"
       style={{ height: 'var(--gp-nav-h)' }}
     >
       <div className="flex max-w-2xl mx-auto h-full items-stretch px-1">
-        {ITEMS.map(({ to, icon: Icon, label, end }) => (
+        {ITEMS.map(({ to, icon: Icon, labelKey, end }) => (
           <NavLink
             key={to}
             to={to}
@@ -32,7 +35,7 @@ export default function BottomNav() {
             {({ isActive }) => (
               <>
                 <Icon className="w-5 h-5" strokeWidth={isActive ? 2.5 : 2} />
-                <span>{label}</span>
+                <span>{t(labelKey)}</span>
               </>
             )}
           </NavLink>

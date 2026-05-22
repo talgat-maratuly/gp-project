@@ -1,24 +1,27 @@
-import { NavLink, Navigate, Outlet } from 'react-router-dom'
-import { ClipboardList, LayoutDashboard, Map, Store, User, Wallet } from 'lucide-react'
+import { Link, NavLink, Navigate, Outlet } from 'react-router-dom'
+import { ClipboardList, LayoutDashboard, Map, Store, User } from 'lucide-react'
+import LanguageSwitcher from '@gp/shared/components/LanguageSwitcher'
+import { useLanguage } from '../i18n'
 import { usePartner } from '../context/PartnerContext'
 import { useTheme } from '../hooks/useTheme'
 
 const NAV = [
-  { to: '/', icon: LayoutDashboard, label: 'Главная', end: true },
-  { to: '/orders', icon: ClipboardList, label: 'Заявки' },
-  { to: '/shop', icon: Store, label: 'Магазин' },
-  { to: '/map', icon: Map, label: 'Карта' },
-  { to: '/profile', icon: User, label: 'Профиль' },
+  { to: '/', icon: LayoutDashboard, labelKey: 'nav_home', end: true },
+  { to: '/orders', icon: ClipboardList, labelKey: 'nav_orders' },
+  { to: '/shop', icon: Store, labelKey: 'market_my_shop' },
+  { to: '/map', icon: Map, labelKey: 'nav_map' },
+  { to: '/profile', icon: User, labelKey: 'nav_profile' },
 ]
 
 export default function PartnerShell() {
   const { user, authReady, setOnline } = usePartner()
-  const { dark, toggle } = useTheme()
+  useTheme()
+  const { t } = useLanguage()
 
   if (!authReady) {
     return (
       <div className="min-h-screen gp-app-bg flex items-center justify-center text-[var(--gp-text-muted)]">
-        Загрузка…
+        {t('loading')}
       </div>
     )
   }
@@ -29,12 +32,13 @@ export default function PartnerShell() {
       <header className="sticky top-0 z-40 bg-[var(--gp-surface)]/90 backdrop-blur-md border-b border-[var(--gp-border)] shadow-[var(--gp-shadow-sm)]">
         <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
           <div className="min-w-0">
-            <span className="font-extrabold text-lg gp-text-gradient">GP Partner</span>
+            <span className="font-extrabold text-lg gp-text-gradient">{t('app_partner')}</span>
             <p className="text-[10px] text-[var(--gp-text-muted)] truncate leading-none mt-0.5">
               {user.company || user.name}
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <LanguageSwitcher className="!border-[var(--gp-border)] scale-90" />
             <button
               type="button"
               onClick={toggle}
@@ -51,7 +55,7 @@ export default function PartnerShell() {
                   : 'bg-[var(--gp-surface-2)] text-[var(--gp-text-muted)]'
               }`}
             >
-              {user.isOnline ? 'На линии' : 'Оффлайн'}
+              {user.isOnline ? t('online') : t('offline')}
             </button>
           </div>
         </div>
@@ -61,7 +65,7 @@ export default function PartnerShell() {
       </main>
       <nav className="fixed bottom-0 inset-x-0 z-50 bg-[var(--gp-surface)]/95 backdrop-blur-xl border-t border-[var(--gp-border)] shadow-[var(--gp-shadow-md)] pb-[env(safe-area-inset-bottom)]" style={{ height: 'var(--gp-nav-h)' }}>
         <div className="flex max-w-lg mx-auto h-full items-stretch px-1">
-          {NAV.map(({ to, icon: Icon, label, end }) => (
+          {NAV.map(({ to, icon: Icon, labelKey, end }) => (
             <NavLink
               key={to}
               to={to}
@@ -75,7 +79,7 @@ export default function PartnerShell() {
               {({ isActive }) => (
                 <>
                   <Icon className="w-5 h-5" strokeWidth={isActive ? 2.5 : 2} />
-                  {label}
+                  {t(labelKey)}
                 </>
               )}
             </NavLink>

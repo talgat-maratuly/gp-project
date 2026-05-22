@@ -16,10 +16,15 @@ import { KaspiButton, KaspiCard, SkeletonBlock } from '@gp/shared/ui/KaspiUI'
 import { SERVICE_CATALOG } from '../../data/services'
 import ProductCard from '../shop/ProductCard'
 import { useService } from '../../context/ServiceContext'
+import * as demoApi from '../../lib/demoApi'
 import OrderMap from '../../components/OrderMap'
 
 const ICONS = { Droplets, Truck, Sprout, Zap }
 const QUICK = ['septic-pumping', 'irrigation-tuning', 'lawn-trim']
+const DEMO_QR_LINKS = [
+  { code: 'QR-FILTER-001', label: 'Фильтр (демо QR)' },
+  { code: 'QR-IRRIGATION-001', label: 'Автополив (демо QR)' },
+]
 
 const LIVE_STEPS = [
   { id: 'search', label: 'Поиск' },
@@ -45,7 +50,10 @@ function statusToLiveIndex(status) {
 
 export default function HomePage() {
   const navigate = useNavigate()
-  const { recommendations, products, productsLoading, orders, ordersLoading, favorites, refreshOrders } = useService()
+  const {
+    recommendations, products, productsLoading, orders, ordersLoading, favorites, refreshOrders,
+    isDemoMode, demoFranchises, profile, setProfile, isLoggedIn,
+  } = useService()
 
   const quickServices = QUICK.map((id) => SERVICE_CATALOG.find((s) => s.id === id)).filter(Boolean)
   const activeOrder = useMemo(
@@ -56,6 +64,24 @@ export default function HomePage() {
 
   return (
     <div className="pb-4 gp-animate-in">
+      {isDemoMode && isLoggedIn && demoFranchises?.length > 0 && (
+        <div className="px-4 pt-3">
+          <label className="text-xs font-bold text-[var(--gp-text-muted)] block mb-1">Город / франшиза</label>
+          <select
+            className="w-full rounded-xl border border-[var(--gp-border)] bg-[var(--gp-surface)] px-3 py-2.5 text-sm"
+            value={profile.city}
+            onChange={(e) => {
+              const fr = demoFranchises.find((f) => f.city === e.target.value)
+              setProfile((p) => ({ ...p, city: e.target.value, franchiseId: fr?.id }))
+              demoApi.updateDemoSession({ city: e.target.value, franchiseId: fr?.id })
+            }}
+          >
+            {demoFranchises.map((f) => (
+              <option key={f.id} value={f.city}>{f.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
       <section className="gp-gradient-kaspi text-white px-5 pt-6 pb-10 rounded-b-[1.75rem] shadow-[var(--gp-shadow-md)]">
         <p className="text-white/75 text-sm font-medium mb-1">Добро пожаловать</p>
         <h1 className="text-2xl font-extrabold leading-tight mb-2">Услуги и магазин в одном приложении</h1>
@@ -76,6 +102,22 @@ export default function HomePage() {
           >
             Магазин
           </button>
+        </div>
+      </section>
+
+      <section className="px-4 mt-3">
+        <p className="text-xs font-bold text-[var(--gp-text-muted)] uppercase mb-2">Демо QR Service</p>
+        <div className="flex flex-wrap gap-2">
+          {DEMO_QR_LINKS.map((q) => (
+            <button
+              key={q.code}
+              type="button"
+              onClick={() => navigate(`/qr/${q.code}`)}
+              className="text-xs font-semibold px-3 py-2 rounded-xl border border-[var(--gp-border)] bg-[var(--gp-surface)]"
+            >
+              {q.label}
+            </button>
+          ))}
         </div>
       </section>
 

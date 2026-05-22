@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { MapPin, Navigation, Phone } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { MapPin, Navigation, Phone, QrCode } from 'lucide-react'
 import { usePartner } from '../context/PartnerContext'
 import { formatPrice } from '@gp/shared/utils'
 import {
@@ -148,9 +149,22 @@ export default function OrdersPage() {
   return (
     <div className="gp-animate-in">
       <h1 className="text-2xl font-extrabold mb-1">Заявки</h1>
-      <p className="text-xs text-[var(--gp-text-muted)] mb-4">
+      <p className="text-xs text-[var(--gp-text-muted)] mb-2">
         {myDirections.map(getPartnerDirectionLabel).join(' · ')}
       </p>
+      <div className="flex flex-wrap gap-2 mb-4">
+        <Link to="/orders/qr" className="text-xs font-bold px-3 py-1.5 rounded-full bg-[var(--gp-surface-2)] flex items-center gap-1">
+          <QrCode className="w-3.5 h-3.5" /> QR-заявки
+        </Link>
+        <Link to="/orders/filter-replacement" className="text-xs font-semibold px-3 py-1.5 rounded-full border border-[var(--gp-border)]">Замена фильтра</Link>
+        <Link to="/orders/equipment-service" className="text-xs font-semibold px-3 py-1.5 rounded-full border border-[var(--gp-border)]">Обслуживание</Link>
+      </div>
+      <p className="text-xs font-bold text-[var(--gp-text-muted)] mb-2 mt-1">Мебельные исполнители</p>
+      <div className="flex flex-wrap gap-2 mb-4">
+        <Link to="/orders/furniture-manufacturing" className="text-xs font-semibold px-3 py-1.5 rounded-full border border-[var(--gp-border)]">Изготовление</Link>
+        <Link to="/orders/furniture-assembly" className="text-xs font-semibold px-3 py-1.5 rounded-full border border-[var(--gp-border)]">Сборка</Link>
+        <Link to="/orders/furniture-repair" className="text-xs font-semibold px-3 py-1.5 rounded-full border border-[var(--gp-border)]">Ремонт</Link>
+      </div>
 
       <div className="flex gap-2 mb-4">
         {['new', 'active'].map((t) => (

@@ -3,6 +3,8 @@
 export const ROLES = {
   SUPER_ADMIN: 'SUPER_ADMIN',
   FRANCHISE_ADMIN: 'FRANCHISE_ADMIN',
+  MARKET_MANAGER: 'MARKET_MANAGER',
+  DELIVERY_MANAGER: 'DELIVERY_MANAGER',
   MANAGER: 'MANAGER',
   FINANCE: 'FINANCE',
   SUPPORT: 'SUPPORT',
@@ -15,10 +17,19 @@ export const NAV_ITEMS = [
   { path: '/clients', labelKey: 'clients', icon: 'Users', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MANAGER'] },
   { path: '/partners', labelKey: 'partners', icon: 'Briefcase', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MANAGER'] },
   { path: '/services', labelKey: 'services', icon: 'Wrench', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN'] },
+  { path: '/services/hunter-irrigation', labelKey: 'admin_hunter', icon: 'Droplets', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MANAGER'] },
+  { path: '/services/furniture', labelKey: 'admin_furniture', icon: 'LayoutGrid', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MANAGER'] },
   { path: '/discounts', labelKey: 'discounts', icon: 'Percent', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN'] },
   { path: '/finance', labelKey: 'finance', icon: 'Wallet', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'FINANCE'] },
   { path: '/reviews', labelKey: 'reviews', icon: 'MessageSquare', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'SUPPORT'] },
+  { path: '/qr', labelKey: 'qr_service', icon: 'QrCode', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MANAGER'] },
+  { path: '/market', labelKey: 'market_dashboard', icon: 'ShoppingBag', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MARKET_MANAGER'] },
+  { path: '/market/shops', labelKey: 'market_shops', icon: 'Store', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MARKET_MANAGER'] },
+  { path: '/market/products', labelKey: 'market_products', icon: 'Package', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MARKET_MANAGER'] },
+  { path: '/market/orders', labelKey: 'market_orders', icon: 'ShoppingCart', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MARKET_MANAGER', 'DELIVERY_MANAGER'] },
+  { path: '/market/delivery', labelKey: 'market_delivery', icon: 'Truck', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MARKET_MANAGER', 'DELIVERY_MANAGER'] },
   { path: '/settings', labelKey: 'settings', icon: 'Settings', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN'] },
+  { path: '/testing-report', labelKey: 'qa_dashboard', icon: 'FlaskConical', roles: ['SUPER_ADMIN'] },
 ]
 
 export const PAGE_TITLE_KEYS = {
@@ -28,10 +39,20 @@ export const PAGE_TITLE_KEYS = {
   '/clients': 'clients',
   '/partners': 'partners',
   '/services': 'services',
+  '/services/hunter-irrigation': 'admin_hunter',
+  '/services/furniture': 'admin_furniture',
   '/discounts': 'discounts',
   '/finance': 'finance',
   '/reviews': 'reviewsFull',
+  '/qr': 'qr_service',
+  '/qr/create': 'qr_service',
+  '/market': 'market_dashboard',
+  '/market/shops': 'market_shops',
+  '/market/products': 'market_products',
+  '/market/orders': 'market_orders',
+  '/market/delivery': 'market_delivery',
   '/settings': 'settings',
+  '/testing-report': 'qa_dashboard',
 }
 
 /** Действия для проверки can() */
@@ -60,6 +81,8 @@ const ROLE_ACTIONS = {
   MANAGER: [ACTIONS.ORDER_EDIT],
   FINANCE: [],
   SUPPORT: [],
+  MARKET_MANAGER: [ACTIONS.ORDER_EDIT],
+  DELIVERY_MANAGER: [ACTIONS.ORDER_EDIT],
 }
 
 export function navForRole(role) {

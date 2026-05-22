@@ -1,6 +1,9 @@
 # --- Dependencies ---
 node_modules/
 
+# --- QA artifacts (regenerate with npm run qa:all) ---
+qa-logs/
+
 # --- Build / cache ---
 dist/
 build/

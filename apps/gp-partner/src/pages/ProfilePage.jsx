@@ -8,11 +8,12 @@ import {
   getPartnerSubserviceLabel,
   PARTNER_DOCUMENT_KIND_OPTIONS,
   PARTNER_REGISTRATION_GROUPS,
+  FURNITURE_EXECUTOR_GROUP,
   SHOP_REGISTRATION_GROUP,
 } from '@gp/shared/constants'
 import { usePartner } from '../context/PartnerContext'
 
-const ALL_GROUPS = [...PARTNER_REGISTRATION_GROUPS, SHOP_REGISTRATION_GROUP]
+const ALL_GROUPS = [...PARTNER_REGISTRATION_GROUPS, FURNITURE_EXECUTOR_GROUP, SHOP_REGISTRATION_GROUP]
 
 export default function ProfilePage() {
   const { user, logout, loading, addPartnerOfferings } = usePartner()

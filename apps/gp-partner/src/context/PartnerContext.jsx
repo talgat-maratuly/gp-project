@@ -1,5 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { api, clearToken, getToken, mapOrder } from '@gp/shared/api'
+import { isDemoMode, subscribeGlobalStore, syncFromHub } from '@gp/shared/demo'
+import * as demoApi from '../lib/demoApi'
 import { subscribeGlobalOrderStatus, resetTrackingSocket } from '@gp/shared/api/trackingSocket'
 import { CATEGORY_TO_UI, ORDER_STATUS_TO_API } from '@gp/shared/api/mappers'
 
@@ -24,6 +26,7 @@ async function loadPartnerSession() {
     lng: profile.lng,
     partnerProfileId: profile.id,
     serviceOfferings: profile.serviceOfferings || [],
+    serviceAccess: profile.serviceAccess || [],
     accountType: profile.accountType || 'INDIVIDUAL',
     bin: profile.bin,
     legalAddress: profile.legalAddress,
@@ -47,6 +50,13 @@ export function PartnerProvider({ children }) {
   const notify = useCallback((msg) => setToast({ msg }), [])
 
   useEffect(() => {
+    if (isDemoMode()) {
+      const session = demoApi.getDemoSession()
+      if (session) setUser(session)
+      setAuthReady(true)
+      syncFromHub()
+      return subscribeGlobalStore(() => syncFromHub())
+    }
     loadPartnerSession()
       .then(setUser)
       .catch(() => clearToken())
@@ -71,6 +81,7 @@ export function PartnerProvider({ children }) {
       lng: profile.lng,
       partnerProfileId: profile.id,
       serviceOfferings: profile.serviceOfferings || [],
+    serviceAccess: profile.serviceAccess || [],
       accountType: profile.accountType,
       bin: profile.bin,
       legalAddress: profile.legalAddress,
@@ -80,6 +91,15 @@ export function PartnerProvider({ children }) {
   }, [user?.id])
 
   const refreshOrders = useCallback(async () => {
+    if (isDemoMode()) {
+      if (!demoApi.getDemoSession()) return
+      try {
+        setOrders(await demoApi.demoGetOrders())
+      } catch (e) {
+        notify(e.message || 'orders_load_error')
+      }
+      return
+    }
     if (!getToken()) return
     try {
       const list = await api.getOrders()
@@ -114,6 +134,10 @@ export function PartnerProvider({ children }) {
   useEffect(() => {
     if (!user?.id) return
     refreshAll()
+    if (isDemoMode()) {
+      const t = setInterval(refreshOrders, 3000)
+      return () => clearInterval(t)
+    }
     const t = setInterval(refreshOrders, 5000)
     const unsubWs = subscribeGlobalOrderStatus(() => {
       refreshOrders()
@@ -162,6 +186,13 @@ export function PartnerProvider({ children }) {
   const login = useCallback(async (email, password) => {
     setLoading(true)
     try {
+      if (isDemoMode()) {
+        const session = await demoApi.demoLogin(email, password)
+        setUser(session)
+        await refreshOrders()
+        notify('Добро пожаловать!')
+        return session
+      }
       await api.login(email.trim().toLowerCase(), password)
       const session = await loadPartnerSession()
       if (!session) {
@@ -174,9 +205,16 @@ export function PartnerProvider({ children }) {
     } finally {
       setLoading(false)
     }
-  }, [notify])
+  }, [notify, refreshOrders])
 
   const logout = useCallback(() => {
+    if (isDemoMode()) {
+      demoApi.demoLogout()
+      setUser(null)
+      setActiveOrderId(null)
+      setOrders([])
+      return
+    }
     api.logout()
     setUser(null)
     setActiveOrderId(null)
@@ -203,6 +241,7 @@ export function PartnerProvider({ children }) {
             lng: profile.lng,
             partnerProfileId: profile.id,
             serviceOfferings: profile.serviceOfferings || [],
+    serviceAccess: profile.serviceAccess || [],
           }
         : u))
       notify('Подуслуги отправлены на модерацию')
@@ -211,13 +250,27 @@ export function PartnerProvider({ children }) {
   )
 
   const acceptOrder = useCallback(async (orderId) => {
+    if (isDemoMode()) {
+      await demoApi.demoUpdateStatus(orderId, 'accepted')
+      setActiveOrderId(orderId)
+      await refreshOrders()
+      notify('Заявка принята')
+      return
+    }
     await api.updateOrderStatus(orderId, { status: ORDER_STATUS_TO_API.accepted })
     setActiveOrderId(orderId)
     await refreshAll()
     notify('Заявка принята')
-  }, [refreshAll, notify])
+  }, [refreshAll, refreshOrders, notify])
 
   const advanceOrder = useCallback(async (orderId, uiStatus, location) => {
+    if (isDemoMode()) {
+      const map = { on_way: 'en_route', started: 'in_work', done: 'completed', completed: 'completed' }
+      await demoApi.demoUpdateStatus(orderId, map[uiStatus] || uiStatus)
+      await refreshOrders()
+      notify('Статус обновлён')
+      return
+    }
     const apiStatus = ORDER_STATUS_TO_API[uiStatus] || uiStatus
     const body = { status: apiStatus }
     if (location) {
@@ -230,7 +283,7 @@ export function PartnerProvider({ children }) {
     }
     await refreshAll()
     notify('Статус обновлён')
-  }, [refreshAll, notify, activeOrderId])
+  }, [refreshAll, refreshOrders, notify, activeOrderId])
 
   const cancelOrder = useCallback(async (orderId) => {
     await api.updateOrderStatus(orderId, { status: ORDER_STATUS_TO_API.cancelled })
@@ -278,7 +331,17 @@ export function PartnerProvider({ children }) {
     setUser((u) => (u ? { ...u, lat, lng } : u))
   }, [activeOrderId])
 
-  const newOrders = useMemo(() => orders.filter((o) => o.status === 'new'), [orders])
+  const newOrders = useMemo(
+    () => (isDemoMode() ? [] : orders.filter((o) => o.status === 'new')),
+    [orders],
+  )
+  const myOrders = useMemo(
+    () =>
+      isDemoMode()
+        ? orders.filter((o) => o.partnerId === user?.partnerId)
+        : orders.filter((o) => o.partnerId && o.status !== 'new'),
+    [orders, user?.partnerId],
+  )
   const activeOrders = useMemo(
     () => orders.filter((o) => !['new', 'cancelled', 'client_confirmed', 'done'].includes(o.status)),
     [orders],
@@ -286,9 +349,12 @@ export function PartnerProvider({ children }) {
   const activeOrder = useMemo(() => orders.find((o) => o.id === activeOrderId) || activeOrders[0], [orders, activeOrderId, activeOrders])
 
   const value = {
-    user, authReady, orders, newOrders, activeOrders, activeOrder, products, transactions,
+    user, authReady, orders, newOrders, myOrders, activeOrders, activeOrder, products, transactions,
     loading, toast, activeOrderId, setActiveOrderId,
     register, login, logout, setOnline, addPartnerOfferings, acceptOrder, advanceOrder, cancelOrder,
+    updateOrderStatus: (orderId, status) => advanceOrder(orderId, status),
+    isDemoMode: isDemoMode(),
+    refreshMarket: () => {},
     topupBalance, addProduct, refreshAll, updateExecutorLocation, notify,
     clearToast: () => setToast(null),
   }

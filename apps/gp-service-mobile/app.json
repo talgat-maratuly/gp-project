@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "GP Service",
+    "slug": "gp-service",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0d9488"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "kz.gp.service",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Быстрый вход в GP Service"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0d9488"
+      },
+      "package": "kz.gp.service",
+      "permissions": ["USE_BIOMETRIC", "USE_FINGERPRINT"]
+    },
+    "extra": {
+      "apiUrl": "http://localhost:4000"
+    }
+  }
+}

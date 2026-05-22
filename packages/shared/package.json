@@ -13,9 +13,13 @@
     "./api/token": "./src/api/token.js",
     "./api/trackingSocket": "./src/api/trackingSocket.js",
     "./theme/gp-kaspi.css": "./src/theme/gp-kaspi.css",
-    "./ui/KaspiUI": "./src/ui/KaspiUI.jsx"
+    "./ui/KaspiUI": "./src/ui/KaspiUI.jsx",
+    "./demo": "./src/demo/index.js",
+    "./i18n": "./src/i18n/index.js",
+    "./components/LanguageSwitcher": "./src/components/LanguageSwitcher.jsx"
   },
   "dependencies": {
+    "qrcode": "^1.5.4",
     "socket.io-client": "^4.8.1"
   },
   "peerDependencies": {

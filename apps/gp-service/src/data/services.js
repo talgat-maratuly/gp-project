@@ -19,6 +19,9 @@ export const SERVICE_ORDER_CATEGORY = {
   'landscape': 'irrigation',
   'lighting': 'irrigation',
   'consultation': 'irrigation',
+  'furniture-manufacturing': 'shop',
+  'furniture-assembly': 'shop',
+  'furniture-repair': 'shop',
 }
 
 export const getServiceOrderCategory = (serviceId) => SERVICE_ORDER_CATEGORY[serviceId] || 'irrigation'
@@ -176,6 +179,22 @@ export const SERVICE_CATALOG = [
     icon: 'Lightbulb',
     duration: '1–2 дня',
     description: 'Монтаж LED-подсветки дорожек и растений.',
+  },
+  {
+    id: 'furniture-assembly',
+    name: 'Сборка мебели',
+    priceFrom: 15000,
+    icon: 'Hammer',
+    duration: '2–6 часов',
+    description: 'Сборка корпусной мебели, кухонных модулей, шкафов на объекте.',
+  },
+  {
+    id: 'furniture-repair',
+    name: 'Ремонт мебели',
+    priceFrom: 12000,
+    icon: 'Wrench',
+    duration: '1–3 часа',
+    description: 'Ремонт фасадов, петель, направляющих, столешниц.',
   },
 ]
 

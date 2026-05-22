@@ -2,14 +2,22 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { PartnerDirection, PartnerOfferingStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { isKnownSubserviceId, SUBSERVICE_TO_DIRECTION } from '../common/partner-offerings.util';
+import { FurnitureExecutorService } from '../furniture-executor/furniture-executor.service';
 
 @Injectable()
 export class PartnersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private furnitureExecutor: FurnitureExecutorService,
+  ) {}
 
   /**
    * Направления в профиле = объединение направлений всех подуслуг, кроме отклонённых.
    */
+  async syncServiceAccessFromOfferings(partnerId: string) {
+    return this.furnitureExecutor.syncServiceAccessFromOfferings(partnerId);
+  }
+
   async syncDirectionsFromOfferings(partnerId: string) {
     const offerings = await this.prisma.partnerServiceOffering.findMany({ where: { partnerId } });
     const dirs = new Set<PartnerDirection>();
@@ -106,6 +114,7 @@ export class PartnersService {
     }
 
     await this.syncDirectionsFromOfferings(profile.id);
+    await this.furnitureExecutor.syncServiceAccessFromOfferings(profile.id);
     return this.getProfile(userId);
   }
 }

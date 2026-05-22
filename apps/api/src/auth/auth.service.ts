@@ -15,6 +15,7 @@ import {
   deriveDirectionsFromSubservices,
   expandDirectionsToSubservices,
 } from '../common/partner-offerings.util';
+import { isFurnitureExecutorAccessId } from '../common/furniture-executor.util';
 import { PartnersService } from '../partners/partners.service';
 
 @Injectable()
@@ -95,7 +96,8 @@ export class AuthService {
     }
 
     const directions = deriveDirectionsFromSubservices(subIds);
-    if (!directions.length) {
+    const hasFurnitureAccess = subIds.some((id) => isFurnitureExecutorAccessId(id));
+    if (!directions.length && !hasFurnitureAccess) {
       throw new BadRequestException('Не удалось определить направления по подуслугам');
     }
 
@@ -153,6 +155,7 @@ export class AuthService {
       })),
     });
     await this.partners.syncDirectionsFromOfferings(partnerProfileId);
+    await this.partners.syncServiceAccessFromOfferings(partnerProfileId);
 
     return this.signToken(user);
   }
