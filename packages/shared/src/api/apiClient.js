@@ -1,4 +1,5 @@
 import { getToken, setToken, clearToken, getRefreshToken, setRefreshToken, clearRefreshToken } from './token.js'
+import { ApiError, parseApiErrorBody, formatConnectionError, isNetworkError } from './errors.js'
 
 const DEV_API_DEFAULT = 'http://localhost:4000/api'
 const PROD_API_DEFAULT = 'https://api.gp-service.kz/api'
@@ -28,60 +29,13 @@ if (import.meta.env?.DEV) {
   console.log('[GP] API_URL =', API_URL)
 }
 
-function isNetworkError(err) {
-  return (
-    err instanceof TypeError ||
-    err?.name === 'TypeError' ||
-    String(err?.message || '').toLowerCase().includes('failed to fetch')
-  )
-}
-
-function parsePrismaHint(data) {
-  const raw = [data?.message, data?.error, ...(Array.isArray(data?.message) ? data.message : [])]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase()
-  if (
-    raw.includes('prisma') ||
-    raw.includes('database') ||
-    raw.includes('p1001') ||
-    raw.includes('postgresql') ||
-    raw.includes('connect econnrefused')
-  ) {
-    return 'Ошибка базы данных. Запустите PostgreSQL: docker compose -f apps/api/docker-compose.yml up -d'
-  }
-  return null
-}
-
-function parseError(data, status) {
-  const prismaHint = parsePrismaHint(data)
-  if (prismaHint && status >= 500) return prismaHint
-  if (Array.isArray(data?.message)) return data.message.join(', ')
-  if (typeof data?.message === 'string') return data.message
-  if (status === 401) return 'Войдите в аккаунт'
-  if (status === 403) return 'Недостаточно прав для этого действия'
-  if (status === 502 || status === 503) {
-    return prismaHint || 'API временно недоступен. Проверьте backend (npm run dev:api:safe).'
-  }
-  return data?.error || `Ошибка API (${status})`
-}
-
-function formatConnectionError(url) {
-  return [
-    `Не удалось подключиться к API (${url}).`,
-    '• API не запущен → npm run dev:api:safe или npm run dev:all',
-    '• Порт 4000 занят → npm run kill:ports && npm run dev:all',
-    `• Проверьте VITE_API_URL=${DEV_API_DEFAULT}`,
-  ].join('\n')
-}
-
 async function parseJson(res) {
   const text = await res.text()
   if (!text) return null
   try {
     return JSON.parse(text)
   } catch {
-    throw new Error('Некорректный ответ API')
+    throw new ApiError('Некорректный ответ API', { code: 'PARSE' })
   }
 }
 
@@ -98,7 +52,7 @@ async function tryRefreshToken() {
     })
       .then(async (res) => {
         const data = await parseJson(res)
-        if (!res.ok) throw new Error(parseError(data, res.status))
+        if (!res.ok) throw parseApiErrorBody(data, res.status)
         if (data.accessToken) setToken(data.accessToken)
         if (data.refreshToken) setRefreshToken(data.refreshToken)
         return true
@@ -145,7 +99,7 @@ async function request(path, options = {}, { auth = true, retryOn401 = true } = 
   }
 
   const data = await parseJson(res)
-  if (!res.ok) throw new Error(parseError(data, res.status))
+  if (!res.ok) throw parseApiErrorBody(data, res.status)
   return data
 }
 
@@ -173,4 +127,5 @@ export function del(path, opts) {
   return request(path, { method: 'DELETE', ...opts })
 }
 
-export { request, parseError, formatConnectionError, isNetworkError, parseJson }
+export { request, parseJson }
+export { ApiError, parseApiErrorBody, formatConnectionError, getErrorMessage, isRetryableError } from './errors.js'
