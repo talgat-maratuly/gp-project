@@ -1,4 +1,5 @@
 export * from './contacts.js'
+export * from './devAuth.js'
 export * from './accountTypes.js'
 export * from './geoTracking.js'
 export * from './brands.js'

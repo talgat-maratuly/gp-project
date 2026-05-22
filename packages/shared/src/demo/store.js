@@ -1,7 +1,7 @@
 import { createSeedState, recalcAggregates, STORE_VERSION, DEMO_USERS } from './seed.js'
 import { pullFromHub, pushToHub, isHubEnabled } from './syncHub.js'
 
-export const GLOBAL_STORE_KEY = 'gp-global-store-v5'
+export const GLOBAL_STORE_KEY = 'gp-global-store-v6'
 const listeners = new Set()
 
 let memoryCache = null

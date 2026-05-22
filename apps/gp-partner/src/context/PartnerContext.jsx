@@ -91,7 +91,7 @@ export function PartnerProvider({ children }) {
   }, [user?.id])
 
   const refreshOrders = useCallback(async () => {
-    if (isDemoMode()) {
+    if (isDemoMode() || demoApi.getDemoSession()) {
       if (!demoApi.getDemoSession()) return
       try {
         setOrders(await demoApi.demoGetOrders())
@@ -193,7 +193,9 @@ export function PartnerProvider({ children }) {
         notify('Добро пожаловать!')
         return session
       }
-      await api.login(email.trim().toLowerCase(), password)
+      const loginId = email.trim().toLowerCase()
+      const apiEmail = loginId.includes('@') ? loginId : `${loginId}@gp.kz`
+      await api.login(apiEmail, password)
       const session = await loadPartnerSession()
       if (!session) {
         clearToken()

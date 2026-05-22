@@ -544,12 +544,12 @@ export default function AuthPage({ initialMode = 'register' }) {
         {mode === 'login' && (
           <div className="space-y-3">
             <input
-              type="email"
+              type="text"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               className="gp-input-kaspi"
-              placeholder="Email"
-              autoComplete="email"
+              placeholder="uralsk_partner или partner@gp.kz"
+              autoComplete="username"
               required
             />
             <input
@@ -560,6 +560,7 @@ export default function AuthPage({ initialMode = 'register' }) {
               placeholder="Пароль"
               autoComplete="current-password"
             />
+            <p className="text-[11px] text-slate-500">Demo: uralsk_partner / 1234</p>
           </div>
         )}
 
