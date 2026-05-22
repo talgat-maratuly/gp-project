@@ -9,6 +9,7 @@
     "./constants": "./src/constants/index.js",
     "./utils": "./src/utils/index.js",
     "./api": "./src/api/client.js",
+    "./api/apiClient": "./src/api/apiClient.js",
     "./api/mappers": "./src/api/mappers.js",
     "./api/token": "./src/api/token.js",
     "./api/trackingSocket": "./src/api/trackingSocket.js",

@@ -1,5 +1,5 @@
 import { io } from 'socket.io-client'
-import { API_URL } from './client.js'
+import { getApiRootUrl } from './apiClient.js'
 
 const MAX_ATTEMPTS = 12
 const BASE_DELAY_MS = 1000
@@ -21,7 +21,7 @@ function log(...args) {
 }
 
 function trackingUrl() {
-  return `${(API_URL || '').replace(/\/$/, '')}/tracking`
+  return `${getApiRootUrl()}/tracking`
 }
 
 function clearReconnectTimer() {

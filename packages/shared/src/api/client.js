@@ -1,4 +1,5 @@
-import { getToken, setToken, clearToken } from './token.js'
+import { get, post, patch, del, request, API_URL, getApiRootUrl } from './apiClient.js'
+import { setToken, clearToken, setRefreshToken, clearRefreshToken, getToken } from './token.js'
 import { mapOrder, mapProduct, mapPartnerUser } from './mappers.js'
 
 const mapOrdersForApp = (list) => {
@@ -6,208 +7,81 @@ const mapOrdersForApp = (list) => {
   return list.map((o) => mapOrder(o, { forClient }))
 }
 
-const DEV_API_DEFAULT = 'http://localhost:4000'
-
-/**
- * Базовый URL API (без слэша в конце).
- * Dev: http://localhost:4000 (или VITE_API_URL из .env)
- * Production: VITE_API_URL=https://your-api.onrender.com
- */
-export const API_URL = (() => {
-  const raw = import.meta.env?.VITE_API_URL
-  const fromEnv = typeof raw === 'string' ? raw.trim() : ''
-  if (fromEnv) {
-    const url = fromEnv.replace(/\/$/, '')
-    if (/^https?:\/\//i.test(url)) return url
-    console.warn('[GP] VITE_API_URL должен начинаться с http:// или https://, используем dev default')
-  }
-  if (import.meta.env?.DEV) return DEV_API_DEFAULT
-  if (import.meta.env?.PROD) {
-    console.error('[GP] VITE_API_URL не задан для production build.')
-    return ''
-  }
-  return DEV_API_DEFAULT
-})()
-
-if (import.meta.env?.DEV) {
-  console.log('[GP] API_URL =', API_URL)
-}
-
-const EXPECTED_DEV_API = 'http://localhost:4000'
-
-function isNetworkError(err) {
-  return (
-    err instanceof TypeError ||
-    err?.name === 'TypeError' ||
-    String(err?.message || '').toLowerCase().includes('failed to fetch')
-  )
-}
-
-function isWrongApiUrl(url) {
-  if (!url || url === EXPECTED_DEV_API) return false
-  if (import.meta.env?.PROD) return false
-  return !url.includes('localhost:4000') && !url.includes('127.0.0.1:4000')
-}
-
-function formatConnectionError(url) {
-  const lines = [
-    `Не удалось подключиться к API (${url}).`,
-    '• API не запущен → npm run dev:api:safe или npm run dev:all',
-    '• Порт 4000 занят (EADDRINUSE) → npm run kill:ports && npm run dev:all',
-  ]
-  if (isWrongApiUrl(url)) {
-    lines.push(`• Неверный URL → задайте VITE_API_URL=${EXPECTED_DEV_API} в .env.development`)
-  } else if (import.meta.env?.DEV && url !== EXPECTED_DEV_API) {
-    lines.push(`• Ожидается ${EXPECTED_DEV_API} (сейчас: ${url})`)
-  }
-  return lines.join('\n')
-}
-
-function parsePrismaHint(data) {
-  const raw = [data?.message, data?.error, ...(Array.isArray(data?.message) ? data.message : [])]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase()
-  if (
-    raw.includes('prisma') ||
-    raw.includes('database') ||
-    raw.includes('p1001') ||
-    raw.includes('postgresql') ||
-    raw.includes('connect econnrefused')
-  ) {
-    return 'Ошибка базы данных (Prisma). Запустите PostgreSQL: docker compose -f apps/api/docker-compose.yml up -d && npm run prisma:migrate:deploy'
-  }
-  return null
-}
-
-function parseError(data, status) {
-  const prismaHint = parsePrismaHint(data)
-  if (prismaHint && status >= 500) return prismaHint
-  if (Array.isArray(data?.message)) return data.message.join(', ')
-  if (typeof data?.message === 'string') return data.message
-  if (status === 401) return 'Войдите в аккаунт'
-  if (status === 403) return 'Недостаточно прав для этого действия'
-  if (status === 502 || status === 503) {
-    return prismaHint || 'API временно недоступен. Проверьте, что backend запущен (npm run dev:api:safe).'
-  }
-  return data?.error || `Ошибка API (${status})`
-}
-
-async function parseJson(res) {
-  const text = await res.text()
-  if (!text) return null
-  try {
-    return JSON.parse(text)
-  } catch {
-    throw new Error('Некорректный ответ API')
-  }
-}
-
-async function request(path, options = {}, { auth = true } = {}) {
-  const headers = { 'Content-Type': 'application/json', ...options.headers }
-  if (auth) {
-    const token = getToken()
-    if (token) headers.Authorization = `Bearer ${token}`
-  }
-
-  const url = `${API_URL}${path}`
-  const method = options.method || 'GET'
-  if (import.meta.env?.DEV) {
-    console.log('[GP API]', method, url)
-  }
-
-  let res
-  try {
-    res = await fetch(url, { ...options, headers })
-  } catch (err) {
-    if (isNetworkError(err)) {
-      throw new Error(formatConnectionError(url))
-    }
-    throw err
-  }
-
-  const data = await parseJson(res)
-  if (!res.ok) throw new Error(parseError(data, res.status))
-  return data
-}
+export { API_URL, getApiRootUrl as apiUrl }
 
 export const api = {
   registerClient: (body) =>
-    request('/auth/register/client', { method: 'POST', body: JSON.stringify(body) }, { auth: false }).then((r) => {
+    post('/auth/register/client', body, { auth: false }).then((r) => {
       setToken(r.accessToken)
       return r
     }),
 
   registerPartner: (body) =>
-    request('/auth/register/partner', { method: 'POST', body: JSON.stringify(body) }, { auth: false }).then((r) => {
+    post('/auth/register/partner', body, { auth: false }).then((r) => {
       setToken(r.accessToken)
       return r
     }),
 
   login: (email, password) =>
-    request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }, { auth: false }).then((r) => {
+    post('/auth/login', { email, password }, { auth: false }).then((r) => {
       setToken(r.accessToken)
       return r
     }),
 
   logout: () => {
     clearToken()
+    clearRefreshToken()
   },
 
-  me: () => request('/auth/me'),
+  me: () => get('/auth/me'),
 
   getProducts: async (params = {}) => {
     const q = new URLSearchParams(params).toString()
-    const list = await request(`/products${q ? `?${q}` : ''}`, {}, { auth: false })
+    const list = await get(`/products${q ? `?${q}` : ''}`, { auth: false })
     if (!Array.isArray(list)) throw new Error('Ожидался массив товаров от API')
     return list.map(mapProduct)
   },
 
-  createProduct: (body) =>
-    request('/products', { method: 'POST', body: JSON.stringify(body) }).then(mapProduct),
+  createProduct: (body) => post('/products', body).then(mapProduct),
 
   getOrders: async (params = {}) => {
     const q = new URLSearchParams(params).toString()
-    const list = await request(`/orders${q ? `?${q}` : ''}`)
+    const list = await get(`/orders${q ? `?${q}` : ''}`)
     if (!Array.isArray(list)) return []
     return mapOrdersForApp(list)
   },
 
-  getOrder: (id) => request(`/orders/${id}`).then((o) => mapOrder(o, { forClient: import.meta.env?.VITE_APP_NAME === 'service' })),
+  getOrder: (id) =>
+    get(`/orders/${id}`).then((o) =>
+      mapOrder(o, { forClient: import.meta.env?.VITE_APP_NAME === 'service' }),
+    ),
 
   createOrder: (body) =>
-    request('/orders', { method: 'POST', body: JSON.stringify(body) }).then((o) =>
-      mapOrder(o, { forClient: true }),
-    ),
+    post('/orders', body).then((o) => mapOrder(o, { forClient: true })),
 
   updateOrderStatus: (id, body) =>
-    request(`/orders/${id}/status`, { method: 'PATCH', body: JSON.stringify(body) }).then((o) =>
-      mapOrder(o, { forClient: false }),
-    ),
+    patch(`/orders/${id}/status`, body).then((o) => mapOrder(o, { forClient: false })),
 
-  confirmOrder: (id) =>
-    request(`/orders/${id}/confirm`, { method: 'PATCH' }).then((o) => mapOrder(o, { forClient: true })),
+  confirmOrder: (id) => patch(`/orders/${id}/confirm`).then((o) => mapOrder(o, { forClient: true })),
 
-  getPartnerMe: () => request('/partners/me').then((p) => ({
-    ...p,
-    balance: Number(p.balance),
-    directions: p.directions || [],
-    serviceOfferings: p.serviceOfferings || [],
-    serviceAccess: p.serviceAccess || [],
-    accountType: p.accountType,
-    bin: p.bin,
-    legalAddress: p.legalAddress,
-    idDocumentNumber: p.idDocumentNumber,
-    documents: p.documents,
-  })),
+  getPartnerMe: () =>
+    get('/partners/me').then((p) => ({
+      ...p,
+      balance: Number(p.balance),
+      directions: p.directions || [],
+      serviceOfferings: p.serviceOfferings || [],
+      serviceAccess: p.serviceAccess || [],
+      accountType: p.accountType,
+      bin: p.bin,
+      legalAddress: p.legalAddress,
+      idDocumentNumber: p.idDocumentNumber,
+      documents: p.documents,
+    })),
 
-  patchPartnerMe: (body) => request('/partners/me', { method: 'PATCH', body: JSON.stringify(body) }),
+  patchPartnerMe: (body) => patch('/partners/me', body),
 
   addPartnerOfferings: (subserviceIds) =>
-    request('/partners/me/offerings', {
-      method: 'POST',
-      body: JSON.stringify({ subserviceIds }),
-    }).then((p) => ({
+    post('/partners/me/offerings', { subserviceIds }).then((p) => ({
       ...p,
       balance: Number(p.balance),
       directions: p.directions || [],
@@ -217,133 +91,136 @@ export const api = {
 
   getFurnitureExecutorOrders: (serviceType) => {
     const q = serviceType ? `?serviceType=${encodeURIComponent(serviceType)}` : ''
-    return request(`/furniture-executor/partner/orders${q}`)
+    return get(`/furniture-executor/partner/orders${q}`)
   },
 
   acceptFurnitureExecutorOrder: (orderId) =>
-    request(`/furniture-executor/partner/orders/${orderId}/accept`, { method: 'POST' }),
+    post(`/furniture-executor/partner/orders/${orderId}/accept`),
 
   updateFurnitureExecutorOrderStatus: (orderId, status) =>
-    request(`/furniture-executor/partner/orders/${orderId}/status`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status }),
-    }),
+    patch(`/furniture-executor/partner/orders/${orderId}/status`, { status }),
 
   declineFurnitureExecutorOrder: (orderId) =>
-    request(`/furniture-executor/partner/orders/${orderId}/decline`, { method: 'POST' }),
+    post(`/furniture-executor/partner/orders/${orderId}/decline`),
 
-  getBalance: () => request('/partners/balance').then((r) => ({ balance: Number(r.balance) })),
+  getBalance: () => get('/partners/balance').then((r) => ({ balance: Number(r.balance) })),
 
   getTransactions: () =>
-    request('/partners/balance/transactions').then((list) =>
+    get('/partners/balance/transactions').then((list) =>
       list.map((t) => ({ ...t, amount: Number(t.amount) })),
     ),
 
-  topupBalance: (amount, note) =>
-    request('/partners/balance/topup', {
-      method: 'POST',
-      body: JSON.stringify({ amount, note }),
-    }),
+  topupBalance: (amount, note) => post('/partners/balance/topup', { amount, note }),
 
-  getOrderTracking: (orderId) => request(`/geo/orders/${orderId}/tracking`),
+  getOrderTracking: (orderId) => get(`/geo/orders/${orderId}/tracking`),
 
-  getGeofences: () => request('/geo/geofences'),
+  getGeofences: () => get('/geo/geofences'),
 
-  postGps: (body) => request('/geo/gps', { method: 'POST', body: JSON.stringify(body) }),
+  postGps: (body) => post('/geo/gps', body),
 
-  getOrderGpsHistory: (orderId) => request(`/geo/orders/${orderId}/history`),
+  getOrderGpsHistory: (orderId) => get(`/geo/orders/${orderId}/history`),
 
-  getAdminFleet: () => request('/geo/admin/fleet'),
+  getAdminFleet: () => get('/geo/admin/fleet'),
 
-  updateGeoLocation: (body) => request('/geo/location', { method: 'PATCH', body: JSON.stringify(body) }),
+  updateGeoLocation: (body) => patch('/geo/location', body),
 
-  mockMove: (orderId) => request(`/geo/orders/${orderId}/mock-move`, { method: 'POST' }),
+  mockMove: (orderId) => post(`/geo/orders/${orderId}/mock-move`),
 
-  getNotifications: () => request('/notifications'),
+  getNotifications: () => get('/notifications'),
 
-  getPaymentArchitecture: () => request('/payments/architecture'),
+  getPaymentArchitecture: () => get('/payments/architecture'),
 
   adminDashboard: () =>
-    request('/admin/dashboard').then((d) => ({
+    get('/admin/dashboard').then((d) => ({
       ...d,
       totalCommission: Number(d.totalCommission ?? 0),
     })),
 
-  adminClients: () => request('/admin/clients'),
+  adminClients: () => get('/admin/clients'),
 
-  adminPartners: () => request('/admin/partners'),
+  adminPartners: () => get('/admin/partners'),
 
-  adminOrders: () => request('/admin/orders'),
+  adminOrders: () => get('/admin/orders'),
 
   adminCommissions: () =>
-    request('/admin/commissions').then((list) =>
+    get('/admin/commissions').then((list) =>
       list.map((t) => ({ ...t, amount: Number(t.amount) })),
     ),
 
   adminUpdateOfferingStatus: (offeringId, body) =>
-    request(`/admin/offerings/${offeringId}`, { method: 'PATCH', body: JSON.stringify(body) }),
+    patch(`/admin/offerings/${offeringId}`, body),
+
+  adminQrStats: () => get('/qr/admin/stats'),
+
+  adminQrObjects: () => get('/qr/admin/objects'),
+
+  adminQrObject: (id) => get(`/qr/admin/objects/${id}`),
+
+  adminCreateQrObject: (body) => post('/qr/admin/objects', body),
+
+  adminUpdateQrObject: (id, body) => patch(`/qr/admin/objects/${id}`, body),
+
+  adminQrOrders: () => get('/qr/admin/orders'),
+
+  getQrPublic: (qrCode) => get(`/qr/public/${encodeURIComponent(qrCode)}`, { auth: false }),
+
+  createQrOrder: (qrCode, body) =>
+    post(`/qr/public/${encodeURIComponent(qrCode)}/orders`, body, { auth: false }),
+
+  getQrPartnerOrders: (serviceType) => {
+    const q = serviceType ? `?serviceType=${encodeURIComponent(serviceType)}` : ''
+    return get(`/qr/partner/orders${q}`)
+  },
+
+  patchQrPartnerOrderStatus: (orderId, status) =>
+    patch(`/qr/partner/orders/${orderId}/status`, { status }),
 
   healthFull: async () => {
-    const url = `${API_URL}/health/full`
-    try {
-      const res = await fetch(url)
-      const data = await parseJson(res)
-      if (!res.ok) throw new Error(parseError(data, res.status))
-      return data
-    } catch (err) {
-      if (isNetworkError(err)) throw new Error(formatConnectionError(url))
-      throw err
-    }
+    const url = `${getApiRootUrl()}/health/full`
+    const res = await fetch(url)
+    const text = await res.text()
+    const data = text ? JSON.parse(text) : null
+    if (!res.ok) throw new Error(data?.message || `Health check failed (${res.status})`)
+    return data
   },
 
   getServiceProjects: (params = {}) => {
     const q = new URLSearchParams(params).toString()
-    return request(`/service-projects${q ? `?${q}` : ''}`)
+    return get(`/service-projects${q ? `?${q}` : ''}`)
   },
 
-  getServiceProject: (id) => request(`/service-projects/${id}`),
+  getServiceProject: (id) => get(`/service-projects/${id}`),
 
   patchServiceProjectStatus: (id, status) =>
-    request(`/service-projects/${id}/status`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status }),
-    }),
+    patch(`/service-projects/${id}/status`, { status }),
 
-  createHunterProject: (body) =>
-    request('/hunter-projects', { method: 'POST', body: JSON.stringify(body) }),
+  createHunterProject: (body) => post('/hunter-projects', body),
 
-  getHunterProjects: () => request('/hunter-projects'),
+  getHunterProjects: () => get('/hunter-projects'),
 
-  getHunterProject: (id) => request(`/hunter-projects/${id}`),
+  getHunterProject: (id) => get(`/hunter-projects/${id}`),
 
-  createFurnitureProject: (body) =>
-    request('/furniture-projects', { method: 'POST', body: JSON.stringify(body) }),
+  createFurnitureProject: (body) => post('/furniture-projects', body),
 
-  getFurnitureProjects: () => request('/furniture-projects'),
+  getFurnitureProjects: () => get('/furniture-projects'),
 
-  getFurnitureProject: (id) => request(`/furniture-projects/${id}`),
+  getFurnitureProject: (id) => get(`/furniture-projects/${id}`),
 
   getMarketProducts: (params = {}) => {
     const q = new URLSearchParams(params).toString()
-    return request(`/market/products${q ? `?${q}` : ''}`).then((list) => list.map(mapProduct))
+    return get(`/market/products${q ? `?${q}` : ''}`, { auth: false }).then((list) => list.map(mapProduct))
   },
 
   health: async () => {
-    const url = `${API_URL}/health`
+    const url = `${getApiRootUrl()}/health`
     try {
       const res = await fetch(url)
-      if (!res.ok) {
-        const data = await parseJson(res).catch(() => null)
-        return { status: 'error', message: parseError(data, res.status) }
-      }
+      if (!res.ok) return { status: 'error', message: `HTTP ${res.status}` }
       return res.json()
     } catch (err) {
-      return {
-        status: 'error',
-        message: isNetworkError(err) ? formatConnectionError(url) : (err?.message || 'API недоступен'),
-      }
+      return { status: 'error', message: err?.message || 'API недоступен' }
     }
   },
 }
 
-export { getToken, setToken, clearToken, mapOrder, mapProduct, mapPartnerUser, API_URL as apiUrl }
+export { getToken, setToken, clearToken, setRefreshToken, clearRefreshToken, mapOrder, mapProduct, mapPartnerUser, request, get, post, patch, del }

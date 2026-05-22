@@ -19,7 +19,8 @@ export default function HunterProjectWizard() {
   })
 
   useEffect(() => {
-    if (isDemoMode) spApi.demoLinkedProducts('hunter_irrigation').then(setLinked)
+    const load = isDemoMode ? spApi.demoLinkedProducts : spApi.apiLinkedProducts
+    load('hunter_irrigation').then(setLinked).catch(() => setLinked([]))
   }, [isDemoMode])
 
   const preview = useMemo(() => calculateHunterProject(form, linked), [form, linked])
@@ -32,8 +33,7 @@ export default function HunterProjectWizard() {
     try {
       const res = isDemoMode
         ? await spApi.demoCreateHunter({ ...form, submit: true })
-        : null
-      if (!isDemoMode) throw new Error('API: включите demo или backend')
+        : await spApi.apiCreateHunter({ ...form, submit: true })
       notify(t('hunter_order_sent'))
       navigate(`/services/hunter-irrigation/${res.serviceProject.id}`)
     } catch (e) {

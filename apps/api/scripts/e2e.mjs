@@ -4,7 +4,7 @@
  * Requires: PostgreSQL + migrated DB + seed
  */
 
-const API = process.env.API_URL || 'http://localhost:4000'
+const API = process.env.API_URL || 'http://localhost:4000/api'
 
 let passed = 0
 let failed = 0

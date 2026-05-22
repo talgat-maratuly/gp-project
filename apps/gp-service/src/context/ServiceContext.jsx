@@ -98,7 +98,7 @@ export function ServiceProvider({ children }) {
         setProducts(list)
         setProductsError(null)
       } else {
-        const list = await api.getProducts()
+        const list = await api.getMarketProducts()
         setProducts(list)
         setProductsError(null)
       }

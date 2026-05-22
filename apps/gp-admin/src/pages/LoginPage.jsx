@@ -9,15 +9,15 @@ export default function LoginPage() {
   const { login } = useAuth()
   const { t } = useLanguage()
   const navigate = useNavigate()
-  const [username, setUsername] = useState('superadmin')
-  const [password, setPassword] = useState('1234')
+  const [username, setUsername] = useState('admin@gp.kz')
+  const [password, setPassword] = useState('password123')
   const [error, setError] = useState('')
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault()
     setError('')
     try {
-      login(username, password)
+      await login(username, password)
       navigate('/')
     } catch {
       setError(t('login_error'))
@@ -42,9 +42,10 @@ export default function LoginPage() {
           <button type="submit" className="w-full py-3 rounded-xl bg-sky-600 hover:bg-sky-500 font-bold text-sm">{t('login')}</button>
         </form>
         <div className="mt-6 p-3 rounded-xl bg-white/5 text-xs text-slate-500 space-y-1">
-          <p className="font-semibold text-slate-400">{t('demoAccounts')}</p>
-          <p>superadmin · atyrau_admin · aktobe_admin · uralsk_admin</p>
-          <p>manager · finance · support (Уральск)</p>
+          <p className="font-semibold text-slate-400">API</p>
+          <p>admin@gp.kz · password123</p>
+          <p className="font-semibold text-slate-400 mt-2">{t('demoAccounts')}</p>
+          <p>VITE_GP_DEMO=true: superadmin · uralsk_admin (1234)</p>
         </div>
       </div>
     </div>

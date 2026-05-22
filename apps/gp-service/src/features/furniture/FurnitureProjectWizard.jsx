@@ -26,7 +26,9 @@ export default function FurnitureProjectWizard() {
       return
     }
     try {
-      const res = await spApi.demoCreateFurniture({ ...form, submit: true })
+      const res = isDemoMode
+        ? await spApi.demoCreateFurniture({ ...form, submit: true })
+        : await spApi.apiCreateFurniture({ ...form, submit: true })
       notify(t('furniture_order_sent'))
       navigate(`/services/furniture/${res.serviceProject.id}`)
     } catch (e) {

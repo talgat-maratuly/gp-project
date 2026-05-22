@@ -1,7 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { getToken } from '@gp/shared/api'
 import { ORDER_STATUSES, recalcAggregates } from '../data/seedData'
 import { uid } from '../lib/id'
+import { fetchAdminStore } from '../lib/adminApiStore'
 import {
+  isDemoMode,
   loadGlobalStore,
   saveGlobalStore,
   resetGlobalStore,
@@ -40,20 +43,37 @@ function syncOrderFromRefs(order, state) {
 
 export function StoreProvider({ children }) {
   const [store, setStore] = useState(() => loadGlobalStore())
+  const apiMode = !isDemoMode()
+
+  const refreshFromApi = useCallback(async () => {
+    if (!apiMode || !getToken()) return
+    try {
+      const data = await fetchAdminStore()
+      setStore(data)
+    } catch (e) {
+      console.warn('[GP Admin] API store load failed', e?.message)
+    }
+  }, [apiMode])
 
   useEffect(() => {
+    if (apiMode) {
+      refreshFromApi()
+      const t = setInterval(refreshFromApi, 15000)
+      return () => clearInterval(t)
+    }
     syncFromHub().then(setStore)
     return subscribeGlobalStore(setStore)
-  }, [])
+  }, [apiMode, refreshFromApi])
 
   const persist = useCallback((updater) => {
     setStore((prev) => {
       const next = typeof updater === 'function' ? updater(prev) : updater
+      if (apiMode) return next
       const aggregated = recalcAggregates(next)
       saveGlobalStore(aggregated)
       return aggregated
     })
-  }, [])
+  }, [apiMode])
 
   const addFranchise = useCallback((data) => {
     persist((s) => ({
@@ -274,7 +294,9 @@ export function StoreProvider({ children }) {
       updateReviewStatus,
       updateShop,
       updateMarketProduct,
-      resetDemoData: () => setStore(resetGlobalStore()),
+      resetDemoData: () => (apiMode ? refreshFromApi() : setStore(resetGlobalStore())),
+      refreshFromApi,
+      apiMode,
     }),
     [
       store,
@@ -303,6 +325,8 @@ export function StoreProvider({ children }) {
       updateReviewStatus,
       updateShop,
       updateMarketProduct,
+      refreshFromApi,
+      apiMode,
     ],
   )
 

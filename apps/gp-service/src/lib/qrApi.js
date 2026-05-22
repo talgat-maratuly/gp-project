@@ -1,3 +1,4 @@
+import { api } from '@gp/shared/api'
 import {
   getQrObjectPublic,
   logQrScan,
@@ -5,8 +6,6 @@ import {
   findQrObjectByCode,
 } from '@gp/shared/demo'
 import { isDemoMode } from '@gp/shared/demo'
-
-const API = import.meta.env.VITE_API_URL || ''
 
 export async function fetchQrPublic(qrCode) {
   if (isDemoMode()) {
@@ -17,25 +16,14 @@ export async function fetchQrPublic(qrCode) {
     })
     return getQrObjectPublic(qrCode)
   }
-  const res = await fetch(`${API}/qr/public/${encodeURIComponent(qrCode)}`)
-  if (!res.ok) throw new Error('QR не найден')
-  return res.json()
+  return api.getQrPublic(qrCode)
 }
 
 export async function submitQrOrder(qrCode, payload) {
   if (isDemoMode()) {
     return createQrServiceOrder({ qrCode, ...payload })
   }
-  const res = await fetch(`${API}/qr/public/${encodeURIComponent(qrCode)}/orders`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.message || 'Ошибка создания заявки')
-  }
-  return res.json()
+  return api.createQrOrder(qrCode, payload)
 }
 
 export function qrExists(qrCode) {

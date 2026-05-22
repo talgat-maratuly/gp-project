@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
+import { api } from '@gp/shared/api'
 import {
   loadGlobalStore,
   syncFromHub,
@@ -30,49 +31,87 @@ export default function QrOrdersPage() {
   const [list, setList] = useState([])
 
   const load = async () => {
-    if (!isDemoMode || !user?.partnerId) return
-    await syncFromHub()
-    const store = loadGlobalStore()
-    let orders = qrOrdersForPartner(user.partnerId, user.franchiseId)
-    const filter = FILTER_MAP[pathname]
-    if (filter) {
-      if (Array.isArray(filter)) {
-        orders = orders.filter((o) => filter.includes(o.serviceType))
-      } else {
-        orders = orders.filter((o) => o.serviceType === filter)
+    if (!user?.partnerProfileId && !user?.partnerId) return
+
+    if (isDemoMode) {
+      await syncFromHub()
+      const store = loadGlobalStore()
+      let orders = qrOrdersForPartner(user.partnerId, user.franchiseId)
+      const filter = FILTER_MAP[pathname]
+      if (filter) {
+        if (Array.isArray(filter)) {
+          orders = orders.filter((o) => filter.includes(o.serviceType))
+        } else {
+          orders = orders.filter((o) => o.serviceType === filter)
+        }
       }
+      const objects = store.qrCodeObjects || []
+      setList(
+        orders.map((o) => ({
+          ...o,
+          object: objects.find((x) => x.id === o.qrCodeObjectId),
+        })),
+      )
+      return
     }
-    const objects = store.qrCodeObjects || []
+
+    const filter = FILTER_MAP[pathname]
+    const serviceType = Array.isArray(filter) ? undefined : filter
+    let orders = await api.getQrPartnerOrders(serviceType)
+    if (Array.isArray(filter)) {
+      orders = orders.filter((o) => filter.includes(o.serviceType))
+    }
     setList(
       orders.map((o) => ({
         ...o,
-        object: objects.find((x) => x.id === o.qrCodeObjectId),
+        totalPrice: Number(o.totalPrice),
+        object: o.qrCodeObject || null,
       })),
     )
   }
 
   useEffect(() => {
     load()
-    const unsub = subscribeGlobalStore(() => load())
-    const iv = setInterval(load, 4000)
-    return () => {
-      unsub()
-      clearInterval(iv)
+    if (isDemoMode) {
+      const unsub = subscribeGlobalStore(() => load())
+      const iv = setInterval(load, 4000)
+      return () => {
+        unsub()
+        clearInterval(iv)
+      }
     }
-  }, [user?.partnerId, pathname, isDemoMode])
+    const iv = setInterval(load, 8000)
+    return () => clearInterval(iv)
+  }, [user?.partnerId, user?.partnerProfileId, pathname, isDemoMode])
 
-  const advance = (orderId, status) => {
+  const advance = async (orderId, status) => {
     const next = FLOW[status]
     if (!next) return
-    updateQrServiceOrder(orderId, { status: next })
-    notify('Статус обновлён')
-    load()
+    try {
+      if (isDemoMode) {
+        updateQrServiceOrder(orderId, { status: next })
+      } else {
+        await api.patchQrPartnerOrderStatus(orderId, next)
+      }
+      notify('Статус обновлён')
+      load()
+    } catch (e) {
+      notify(e.message || 'Ошибка', 'error')
+    }
   }
 
-  const cancel = (orderId) => {
-    updateQrServiceOrder(orderId, { status: 'cancelled' })
-    notify('Заявка отменена')
-    load()
+  const cancel = async (orderId) => {
+    try {
+      if (isDemoMode) {
+        updateQrServiceOrder(orderId, { status: 'cancelled' })
+      } else {
+        await api.patchQrPartnerOrderStatus(orderId, 'cancelled')
+      }
+      notify('Заявка отменена')
+      load()
+    } catch (e) {
+      notify(e.message || 'Ошибка', 'error')
+    }
   }
 
   const title =

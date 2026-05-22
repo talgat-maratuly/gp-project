@@ -7,8 +7,8 @@ const listeners = new Set()
 let memoryCache = null
 
 export function isDemoMode() {
-  if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GP_DEMO === 'false') return false
-  return true
+  if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GP_DEMO === 'true') return true
+  return false
 }
 
 export function loadGlobalStore() {

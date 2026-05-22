@@ -560,7 +560,7 @@ export default function AuthPage({ initialMode = 'register' }) {
               placeholder="Пароль"
               autoComplete="current-password"
             />
-            <p className="text-[11px] text-slate-500">Demo: uralsk_partner / 1234</p>
+            <p className="text-[11px] text-slate-500">API: partner@gp.kz / password123 · Demo: uralsk_partner / 1234</p>
           </div>
         )}
 

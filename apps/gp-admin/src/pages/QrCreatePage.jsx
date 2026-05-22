@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { api } from '@gp/shared/api'
+import { isDemoMode, createQrCodeObject } from '@gp/shared/demo'
+import { useStore } from '../context/StoreContext'
 import { useAccess } from '../context/AccessContext'
-import { createQrCodeObject } from '@gp/shared/demo'
 import {
   QR_OBJECT_TYPES,
   QR_SERVICE_TYPES,
@@ -11,6 +13,7 @@ import {
 
 export default function QrCreatePage() {
   const navigate = useNavigate()
+  const { refreshFromApi } = useStore()
   const { scopedStore } = useAccess()
   const [form, setForm] = useState({
     title: '',
@@ -29,9 +32,15 @@ export default function QrCreatePage() {
     qrCode: '',
   })
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault()
-    const obj = createQrCodeObject(form)
+    if (isDemoMode()) {
+      const obj = createQrCodeObject(form)
+      navigate(`/qr/${obj.id}`)
+      return
+    }
+    const obj = await api.adminCreateQrObject(form)
+    await refreshFromApi?.()
     navigate(`/qr/${obj.id}`)
   }
 

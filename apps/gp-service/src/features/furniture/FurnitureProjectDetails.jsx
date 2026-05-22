@@ -13,7 +13,8 @@ export default function FurnitureProjectDetails() {
   const [bundle, setBundle] = useState(null)
 
   useEffect(() => {
-    if (isDemoMode) spApi.demoGetProject(id).then(setBundle)
+    const load = isDemoMode ? spApi.demoGetProject : spApi.apiGetProject
+    load(id).then(setBundle).catch(() => setBundle(null))
   }, [id, isDemoMode])
 
   if (!bundle?.furniture) return <p className="p-4">{t('loading')}</p>

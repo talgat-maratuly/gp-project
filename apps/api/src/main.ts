@@ -1,10 +1,23 @@
-import { ValidationPipe } from '@nestjs/common';
+import { RequestMethod, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/http-exception.filter';
+
+const DEFAULT_CORS_ORIGINS = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:5174',
+  'http://127.0.0.1:5175',
+  'https://gp-service.kz',
+  'https://partner.gp-service.kz',
+  'https://admin.gp-service.kz',
+  'https://market.gp-service.kz',
+];
 
 function resolveCorsOrigins(config: ConfigService): string[] | boolean {
   const raw = config.get<string>('CORS_ORIGINS');
@@ -16,15 +29,10 @@ function resolveCorsOrigins(config: ConfigService): string[] | boolean {
   }
   const isProd = config.get<string>('NODE_ENV') === 'production';
   if (isProd) {
-    console.warn('[GP API] CORS_ORIGINS не задан — укажите URL GP Service и GP Partner на Vercel');
-    return [];
+    console.warn('[GP API] CORS_ORIGINS не задан — используем домены gp-service.kz по умолчанию');
+    return DEFAULT_CORS_ORIGINS.filter((o) => o.startsWith('https://'));
   }
-  return [
-    'http://localhost:5173',
-    'http://localhost:5174',
-    'http://127.0.0.1:5173',
-    'http://127.0.0.1:5174',
-  ];
+  return DEFAULT_CORS_ORIGINS;
 }
 
 async function bootstrap() {
@@ -36,6 +44,14 @@ async function bootstrap() {
     origin: resolveCorsOrigins(configService),
     credentials: true,
   });
+
+  app.setGlobalPrefix('api', {
+    exclude: [
+      { path: 'health', method: RequestMethod.GET },
+      { path: 'health/full', method: RequestMethod.GET },
+    ],
+  });
+
   app.useGlobalFilters(new AllExceptionsFilter());
   app.useGlobalPipes(
     new ValidationPipe({
@@ -52,8 +68,8 @@ async function bootstrap() {
     .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('api/docs', app, document, {
-    jsonDocumentUrl: 'api/openapi.json',
+  SwaggerModule.setup('docs', app, document, {
+    jsonDocumentUrl: 'openapi.json',
   });
 
   const port = configService.get<number>('PORT', 4000);
@@ -62,6 +78,7 @@ async function bootstrap() {
   console.log(`GP API listening on port ${port}`);
   console.log(`Swagger ${host}/api/docs`);
   console.log(`Health ${host}/health/full`);
+  console.log(`API base ${host}/api`);
 }
 
 bootstrap().catch((err: unknown) => {

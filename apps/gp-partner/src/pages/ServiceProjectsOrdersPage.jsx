@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { api } from '@gp/shared/api'
 import { listServiceProjects, updateServiceProjectStatus, syncFromHub } from '@gp/shared/demo'
 import { useLanguage } from '../i18n'
 import { usePartner } from '../context/PartnerContext'
@@ -6,30 +7,61 @@ import { formatPrice } from '@gp/shared/utils'
 
 const FLOW = { submitted: 'assigned', assigned: 'in_progress', in_progress: 'completed' }
 
+function mapApiProject(p) {
+  return {
+    id: p.id,
+    clientName: p.client?.user?.name || p.clientName || 'Клиент',
+    city: p.city || '',
+    totalPrice: Number(p.totalPrice ?? 0),
+    status: p.status,
+    partnerId: p.partnerId,
+  }
+}
+
 export default function ServiceProjectsOrdersPage({ type }) {
   const { t } = useLanguage()
   const { user, isDemoMode, notify } = usePartner()
   const [list, setList] = useState([])
 
   const load = async () => {
-    if (!isDemoMode || !user?.partnerId) return
-    await syncFromHub()
-    const all = listServiceProjects({ type, franchiseId: user.franchiseId })
-    setList(all.filter((p) => p.partnerId === user.partnerId || p.status === 'submitted'))
+    if (!user?.partnerId && !user?.partnerProfileId) return
+
+    if (isDemoMode) {
+      await syncFromHub()
+      const all = listServiceProjects({ type, franchiseId: user.franchiseId })
+      setList(all.filter((p) => p.partnerId === user.partnerId || p.status === 'submitted'))
+      return
+    }
+
+    const all = await api.getServiceProjects({ type })
+    const partnerId = user.partnerProfileId || user.partnerId
+    setList(
+      all
+        .map(mapApiProject)
+        .filter((p) => p.partnerId === partnerId || p.status === 'submitted'),
+    )
   }
 
   useEffect(() => {
     load()
-    const iv = setInterval(load, 4000)
+    const iv = setInterval(load, isDemoMode ? 4000 : 8000)
     return () => clearInterval(iv)
-  }, [type, user?.partnerId, isDemoMode])
+  }, [type, user?.partnerId, user?.partnerProfileId, isDemoMode])
 
-  const advance = (id, status) => {
+  const advance = async (id, status) => {
     const next = FLOW[status]
     if (!next) return
-    updateServiceProjectStatus(id, next, user.partnerId)
-    notify(t('notify_status_updated'))
-    load()
+    try {
+      if (isDemoMode) {
+        updateServiceProjectStatus(id, next, user.partnerId)
+      } else {
+        await api.patchServiceProjectStatus(id, next)
+      }
+      notify(t('notify_status_updated'))
+      load()
+    } catch (e) {
+      notify(e.message || 'Ошибка', 'error')
+    }
   }
 
   return (

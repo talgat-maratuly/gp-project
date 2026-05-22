@@ -5,6 +5,7 @@ const APP =
     : 'gp'
 
 const TOKEN_KEY = `gp-${APP}-access-token`
+const REFRESH_KEY = `gp-${APP}-refresh-token`
 
 export function getToken() {
   try {
@@ -21,6 +22,23 @@ export function setToken(token) {
 
 export function clearToken() {
   localStorage.removeItem(TOKEN_KEY)
+}
+
+export function getRefreshToken() {
+  try {
+    return localStorage.getItem(REFRESH_KEY)
+  } catch {
+    return null
+  }
+}
+
+export function setRefreshToken(token) {
+  if (token) localStorage.setItem(REFRESH_KEY, token)
+  else localStorage.removeItem(REFRESH_KEY)
+}
+
+export function clearRefreshToken() {
+  localStorage.removeItem(REFRESH_KEY)
 }
 
 export function getTokenStorageKey() {
