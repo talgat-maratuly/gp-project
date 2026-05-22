@@ -4,7 +4,7 @@ import { CheckCircle, Package, RefreshCw, Wrench, Pencil, X } from 'lucide-react
 import { formatDate, formatPrice } from '@gp/shared/utils'
 import { useLanguage, useOrderStatusLabel } from '../../i18n'
 import { useService } from '../../context/ServiceContext'
-import { AsyncState } from '@gp/shared/ui/AsyncState'
+import { AsyncState } from '@gp/shared'
 import { KaspiButton, KaspiCard, SkeletonBlock } from '@gp/shared/ui/KaspiUI'
 
 export default function OrdersPage() {

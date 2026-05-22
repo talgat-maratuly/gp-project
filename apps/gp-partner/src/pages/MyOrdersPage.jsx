@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AsyncState } from '@gp/shared/ui/AsyncState'
+import { AsyncState } from '@gp/shared'
 import { usePartner } from '../context/PartnerContext'
 import { useLanguage, useOrderStatusLabel } from '../i18n'
 import * as demoApi from '../lib/demoApi'

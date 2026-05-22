@@ -6,7 +6,7 @@ import { CATEGORIES } from '../../data/categories'
 import { useLanguage } from '../../i18n'
 import { useService } from '../../context/ServiceContext'
 import { DEFAULT_FILTERS, SHOP_BRANDS, SORT_OPTIONS, filterProducts } from '../../utils/filters'
-import { AsyncState } from '@gp/shared/ui/AsyncState'
+import { AsyncState } from '@gp/shared'
 import { Chip, KaspiCard, SkeletonBlock } from '@gp/shared/ui/KaspiUI'
 import ProductCard from './ProductCard'
 
