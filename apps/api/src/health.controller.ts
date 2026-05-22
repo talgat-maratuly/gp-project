@@ -10,6 +10,16 @@ export class HealthController {
     return { status: 'ok', service: 'gp-api' };
   }
 
+  @Get('health/db')
+  dbHealth() {
+    return this.healthService.database();
+  }
+
+  @Get('health/ws')
+  wsHealth() {
+    return this.healthService.websocket();
+  }
+
   @Get('health/full')
   fullHealth() {
     return this.healthService.full();

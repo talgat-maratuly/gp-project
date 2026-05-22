@@ -1,0 +1,10 @@
+-- Stability indexes for orders, products, QR orders
+CREATE INDEX IF NOT EXISTS "Order_clientId_idx" ON "Order"("clientId");
+CREATE INDEX IF NOT EXISTS "Order_partnerId_idx" ON "Order"("partnerId");
+CREATE INDEX IF NOT EXISTS "Order_status_idx" ON "Order"("status");
+CREATE INDEX IF NOT EXISTS "Order_category_idx" ON "Order"("category");
+CREATE INDEX IF NOT EXISTS "Order_createdAt_idx" ON "Order"("createdAt");
+CREATE INDEX IF NOT EXISTS "Product_partnerId_idx" ON "Product"("partnerId");
+CREATE INDEX IF NOT EXISTS "Product_linkedServiceType_idx" ON "Product"("linkedServiceType");
+CREATE INDEX IF NOT EXISTS "Product_inStock_idx" ON "Product"("inStock");
+CREATE INDEX IF NOT EXISTS "QRServiceOrder_qrCodeObjectId_idx" ON "QRServiceOrder"("qrCodeObjectId");

@@ -250,6 +250,10 @@ model Product {
 
   orderItems OrderItem[]
   qrCodeObjects QRCodeObject[]
+
+  @@index([partnerId])
+  @@index([linkedServiceType])
+  @@index([inStock])
 }
 
 model ServiceProject {

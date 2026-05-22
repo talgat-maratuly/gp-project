@@ -1,4 +1,5 @@
 import { RequestMethod, ValidationPipe } from '@nestjs/common';
+import { DomainLoggingInterceptor } from './common/domain-logging.interceptor';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { IoAdapter } from '@nestjs/platform-socket.io';
@@ -48,9 +49,13 @@ async function bootstrap() {
   app.setGlobalPrefix('api', {
     exclude: [
       { path: 'health', method: RequestMethod.GET },
+      { path: 'health/db', method: RequestMethod.GET },
+      { path: 'health/ws', method: RequestMethod.GET },
       { path: 'health/full', method: RequestMethod.GET },
     ],
   });
+
+  app.useGlobalInterceptors(new DomainLoggingInterceptor());
 
   app.useGlobalFilters(new AllExceptionsFilter());
   app.useGlobalPipes(
@@ -77,7 +82,7 @@ async function bootstrap() {
   const host = process.env.RENDER ? 'https://gp-api.onrender.com' : `http://localhost:${port}`;
   console.log(`GP API listening on port ${port}`);
   console.log(`Swagger ${host}/api/docs`);
-  console.log(`Health ${host}/health/full`);
+  console.log(`Health ${host}/health · ${host}/health/db · ${host}/health/ws · ${host}/health/full`);
   console.log(`API base ${host}/api`);
 }
 

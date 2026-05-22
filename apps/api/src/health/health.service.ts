@@ -20,6 +20,14 @@ export class HealthService {
     private orders: OrdersService,
   ) {}
 
+  async database() {
+    return this.checkDatabase();
+  }
+
+  async websocket() {
+    return this.checkWebsocket();
+  }
+
   async full() {
     const started = Date.now();
     const [database, prisma, websocket, gpsModule, ordersModule, authModule, migrations, schema] =
