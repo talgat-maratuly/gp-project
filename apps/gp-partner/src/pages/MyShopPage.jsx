@@ -8,6 +8,7 @@ import { usePartner } from '../context/PartnerContext'
 import * as marketDemo from '../lib/marketDemoApi'
 
 const PATH_TAB = {
+  '/shop/products': 'products',
   '/shop/stock': 'stock',
   '/shop/orders': 'orders',
   '/shop/settings': 'settings',

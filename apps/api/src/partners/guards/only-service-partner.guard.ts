@@ -1,6 +1,6 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { PartnerStatus } from '@prisma/client';
-import { isServicePartnerType } from '../../common/partner-access.util';
+import { isServicePartnerProfile } from '../../common/partner-access.util';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
@@ -13,13 +13,13 @@ export class OnlyServicePartnerGuard implements CanActivate {
 
     const profile = await this.prisma.partnerProfile.findUnique({
       where: { userId },
-      select: { status: true, partnerType: true },
+      select: { status: true, partnerType: true, partnerRole: true },
     });
     if (!profile) throw new ForbiddenException('Профиль партнёра не найден');
     if (profile.status !== PartnerStatus.APPROVED) {
       throw new ForbiddenException('Доступ открыт после одобрения заявки');
     }
-    if (!isServicePartnerType(profile.partnerType)) {
+    if (!isServicePartnerProfile(profile)) {
       throw new ForbiddenException('Раздел доступен только сервисным партнёрам');
     }
     return true;

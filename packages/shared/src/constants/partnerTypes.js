@@ -1,3 +1,5 @@
+import { SHOP_MAIN_GROUP_IDS } from './partnerRole.js'
+
 /** Типы партнёров GP — единая модерация */
 
 export const PARTNER_TYPES = [
@@ -36,9 +38,13 @@ const GROUP_TO_TYPE = {
 }
 
 export function resolvePartnerTypeFromGroups(mainGroupIds) {
+  const shopOnly =
+    mainGroupIds.length > 0 && mainGroupIds.every((id) => SHOP_MAIN_GROUP_IDS.has(id))
+  if (shopOnly) return 'SHOP'
   for (const id of mainGroupIds) {
+    if (SHOP_MAIN_GROUP_IDS.has(id)) continue
     const t = GROUP_TO_TYPE[id]
-    if (t) return t
+    if (t && t !== 'SHOP') return t
   }
   return 'OTHER'
 }

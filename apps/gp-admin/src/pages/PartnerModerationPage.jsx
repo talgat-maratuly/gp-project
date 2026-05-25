@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api } from '@gp/shared/api'
-import { PARTNER_STATUS_LABELS, PARTNER_TYPES } from '@gp/shared/constants'
+import { PARTNER_STATUS_LABELS, PARTNER_TYPES, PARTNER_ROLE_LABELS } from '@gp/shared/constants'
 import { isDemoMode } from '@gp/shared/demo'
 import { useLanguage } from '../i18n/LanguageContext'
 
@@ -112,7 +112,8 @@ export default function PartnerModerationPage() {
             <thead>
               <tr>
                 <th>Компания</th>
-                <th>Тип</th>
+                <th>Роль</th>
+                <th>Тип услуги</th>
                 <th>Регион</th>
                 <th>Телефон</th>
                 <th></th>
@@ -120,10 +121,11 @@ export default function PartnerModerationPage() {
             </thead>
             <tbody>
               {loading && !list.length ? (
-                <tr><td colSpan={5} className="text-slate-400">Загрузка…</td></tr>
+                <tr><td colSpan={6} className="text-slate-400">Загрузка…</td></tr>
               ) : list.map((p) => (
                 <tr key={p.id} className={selected?.id === p.id ? 'bg-slate-800/60' : ''}>
                   <td className="font-medium">{p.companyName || p.company}</td>
+                  <td>{PARTNER_ROLE_LABELS[p.partnerRole] || p.partnerRole || '—'}</td>
                   <td>{typeLabel(p.partnerType)}</td>
                   <td>{p.region?.name || p.city}</td>
                   <td>{p.user?.phone}</td>
@@ -135,7 +137,7 @@ export default function PartnerModerationPage() {
                 </tr>
               ))}
               {!loading && !list.length && (
-                <tr><td colSpan={5} className="text-slate-500">Нет заявок</td></tr>
+                <tr><td colSpan={6} className="text-slate-500">Нет заявок</td></tr>
               )}
             </tbody>
           </table>
@@ -150,7 +152,11 @@ export default function PartnerModerationPage() {
                   {PARTNER_STATUS_LABELS[selected.status]} · {selected.region?.name || selected.city}
                 </p>
               </div>
-              <span className="text-xs bg-slate-800 px-2 py-1 rounded">{typeLabel(selected.partnerType)}</span>
+              <span className="text-xs bg-slate-800 px-2 py-1 rounded">
+                {PARTNER_ROLE_LABELS[selected.partnerRole] || selected.partnerRole}
+                {' · '}
+                {typeLabel(selected.partnerType)}
+              </span>
             </div>
             <dl className="text-sm grid grid-cols-2 gap-2">
               <dt className="text-slate-500">ФИО</dt><dd>{selected.fullName || selected.user?.name}</dd>

@@ -52,6 +52,13 @@ enum PartnerType {
   OTHER
 }
 
+/** Роль для меню и прав: специалист / магазин / оба (после одобрения) */
+enum PartnerRole {
+  SPECIALIST
+  SHOP
+  MIXED_PARTNER
+}
+
 enum PartnerStatus {
   DRAFT
   PENDING_REVIEW
@@ -191,6 +198,7 @@ model PartnerProfile {
   regionId     String?
   region       Region?            @relation(fields: [regionId], references: [id])
   partnerType  PartnerType?
+  partnerRole  PartnerRole?
   status       PartnerStatus      @default(DRAFT)
   accountType  AccountType        @default(INDIVIDUAL)
   companyName  String?
@@ -242,6 +250,7 @@ model PartnerProfile {
   @@index([regionId])
   @@index([status])
   @@index([partnerType])
+  @@index([partnerRole])
 }
 
 enum FurnitureServiceType {

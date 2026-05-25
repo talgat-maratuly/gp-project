@@ -23,8 +23,10 @@ export const DEMO_USERS = [
   { username: 'uralsk_client@gp.kz', password: '1234', role: 'CLIENT', name: 'Айдар Клиент', franchiseId: 'fr-uralsk', clientId: 'c1', city: 'Уральск' },
   { username: 'atyrau_client', password: '1234', role: 'CLIENT', name: 'Серик Атырау', franchiseId: 'fr-atyrau', clientId: 'c4', city: 'Атырау' },
   { username: 'atyrau_client@gp.kz', password: '1234', role: 'CLIENT', name: 'Серик Атырау', franchiseId: 'fr-atyrau', clientId: 'c4', city: 'Атырау' },
-  { username: 'uralsk_partner', password: '1234', role: 'PARTNER', name: 'Бауыржан', franchiseId: 'fr-uralsk', partnerId: 'p1', city: 'Уральск' },
-  { username: 'uralsk_partner@gp.kz', password: '1234', role: 'PARTNER', name: 'Бауыржан', franchiseId: 'fr-uralsk', partnerId: 'p1', city: 'Уральск' },
+  { username: 'uralsk_partner', password: '1234', role: 'PARTNER', name: 'Бауыржан', franchiseId: 'fr-uralsk', partnerId: 'p1', city: 'Уральск', partnerType: 'LAWN_MOWING', partnerRole: 'SPECIALIST' },
+  { username: 'uralsk_partner@gp.kz', password: '1234', role: 'PARTNER', name: 'Бауыржан', franchiseId: 'fr-uralsk', partnerId: 'p1', city: 'Уральск', partnerType: 'LAWN_MOWING', partnerRole: 'SPECIALIST' },
+  { username: 'uralsk_shop', password: '1234', role: 'PARTNER', name: 'Дүкен партнёрі', franchiseId: 'fr-uralsk', partnerId: 'p-shop', city: 'Уральск', partnerType: 'SHOP', partnerRole: 'SHOP' },
+  { username: 'uralsk_shop@gp.kz', password: '1234', role: 'PARTNER', name: 'Дүкен партнёрі', franchiseId: 'fr-uralsk', partnerId: 'p-shop', city: 'Уральск', partnerType: 'SHOP', partnerRole: 'SHOP' },
   { username: 'atyrau_partner', password: '1234', role: 'PARTNER', name: 'Марат', franchiseId: 'fr-atyrau', partnerId: 'p3', city: 'Атырау' },
   { username: 'atyrau_partner@gp.kz', password: '1234', role: 'PARTNER', name: 'Марат', franchiseId: 'fr-atyrau', partnerId: 'p3', city: 'Атырау' },
 ]

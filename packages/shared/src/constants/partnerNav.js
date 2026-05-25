@@ -1,74 +1,109 @@
-/** Навигация GP Partner по partnerType */
+/** Навигация GP Partner по partnerRole (+ partnerType для уточнения услуг) */
+
+import {
+  canAccessServiceModule,
+  canAccessShopModule,
+  getEffectivePartnerRole,
+  getPartnerAccess,
+  PARTNER_ROLES,
+} from './partnerRole.js'
 
 export const SHOP_PARTNER_TYPE = 'SHOP'
 
-export function isShopPartner(partnerType) {
-  return partnerType === SHOP_PARTNER_TYPE
+/** @deprecated Используйте getPartnerAccess(user).shop */
+export function isShopPartner(userOrType, partnerStatus) {
+  if (userOrType && typeof userOrType === 'object') {
+    return getPartnerAccess(userOrType).shop
+  }
+  return canAccessShopModule(
+    getEffectivePartnerRole(null, userOrType),
+    partnerStatus,
+  )
 }
 
-export function isServicePartner(partnerType) {
-  return Boolean(partnerType && partnerType !== SHOP_PARTNER_TYPE)
+export function isServicePartner(user, opts = {}) {
+  if (user && typeof user === 'object') {
+    return getPartnerAccess(user, opts).service
+  }
+  return Boolean(user && user !== SHOP_PARTNER_TYPE)
 }
 
-/** Нижнее меню (до 5 пунктов) */
-export function getPartnerBottomNav(partnerType, { isDemoMode = false } = {}) {
-  const type = partnerType || (isDemoMode ? 'LAWN_MOWING' : null)
+/** Нижнее меню */
+export function getPartnerBottomNav(user, { isDemoMode = false } = {}) {
+  const { shop, service, partnerType } = getPartnerAccess(user || {}, { isDemoMode })
 
-  if (isShopPartner(type)) {
+  if (!shop && !service) {
     return [
-      { to: '/', icon: 'LayoutDashboard', labelKey: 'shop_dashboard', end: true },
-      { to: '/shop', icon: 'Package', labelKey: 'market_products' },
-      { to: '/catalog/add', icon: 'PlusCircle', labelKey: 'market_add_product' },
-      { to: '/shop/orders', icon: 'ShoppingCart', labelKey: 'market_orders' },
+      { to: '/', icon: 'LayoutDashboard', labelKey: 'nav_home', end: true },
+      { to: '/apply', icon: 'FileText', labelKey: 'partner_moderation_status' },
       { to: '/profile', icon: 'User', labelKey: 'nav_profile' },
     ]
   }
 
-  const nav = [
-    { to: '/', icon: 'LayoutDashboard', labelKey: 'nav_home', end: true },
-    { to: '/orders/new', icon: 'Inbox', labelKey: 'new_orders_title' },
-    { to: '/orders', icon: 'ClipboardList', labelKey: 'nav_orders' },
-    { to: '/balance', icon: 'Wallet', labelKey: 'nav_payouts' },
-    { to: '/profile', icon: 'User', labelKey: 'nav_profile' },
-  ]
+  if (shop && !service) {
+    return [
+      { to: '/', icon: 'LayoutDashboard', labelKey: 'nav_home', end: true },
+      { to: '/shop/orders', icon: 'ShoppingCart', labelKey: 'market_orders' },
+      { to: '/shop', icon: 'Store', labelKey: 'market_my_shop' },
+      { to: '/shop/products', icon: 'Package', labelKey: 'market_products' },
+      { to: '/profile', icon: 'User', labelKey: 'nav_profile' },
+    ]
+  }
 
-  if (type === 'SEPTIC_SERVICE') {
+  if (shop && service) {
     return [
       { to: '/', icon: 'LayoutDashboard', labelKey: 'nav_home', end: true },
       { to: '/orders', icon: 'ClipboardList', labelKey: 'nav_orders' },
-      { to: '/map', icon: 'Map', labelKey: 'nav_map' },
-      { to: '/balance', icon: 'Wallet', labelKey: 'nav_payouts' },
+      { to: '/shop', icon: 'Store', labelKey: 'market_my_shop' },
+      { to: '/services', icon: 'Briefcase', labelKey: 'nav_my_services' },
       { to: '/profile', icon: 'User', labelKey: 'nav_profile' },
     ]
   }
 
-  return nav
-}
-
-/** Разрешённые path-префиксы для редиректа */
-export function getAllowedPathPrefixes(partnerType, { isDemoMode = false } = {}) {
-  const common = ['/apply', '/profile']
-  const type = partnerType || (isDemoMode ? 'LAWN_MOWING' : null)
-
-  if (isShopPartner(type)) {
-    return ['/', '/shop', '/catalog', ...common]
+  if (partnerType === 'SEPTIC_SERVICE') {
+    return [
+      { to: '/', icon: 'LayoutDashboard', labelKey: 'nav_home', end: true },
+      { to: '/orders', icon: 'ClipboardList', labelKey: 'nav_orders' },
+      { to: '/services', icon: 'Briefcase', labelKey: 'nav_my_services' },
+      { to: '/map', icon: 'Map', labelKey: 'nav_map' },
+      { to: '/profile', icon: 'User', labelKey: 'nav_profile' },
+    ]
   }
 
-  const service = [
-    '/',
-    '/orders',
-    '/schedule',
-    '/photos',
-    '/balance',
-    '/profile',
-    '/apply',
+  return [
+    { to: '/', icon: 'LayoutDashboard', labelKey: 'nav_home', end: true },
+    { to: '/orders', icon: 'ClipboardList', labelKey: 'nav_orders' },
+    { to: '/services', icon: 'Briefcase', labelKey: 'nav_my_services' },
+    { to: '/profile', icon: 'User', labelKey: 'nav_profile' },
   ]
-  if (type === 'SEPTIC_SERVICE') service.push('/map')
-  return service
 }
 
-export function isPathAllowedForPartner(pathname, partnerType, opts = {}) {
-  const allowed = getAllowedPathPrefixes(partnerType, opts)
+export function getAllowedPathPrefixes(user, opts = {}) {
+  const { shop, service, partnerType } = getPartnerAccess(user || {}, opts)
+  const common = ['/apply', '/profile']
+
+  const prefixes = ['/']
+
+  if (shop) {
+    prefixes.push('/shop', '/catalog', '/cabinet')
+  }
+  if (service) {
+    prefixes.push(
+      '/orders',
+      '/schedule',
+      '/photos',
+      '/balance',
+      '/services',
+      '/payouts',
+    )
+    if (partnerType === 'SEPTIC_SERVICE') prefixes.push('/map')
+  }
+
+  return [...new Set([...prefixes, ...common])]
+}
+
+export function isPathAllowedForPartner(pathname, user, opts = {}) {
+  const allowed = getAllowedPathPrefixes(user, opts)
   return allowed.some((p) => {
     if (p === '/') return pathname === '/'
     return pathname === p || pathname.startsWith(`${p}/`)
@@ -76,19 +111,20 @@ export function isPathAllowedForPartner(pathname, partnerType, opts = {}) {
 }
 
 /** Быстрые ссылки на дашборде услуг */
-export function getServiceDashboardLinks(partnerType) {
+export function getServiceDashboardLinks(user) {
+  const type = user?.partnerType
   const base = [
-    { to: '/orders/new', labelKey: 'new_orders_title' },
     { to: '/orders', labelKey: 'nav_orders' },
+    { to: '/services', labelKey: 'nav_my_services' },
+    { to: '/services/add', labelKey: 'nav_add_service' },
     { to: '/schedule', labelKey: 'nav_schedule' },
-    { to: '/photos', labelKey: 'nav_photos' },
     { to: '/balance', labelKey: 'nav_payouts' },
   ]
-  if (partnerType === 'SEPTIC_SERVICE') {
+  if (type === 'SEPTIC_SERVICE') {
     return [
       { to: '/orders', labelKey: 'nav_orders' },
       { to: '/map', labelKey: 'nav_map' },
-      { to: '/schedule', labelKey: 'nav_schedule' },
+      { to: '/services', labelKey: 'nav_my_services' },
       { to: '/balance', labelKey: 'nav_payouts' },
     ]
   }
@@ -97,10 +133,40 @@ export function getServiceDashboardLinks(partnerType) {
 
 export function getShopDashboardLinks() {
   return [
-    { to: '/shop', labelKey: 'market_products' },
+    { to: '/shop', labelKey: 'market_my_shop' },
     { to: '/catalog/add', labelKey: 'market_add_product' },
     { to: '/shop/stock', labelKey: 'market_stock' },
     { to: '/shop/orders', labelKey: 'market_orders' },
     { to: '/shop/settings', labelKey: 'market_settings' },
   ]
 }
+
+export function getShopOnlyPaths() {
+  return ['/shop', '/catalog', '/cabinet']
+}
+
+export function getServiceOnlyPaths() {
+  return [
+    '/orders',
+    '/schedule',
+    '/photos',
+    '/map',
+    '/services',
+    '/balance',
+    '/payouts',
+  ]
+}
+
+export function pathRequiresShop(pathname) {
+  return getShopOnlyPaths().some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  )
+}
+
+export function pathRequiresService(pathname) {
+  return getServiceOnlyPaths().some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  )
+}
+
+export { PARTNER_ROLES }

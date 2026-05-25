@@ -11,12 +11,14 @@ import {
   FURNITURE_EXECUTOR_GROUP,
   SHOP_REGISTRATION_GROUP,
 } from '@gp/shared/constants'
+import { getPartnerAccess } from '@gp/shared/constants'
 import { usePartner } from '../context/PartnerContext'
 
 const ALL_GROUPS = [...PARTNER_REGISTRATION_GROUPS, FURNITURE_EXECUTOR_GROUP, SHOP_REGISTRATION_GROUP]
 
 export default function ProfilePage() {
   const { user, logout, loading, addPartnerOfferings } = usePartner()
+  const { shop, service } = getPartnerAccess(user || {})
   const [showAdd, setShowAdd] = useState(false)
   const [picked, setPicked] = useState(() => new Set())
   const [saving, setSaving] = useState(false)
@@ -79,6 +81,7 @@ export default function ProfilePage() {
       )}
       <p className="text-[var(--gp-text-muted)] text-sm mb-4">{user?.email} · {user?.phone}</p>
 
+      {service && (
       <div className="partner-card p-4 mb-4">
         <div className="flex items-center justify-between gap-2 mb-3">
           <p className="text-xs text-slate-500 uppercase tracking-wide">Подуслуги и модерация</p>
@@ -122,6 +125,7 @@ export default function ProfilePage() {
           <p className="text-xs text-slate-500">Нет зарегистрированных подуслуг</p>
         )}
       </div>
+      )}
 
       {(user?.documents?.length > 0 || user?.bin) && (
         <div className="partner-card p-4 mb-4 text-sm">
@@ -218,20 +222,32 @@ export default function ProfilePage() {
         </div>
       )}
 
-      <ul className="space-y-2 mb-6">
-        <li>
-          <Link to="/shop" className="partner-card p-4 flex items-center gap-3">
-            <Store className="w-5 h-5 text-emerald-400" />
-            Магазин
-          </Link>
-        </li>
-        <li>
-          <Link to="/catalog/add" className="partner-card p-4 flex items-center gap-3">
-            <Package className="w-5 h-5 text-emerald-400" />
-            Добавить товар
-          </Link>
-        </li>
-      </ul>
+      {shop && (
+        <ul className="space-y-2 mb-6">
+          <li>
+            <Link to="/shop" className="partner-card p-4 flex items-center gap-3">
+              <Store className="w-5 h-5 text-emerald-400" />
+              Мой магазин
+            </Link>
+          </li>
+          <li>
+            <Link to="/catalog/add" className="partner-card p-4 flex items-center gap-3">
+              <Package className="w-5 h-5 text-emerald-400" />
+              Добавить товар
+            </Link>
+          </li>
+        </ul>
+      )}
+      {service && !shop && (
+        <ul className="space-y-2 mb-6">
+          <li>
+            <Link to="/services" className="partner-card p-4 flex items-center gap-3">
+              <Package className="w-5 h-5 text-emerald-400" />
+              Мои услуги
+            </Link>
+          </li>
+        </ul>
+      )}
       <button
         type="button"
         onClick={logout}

@@ -1,11 +1,62 @@
-import { OrderCategory, PartnerStatus, PartnerType } from '@prisma/client';
+import { OrderCategory, PartnerRole, PartnerStatus, PartnerType } from '@prisma/client';
 
 export const SHOP_PARTNER_TYPE = PartnerType.SHOP;
 
+export function getEffectivePartnerRole(
+  role: PartnerRole | null | undefined,
+  type: PartnerType | null | undefined,
+): PartnerRole {
+  if (role) return role;
+  if (type === PartnerType.SHOP) return PartnerRole.SHOP;
+  return PartnerRole.SPECIALIST;
+}
+
+export function canAccessShopModule(
+  role: PartnerRole,
+  status: PartnerStatus,
+): boolean {
+  if (role === PartnerRole.SHOP) return true;
+  if (role === PartnerRole.MIXED_PARTNER) return status === PartnerStatus.APPROVED;
+  return false;
+}
+
+export function canAccessServiceModule(
+  role: PartnerRole,
+  status: PartnerStatus,
+): boolean {
+  if (role === PartnerRole.SPECIALIST) return true;
+  if (role === PartnerRole.MIXED_PARTNER) return status === PartnerStatus.APPROVED;
+  return false;
+}
+
+export function isShopPartnerProfile(profile: {
+  partnerRole?: PartnerRole | null;
+  partnerType?: PartnerType | null;
+  status?: PartnerStatus;
+}): boolean {
+  return canAccessShopModule(
+    getEffectivePartnerRole(profile.partnerRole, profile.partnerType),
+    profile.status ?? PartnerStatus.DRAFT,
+  );
+}
+
+export function isServicePartnerProfile(profile: {
+  partnerRole?: PartnerRole | null;
+  partnerType?: PartnerType | null;
+  status?: PartnerStatus;
+}): boolean {
+  return canAccessServiceModule(
+    getEffectivePartnerRole(profile.partnerRole, profile.partnerType),
+    profile.status ?? PartnerStatus.DRAFT,
+  );
+}
+
+/** @deprecated Используйте isShopPartnerProfile */
 export function isShopPartnerType(type: PartnerType | null | undefined): boolean {
   return type === PartnerType.SHOP;
 }
 
+/** @deprecated Используйте isServicePartnerProfile */
 export function isServicePartnerType(type: PartnerType | null | undefined): boolean {
   return Boolean(type && type !== PartnerType.SHOP);
 }

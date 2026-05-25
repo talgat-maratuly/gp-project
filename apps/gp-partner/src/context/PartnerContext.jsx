@@ -33,6 +33,7 @@ async function loadPartnerSession() {
     partnerProfileId: profile.id,
     partnerStatus: profile.status || 'DRAFT',
     partnerType: profile.partnerType,
+    partnerRole: profile.partnerRole,
     rejectionReason: profile.rejectionReason,
     revisionComment: profile.revisionComment,
     serviceOfferings: profile.serviceOfferings || [],
@@ -96,6 +97,7 @@ export function PartnerProvider({ children }) {
       partnerProfileId: profile.id,
       partnerStatus: profile.status,
       partnerType: profile.partnerType,
+    partnerRole: profile.partnerRole,
       rejectionReason: profile.rejectionReason,
       revisionComment: profile.revisionComment,
       serviceOfferings: profile.serviceOfferings || [],
@@ -201,10 +203,13 @@ export function PartnerProvider({ children }) {
         documents: data.documents,
       })
 
-      const { resolvePartnerTypeFromGroups } = await import('@gp/shared/constants')
-      const partnerType = data.partnerType || resolvePartnerTypeFromGroups(data.mainGroupIds || [])
+      const { resolvePartnerTypeFromGroups, resolvePartnerRoleFromGroups } = await import('@gp/shared/constants')
+      const mainGroupIds = data.mainGroupIds || []
+      const partnerRole = data.partnerRole || resolvePartnerRoleFromGroups(mainGroupIds)
+      const partnerType = data.partnerType || resolvePartnerTypeFromGroups(mainGroupIds)
       await api.partnerApply({
         partnerType,
+        partnerRole,
         regionId,
         companyName: (data.company || data.name).trim(),
         fullName: data.name.trim(),

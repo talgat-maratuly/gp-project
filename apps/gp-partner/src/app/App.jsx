@@ -19,6 +19,7 @@ import QrOrdersPage from '../pages/QrOrdersPage'
 import FurnitureExecutorOrdersPage from '../pages/FurnitureExecutorOrdersPage'
 import ServiceSchedulePage from '../pages/ServiceSchedulePage'
 import ServicePhotosPage from '../pages/ServicePhotosPage'
+import ServicesPage from '../pages/ServicesPage'
 
 export default function App() {
   return (
@@ -44,12 +45,15 @@ export default function App() {
           <Route index element={<DashboardPage />} />
           <Route element={<PartnerTypeRoute shopOnly />}>
             <Route path="shop" element={<MyShopPage />} />
+            <Route path="shop/products" element={<MyShopPage />} />
             <Route path="shop/stock" element={<MyShopPage />} />
             <Route path="shop/orders" element={<MyShopPage />} />
             <Route path="shop/settings" element={<MyShopPage />} />
             <Route path="catalog/add" element={<AddProductPage />} />
           </Route>
           <Route element={<PartnerTypeRoute serviceOnly />}>
+            <Route path="services" element={<ServicesPage />} />
+            <Route path="services/add" element={<ServicesPage />} />
             <Route path="orders/new" element={<NewOrdersPage />} />
             <Route path="orders" element={<OrdersPage />} />
             <Route path="orders/qr" element={<QrOrdersPage />} />

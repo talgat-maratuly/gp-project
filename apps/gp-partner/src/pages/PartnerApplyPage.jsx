@@ -5,6 +5,7 @@ import {
   FURNITURE_EXECUTOR_GROUP,
   SHOP_REGISTRATION_GROUP,
   resolvePartnerTypeFromGroups,
+  resolvePartnerRoleFromGroups,
 } from '@gp/shared/constants'
 import { api } from '@gp/shared/api'
 import { usePartner } from '../context/PartnerContext'
@@ -56,12 +57,15 @@ export default function PartnerApplyPage() {
     e.preventDefault()
     setError('')
     const subserviceIds = [...selectedSubIds]
-    const partnerType = resolvePartnerTypeFromGroups([...selectedMainIds])
+    const mainGroupIds = [...selectedMainIds]
+    const partnerType = resolvePartnerTypeFromGroups(mainGroupIds)
+    const partnerRole = resolvePartnerRoleFromGroups(mainGroupIds)
     const vehiclePhotos = form.vehiclePhotos.split('\n').map((s) => s.trim()).filter(Boolean)
     const equipmentPhotos = form.equipmentPhotos.split('\n').map((s) => s.trim()).filter(Boolean)
     try {
       const body = {
         partnerType,
+        partnerRole,
         regionId: form.regionId,
         companyName: form.companyName.trim(),
         fullName: form.fullName.trim(),

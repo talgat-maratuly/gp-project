@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { AccountType, PartnerType } from '@prisma/client';
+import { AccountType, PartnerRole, PartnerType } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
@@ -18,6 +18,10 @@ export class PartnerApplyDto {
   @ApiProperty({ enum: PartnerType })
   @IsEnum(PartnerType)
   partnerType: PartnerType;
+
+  @ApiProperty({ enum: PartnerRole })
+  @IsEnum(PartnerRole)
+  partnerRole: PartnerRole;
 
   @ApiProperty()
   @IsUUID()

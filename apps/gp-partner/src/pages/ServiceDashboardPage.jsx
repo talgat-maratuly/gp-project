@@ -9,7 +9,7 @@ import { usePartner } from '../context/PartnerContext'
 export default function ServiceDashboardPage() {
   const navigate = useNavigate()
   const { user, newOrders, activeOrders, loading } = usePartner()
-  const links = getServiceDashboardLinks(user?.partnerType)
+  const links = getServiceDashboardLinks(user)
 
   const todayEarned = useMemo(() => {
     const today = new Date().toDateString()

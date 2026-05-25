@@ -13,7 +13,11 @@ import {
   calcOrderCommission,
   calcServiceTotal,
 } from '../common/commission.util';
-import { isOrderAllowedForPartnerType, isShopPartnerType } from '../common/partner-access.util';
+import {
+  isOrderAllowedForPartnerType,
+  isShopPartnerProfile,
+  isServicePartnerProfile,
+} from '../common/partner-access.util';
 import { orderMatchesActiveOffering } from '../common/partner-offerings.util';
 import {
   getPartnerBusySlots,
@@ -226,7 +230,7 @@ export class OrdersService {
     if (role === Role.PARTNER) {
       const profile = await this.partners.ensurePartnerProfile(userId);
       if (profile.status !== 'APPROVED') return [];
-      if (isShopPartnerType(profile.partnerType)) return [];
+      if (!isServicePartnerProfile(profile)) return [];
       const activeSubserviceIds = await this.partners.getActiveSubserviceIdsForPartnerProfile(profile.id);
       const all = await this.prisma.order.findMany({
         where: {
@@ -295,7 +299,7 @@ export class OrdersService {
 
     if (role === Role.PARTNER) {
       const profile = await this.partners.ensurePartnerProfile(userId);
-      if (isShopPartnerType(profile.partnerType)) {
+      if (!isServicePartnerProfile(profile)) {
         throw new ForbiddenException('Заказы услуг недоступны для партнёров-магазинов');
       }
       if (!isOrderAllowedForPartnerType(order, profile.partnerType)) {

@@ -104,6 +104,7 @@ export class PartnerModerationService {
         data: {
           regionId: dto.regionId,
           partnerType: dto.partnerType,
+          partnerRole: dto.partnerRole,
           status: PartnerStatusValue.PENDING_REVIEW,
           accountType: dto.accountType,
           companyName: dto.companyName.trim(),

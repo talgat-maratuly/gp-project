@@ -37,6 +37,7 @@ export async function demoLogin(username, password) {
     name: partner?.name || u.name,
     company: partner?.company,
     partnerType: u.partnerType || (u.username?.includes('shop') ? 'SHOP' : 'LAWN_MOWING'),
+    partnerRole: u.partnerRole || (u.partnerType === 'SHOP' || u.username?.includes('shop') ? 'SHOP' : 'SPECIALIST'),
     partnerStatus: 'APPROVED',
     franchiseId: u.franchiseId,
     city: u.city,

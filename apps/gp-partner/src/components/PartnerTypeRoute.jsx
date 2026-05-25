@@ -1,22 +1,52 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
-import { isPathAllowedForPartner, isShopPartner } from '@gp/shared/constants'
+import {
+  getPartnerAccess,
+  isPathAllowedForPartner,
+  pathRequiresService,
+  pathRequiresShop,
+} from '@gp/shared/constants'
 import { isDemoMode } from '@gp/shared/demo'
 import { usePartner } from '../context/PartnerContext'
+import AccessDenied from './AccessDenied'
 
-/** Блокирует маршруты, не соответствующие partnerType */
+/** Блокирует маршруты по partnerRole (не только скрывает кнопки) */
 export function PartnerTypeRoute({ shopOnly = false, serviceOnly = false }) {
   const { user } = usePartner()
   const { pathname } = useLocation()
-  const type = user?.partnerType || (isDemoMode() ? 'LAWN_MOWING' : null)
+  const access = getPartnerAccess(user || {}, { isDemoMode: isDemoMode() })
 
-  if (shopOnly && !isShopPartner(type)) {
-    return <Navigate to="/" replace />
+  if (shopOnly && !access.shop) {
+    return (
+      <AccessDenied
+        message="Раздел магазина доступен только партнёрам типа «Магазин». Специалисты работают с услугами и заказами."
+      />
+    )
   }
-  if (serviceOnly && isShopPartner(type)) {
-    return <Navigate to="/" replace />
+  if (serviceOnly && !access.service) {
+    return (
+      <AccessDenied
+        message="Раздел услуг и сервисных заказов недоступен для магазинов. Управляйте товарами в «Мой магазин»."
+      />
+    )
   }
-  if (!isPathAllowedForPartner(pathname, type, { isDemoMode: isDemoMode() })) {
-    return <Navigate to="/" replace />
+
+  if (pathRequiresShop(pathname) && !access.shop) {
+    return (
+      <AccessDenied
+        message="У вашего профиля нет доступа к магазину. Обратитесь в поддержку GP, если нужен смешанный профиль."
+      />
+    )
+  }
+  if (pathRequiresService(pathname) && !access.service) {
+    return (
+      <AccessDenied
+        message="Сервисные заказы и услуги недоступны для вашего типа партнёра."
+      />
+    )
+  }
+
+  if (!isPathAllowedForPartner(pathname, user, { isDemoMode: isDemoMode() })) {
+    return <Navigate to="/profile" replace />
   }
   return <Outlet />
 }

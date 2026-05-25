@@ -1,7 +1,7 @@
 import { Link, NavLink, Navigate, Outlet } from 'react-router-dom'
 import * as Icons from 'lucide-react'
 import LanguageSwitcher from '@gp/shared/components/LanguageSwitcher'
-import { getPartnerBottomNav, isShopPartner } from '@gp/shared/constants'
+import { getPartnerAccess, getPartnerBottomNav } from '@gp/shared/constants'
 import { isDemoMode } from '@gp/shared/demo'
 import { useLanguage } from '../i18n'
 import { usePartner } from '../context/PartnerContext'
@@ -12,8 +12,8 @@ export default function PartnerShell() {
   const { dark, toggle } = useTheme()
   const { t } = useLanguage()
 
-  const partnerType = user?.partnerType || (isDemoMode() ? 'LAWN_MOWING' : null)
-  const nav = getPartnerBottomNav(partnerType, { isDemoMode: isDemoMode() })
+  const access = getPartnerAccess(user || {}, { isDemoMode: isDemoMode() })
+  const nav = getPartnerBottomNav(user, { isDemoMode: isDemoMode() })
 
   if (!authReady) {
     return (
@@ -24,7 +24,7 @@ export default function PartnerShell() {
   }
   if (!user) return <Navigate to="/auth" replace />
 
-  const showOnlineToggle = !isShopPartner(partnerType)
+  const showOnlineToggle = access.service
 
   return (
     <div className="min-h-screen flex flex-col gp-app-bg">
@@ -34,7 +34,7 @@ export default function PartnerShell() {
             <span className="font-extrabold text-lg gp-text-gradient">{t('app_partner')}</span>
             <p className="text-[10px] text-[var(--gp-text-muted)] truncate leading-none mt-0.5">
               {user.company || user.name}
-              {partnerType ? ` · ${partnerType}` : ''}
+              {access.role ? ` · ${access.role}` : ''}
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -68,12 +68,13 @@ export default function PartnerShell() {
       </main>
       <nav className="fixed bottom-0 inset-x-0 z-50 bg-[var(--gp-surface)]/95 backdrop-blur-xl border-t border-[var(--gp-border)] shadow-[var(--gp-shadow-md)] pb-[env(safe-area-inset-bottom)]" style={{ height: 'var(--gp-nav-h)' }}>
         <div className="flex max-w-lg mx-auto h-full items-stretch px-1">
-          {nav.map(({ to, icon: iconName, labelKey, end }) => {
+          {nav.map(({ to, icon: iconName, labelKey, end, state }) => {
             const Icon = Icons[iconName] || Icons.Circle
             return (
               <NavLink
-                key={to}
+                key={`${to}-${labelKey}`}
                 to={to}
+                state={state}
                 end={end}
                 className={({ isActive }) =>
                   `flex-1 flex flex-col items-center justify-center gap-0.5 rounded-2xl mx-0.5 my-1.5 text-[10px] font-bold transition ${
