@@ -3,12 +3,14 @@ WORKDIR /app
 
 COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/
+COPY packages/shared-core/package.json packages/shared-core/
 COPY packages/shared/package.json packages/shared/
 
 # devDependencies (@nestjs/cli, prisma, typescript) required for nest build
 RUN npm ci --workspace=@gp/api --include-workspace-root
 
 COPY apps/api apps/api
+COPY packages/shared-core packages/shared-core
 COPY packages/shared packages/shared
 
 RUN npx prisma generate --schema apps/api/prisma/schema.prisma \

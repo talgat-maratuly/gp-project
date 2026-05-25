@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { api, getToken } from '@gp/shared/api'
-import { ADMIN_ORDER_UI_TO_PRISMA } from '@gp/shared/constants'
+import { ADMIN_ORDER_UI_TO_PRISMA } from '@gp/shared-core/statuses'
 import { ORDER_STATUSES, recalcAggregates } from '../data/seedData'
 import { uid } from '../lib/id'
 import { fetchAdminStore } from '../lib/adminApiStore'

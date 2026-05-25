@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api } from '@gp/shared/api'
 import { PARTNER_TYPES, PARTNER_ROLE_LABELS } from '@gp/shared/constants'
-import { partnerStatusLabel } from '@gp/shared/constants/ecosystemStatuses'
+import { partnerStatusLabel } from '@gp/shared-core/statuses'
 import { isDemoMode } from '@gp/shared/demo'
 import { useLanguage } from '../i18n/LanguageContext'
 

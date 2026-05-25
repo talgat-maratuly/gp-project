@@ -5,7 +5,7 @@
 import { readFileSync, readdirSync, existsSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import { API_CONTRACT } from '../packages/shared/src/ecosystem/manifest.js'
+import { API_CONTRACT, BACKEND_ROUTE_CHECKS } from '@gp/shared-core/api-contracts'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const CLIENT_PATH = join(ROOT, 'packages/shared/src/api/client.js')
@@ -57,15 +57,7 @@ for (const name of required) {
 }
 
 const backendRoutes = collectBackendRouteHints()
-const criticalPaths = [
-  ['registerClient', 'register/client', 'POST'],
-  ['registerPartner', 'register/partner', 'POST'],
-  ['adminAssignOrder', 'orders', 'PATCH'],
-  ['adminModerationPartners', 'moderation/partners', 'GET'],
-  ['getMarketProducts', 'market/products', 'GET'],
-]
-
-for (const [method, fragment, http] of criticalPaths) {
+for (const { method, http, fragment } of BACKEND_ROUTE_CHECKS) {
   const found = [...backendRoutes].some(
     (r) => r.startsWith(http) && r.toLowerCase().includes(fragment.toLowerCase()),
   )

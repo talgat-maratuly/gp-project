@@ -1,0 +1,16 @@
+{
+  "name": "@gp/shared-core",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "GP ecosystem canonical roles, statuses, permissions, API contracts",
+  "exports": {
+    ".": "./src/index.js",
+    "./roles": "./src/roles.js",
+    "./statuses": "./src/statuses.js",
+    "./permissions": "./src/permissions.js",
+    "./api-contracts": "./src/api-contracts.js",
+    "./ecosystem-types": "./src/ecosystem-types.js",
+    "./validation": "./src/validation.js"
+  }
+}

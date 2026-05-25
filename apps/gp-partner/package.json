@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@gp/shared": "*",
+    "@gp/shared-core": "*",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.511.0",
     "react": "^19.2.6",

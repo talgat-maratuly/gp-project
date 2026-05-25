@@ -4,9 +4,16 @@
   "private": true,
   "type": "module",
   "main": "./src/index.js",
+  "dependencies": {
+    "@gp/shared-core": "*",
+    "qrcode": "^1.5.4",
+    "socket.io-client": "^4.8.1"
+  },
   "exports": {
     ".": "./src/index.js",
     "./constants": "./src/constants/index.js",
+    "./constants/ecosystemStatuses": "./src/constants/ecosystemStatuses.js",
+    "./constants/partnerRole": "./src/constants/partnerRole.js",
     "./utils": "./src/utils/index.js",
     "./api": "./src/api/client.js",
     "./api/apiClient": "./src/api/apiClient.js",
@@ -22,10 +29,6 @@
     "./ecosystem": "./src/ecosystem/index.js",
     "./i18n": "./src/i18n/index.js",
     "./components/LanguageSwitcher": "./src/components/LanguageSwitcher.jsx"
-  },
-  "dependencies": {
-    "qrcode": "^1.5.4",
-    "socket.io-client": "^4.8.1"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",

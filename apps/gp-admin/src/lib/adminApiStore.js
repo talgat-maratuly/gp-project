@@ -1,6 +1,6 @@
 import { api } from '@gp/shared/api'
 import { CATEGORY_TO_UI } from '@gp/shared/api/mappers'
-import { ADMIN_ORDER_UI_TO_PRISMA } from '@gp/shared/constants'
+import { ADMIN_ORDER_UI_TO_PRISMA } from '@gp/shared-core/statuses'
 import { loadGlobalStore } from '@gp/shared/demo'
 
 const DEFAULT_FRANCHISE = {

@@ -25,25 +25,19 @@
 
 Import: `@gp/shared/ecosystem`
 
+## STABILIZATION MODE
+
+**No new features.** Preserve ecosystem integrity. Use `@gp/shared-core` for roles/statuses/permissions.
+
 ## Pre-commit / pre-deploy
 
 ```bash
-# Быстрая проверка (~1–2 min)
-npm run validate:ecosystem:quick
-
-# Полная перед релизом (~5–10 min)
-npm run validate:ecosystem
-
-# С Docker images
-npm run validate:ecosystem:docker
-
-# Отдельно
-npm run validate:env
-npm run validate:api-contract
-npm run validate:prisma
-npm run typecheck:api
-npm run build
+npm run ecosystem:check            # REQUIRED before deploy (builds all apps)
+npm run validate:ecosystem:quick   # fast local (~1–2 min)
+npm run validate:ecosystem:docker  # + Docker images
 ```
+
+Audit report: `docs/STABILIZATION_AUDIT.md`
 
 ## Shared (единые контракты)
 

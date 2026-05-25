@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@gp/shared": "*",
+    "@gp/shared-core": "*",
     "lucide-react": "^0.511.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",

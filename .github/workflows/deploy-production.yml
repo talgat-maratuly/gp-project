@@ -15,8 +15,24 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  ecosystem-health:
+    name: Ecosystem health gate
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://gp:gp@localhost:5432/gp?schema=public
+      JWT_SECRET: ci-deploy-gate-secret-min-32-chars-long
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: node scripts/ecosystem-check.mjs
+
   build-and-push:
     name: Build and push images
+    needs: ecosystem-health
     runs-on: ubuntu-latest
     env:
       PUBLIC_API_URL: ${{ secrets.VITE_API_URL != '' && secrets.VITE_API_URL || vars.VITE_API_URL }}
@@ -89,7 +105,7 @@ jobs:
 
   deploy:
     name: Deploy to server
-    needs: build-and-push
+    needs: [ecosystem-health, build-and-push]
     runs-on: ubuntu-latest
     env:
       DEPLOY_HOST: ${{ secrets.SERVER_HOST != '' && secrets.SERVER_HOST || vars.SERVER_HOST }}

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '@gp/shared/api'
 import { PARTNER_OFFERING_STATUS_LABELS } from '@gp/shared/constants'
-import { SERVICE_STATUS_SPEC, partnerStatusLabel } from '@gp/shared/constants/ecosystemStatuses'
+import { SERVICE_STATUS_SPEC, partnerStatusLabel } from '@gp/shared-core/statuses'
 import { isDemoMode } from '@gp/shared/demo'
 
 const TABS = [

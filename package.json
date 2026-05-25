@@ -8,7 +8,8 @@
   },
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "packages/shared-core"
   ],
   "scripts": {
     "kill:ports": "node scripts/kill-ports.mjs",
@@ -51,7 +52,9 @@
     "validate:ecosystem": "node scripts/validate-ecosystem.mjs",
     "validate:ecosystem:quick": "node scripts/validate-ecosystem.mjs --quick",
     "validate:ecosystem:docker": "node scripts/validate-ecosystem.mjs --docker",
-    "predeploy": "node scripts/validate-ecosystem.mjs",
+    "validate:shared-core": "node scripts/ecosystem-check.mjs --shared-core",
+    "ecosystem:check": "node scripts/ecosystem-check.mjs",
+    "predeploy": "node scripts/ecosystem-check.mjs",
     "health:api": "curl -sf http://localhost:4000/health && curl -sf http://localhost:4000/health/db && curl -sf http://localhost:4000/health/ws",
     "start:api": "npm run start:prod -w @gp/api",
     "prisma:generate": "npx prisma generate --schema apps/api/prisma/schema.prisma",

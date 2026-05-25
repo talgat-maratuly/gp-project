@@ -12,6 +12,7 @@ COPY apps/gp-service/package.json ./apps/gp-service/
 COPY apps/gp-partner/package.json ./apps/gp-partner/
 COPY apps/gp-admin/package.json ./apps/gp-admin/
 COPY apps/api/package.json ./apps/api/
+COPY packages/shared-core/package.json ./packages/shared-core/
 COPY packages/shared/package.json ./packages/shared/
 
 RUN npm ci
@@ -19,6 +20,7 @@ RUN npm ci
 COPY apps/gp-service ./apps/gp-service
 COPY apps/gp-partner ./apps/gp-partner
 COPY apps/gp-admin ./apps/gp-admin
+COPY packages/shared-core ./packages/shared-core
 COPY packages/shared ./packages/shared
 
 ENV VITE_API_URL=${VITE_API_URL}

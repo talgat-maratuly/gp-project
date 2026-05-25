@@ -1,5 +1,5 @@
 import { buildTestClientCredentials, buildTestPartnerCredentials } from '../utils/testAuthCredentials.js'
-import { normalizePartnerRoleInput } from '../constants/partnerRole.js'
+import { normalizePartnerRoleInput } from '@gp/shared-core/roles'
 import { setToken, clearToken, getToken } from '../api/token.js'
 
 export const TEST_MODE_ACTIVE_KEY = 'gp-test-mode-active'
