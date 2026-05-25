@@ -19,6 +19,7 @@
     "./ui/KaspiUI": "./src/ui/KaspiUI.jsx",
     "./demo": "./src/demo/index.js",
     "./testMode": "./src/testMode/index.js",
+    "./ecosystem": "./src/ecosystem/index.js",
     "./i18n": "./src/i18n/index.js",
     "./components/LanguageSwitcher": "./src/components/LanguageSwitcher.jsx"
   },

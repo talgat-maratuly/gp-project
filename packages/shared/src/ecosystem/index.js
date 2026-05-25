@@ -1,0 +1,8 @@
+export {
+  API_CONTRACT,
+  BACKEND_ROUTES,
+  ENV_CONTRACT,
+  NGINX_APPS,
+  SERVICES,
+  SHARED_MODULES,
+} from './manifest.js'

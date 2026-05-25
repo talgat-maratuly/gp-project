@@ -1,28 +1,83 @@
 # GP Monorepo — Agent Guide
 
-Экосистема: **GP Service** (клиент) · **GP Partner** (партнёр) · **GP Admin** (модерация) · **apps/api** (NestJS + Prisma).
+**Одна экосистема GP**, не три отдельных сайта.
 
-## Обязательное правило
+## Stack
 
-Читай и соблюдай `.cursor/rules/gp-ecosystem-sync.mdc` — любое связанное изменение синхронизируй во всех затронутых приложениях.
+| Layer | Path |
+|-------|------|
+| GP Service (client) | `apps/gp-service` |
+| GP Partner | `apps/gp-partner` |
+| GP Admin | `apps/gp-admin` |
+| Backend API | `apps/api` |
+| PostgreSQL | Prisma `apps/api/prisma` |
+| Deploy | `deploy/` (Docker, nginx) |
+| Shared | `packages/shared` |
 
-## Shared
+## Rules (обязательно)
 
-- API: `packages/shared/src/api/`
-- Статусы: `packages/shared/src/constants/ecosystemStatuses.js`
-- Роли партнёра: `packages/shared/src/constants/partnerRole.js`
-- Тест-регистрация: `packages/shared/src/utils/testAuthCredentials.js`, `packages/shared/src/testMode/`
+1. `.cursor/rules/gp-ecosystem-sync.mdc` — связанные изменения во всех apps
+2. `.cursor/rules/gp-monorepo.mdc` — deploy, validation, DevOps mindset
 
-## Ключевые потоки
+## Ecosystem contract
 
-1. Заказ: Service → `POST /orders` → Admin `PATCH /admin/orders/:id/assign` → Partner `PATCH /orders/:id/status`
-2. Партнёр: Partner register → Admin `/partners/moderation` → `APPROVED` → доступ к заказам
-3. Товар: Partner Market → Admin `/market/products/moderation` → `isActive` → Service `GET /market/products`
+`packages/shared/src/ecosystem/manifest.js` — сервисы, env, API methods, shared modules.
 
-## Prisma / миграции
+Import: `@gp/shared/ecosystem`
+
+## Pre-commit / pre-deploy
+
+```bash
+# Быстрая проверка (~1–2 min)
+npm run validate:ecosystem:quick
+
+# Полная перед релизом (~5–10 min)
+npm run validate:ecosystem
+
+# С Docker images
+npm run validate:ecosystem:docker
+
+# Отдельно
+npm run validate:env
+npm run validate:api-contract
+npm run validate:prisma
+npm run typecheck:api
+npm run build
+```
+
+## Shared (единые контракты)
+
+| Module | Path |
+|--------|------|
+| API client | `@gp/shared/api` |
+| Statuses | `@gp/shared/constants` → `ecosystemStatuses.js` |
+| Partner roles | `partnerRole.js` |
+| Auth test | `@gp/shared/utils`, `@gp/shared/testMode` |
+| Demo | `@gp/shared/demo` |
+
+## Backend truth
+
+- Auth: `apps/api/src/auth/`
+- Partner moderation: `apps/api/src/admin/`, `partner-moderation.service.ts`
+- Orders: `apps/api/src/orders/`
+- Market: `apps/api/src/market/`
+
+Global prefix: `/api` (health без prefix).
+
+## Local dev
 
 ```bash
 npm run prisma:migrate:deploy
 npm run prisma:generate
 npm run prisma:seed
+npm run dev:all
 ```
+
+## If deploy fails
+
+1. Identify failing service (API / Service / Partner / Admin / Postgres / nginx)
+2. Read logs — migration? build? env? CORS?
+3. Fix dependency chain end-to-end
+4. Re-run `npm run validate:ecosystem`
+
+Never fix only one frontend screen when the issue is shared auth, DTO, or schema.
