@@ -1,9 +1,11 @@
 # GP Service / GP Partner / GP Admin — static build + nginx
-# docker build --build-arg GP_APP=service --build-arg VITE_API_URL=https://api.example.com/api ...
-FROM node:20-alpine AS builder
+# docker build --build-arg GP_APP=admin --build-arg VITE_API_URL=https://api.example.com/api ...
+# monorepo gate: requires packages/shared-core (workspace @gp/shared-core)
+FROM node:20-bookworm-slim AS builder
 
 ARG GP_APP=service
 ARG VITE_API_URL=http://localhost:4000/api
+ARG VITE_APP_NAME=
 
 WORKDIR /app
 
@@ -23,24 +25,20 @@ COPY apps/gp-admin ./apps/gp-admin
 COPY packages/shared-core ./packages/shared-core
 COPY packages/shared ./packages/shared
 
+RUN test -f packages/shared-core/src/statuses.js \
+  && test -f packages/shared/package.json \
+  && node --input-type=module -e "import('@gp/shared-core/statuses').then((m) => { if (!m.SERVICE_STATUS_FROM_PRISMA) throw new Error('shared-core broken') })"
+
 ENV VITE_API_URL=${VITE_API_URL}
+ENV VITE_APP_NAME=${VITE_APP_NAME}
 
 RUN set -e; \
   case "$GP_APP" in \
-    service) \
-      export VITE_APP_NAME=service; \
-      npm run build -w @gp/service; \
-      ;; \
-    partner) \
-      export VITE_APP_NAME=partner; \
-      npm run build -w @gp/partner; \
-      ;; \
-    admin) \
-      export VITE_APP_NAME=admin; \
-      npm run build -w @gp/admin; \
-      ;; \
+    service|partner|admin) ;; \
     *) echo "GP_APP must be service, partner or admin"; exit 1 ;; \
-  esac
+  esac; \
+  if [ -z "$VITE_APP_NAME" ]; then export VITE_APP_NAME="$GP_APP"; fi; \
+  npm run build -w "@gp/${GP_APP}"
 
 FROM nginx:1.27-alpine AS runner
 

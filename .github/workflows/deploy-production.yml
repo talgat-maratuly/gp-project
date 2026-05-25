@@ -100,6 +100,7 @@ jobs:
           build-args: |
             GP_APP=${{ matrix.gp_app }}
             VITE_API_URL=${{ env.PUBLIC_API_URL }}
+            VITE_APP_NAME=${{ matrix.gp_app }}
           cache-from: type=gha,scope=${{ matrix.image_name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image_name }}
 

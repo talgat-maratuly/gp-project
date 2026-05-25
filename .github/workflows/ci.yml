@@ -91,3 +91,4 @@ jobs:
           build-args: |
             GP_APP=${{ matrix.gp_app }}
             VITE_API_URL=https://api.example.com/api
+            VITE_APP_NAME=${{ matrix.gp_app }}
