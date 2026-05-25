@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { getToken } from '@gp/shared/api'
+import { api, getToken } from '@gp/shared/api'
+import { ADMIN_ORDER_UI_TO_PRISMA } from '@gp/shared/constants'
 import { ORDER_STATUSES, recalcAggregates } from '../data/seedData'
 import { uid } from '../lib/id'
 import { fetchAdminStore } from '../lib/adminApiStore'
@@ -201,7 +202,13 @@ export function StoreProvider({ children }) {
     })
   }, [persist])
 
-  const updateOrder = useCallback((orderId, patch) => {
+  const updateOrder = useCallback(async (orderId, patch) => {
+    if (apiMode && patch.status) {
+      const prismaStatus = ADMIN_ORDER_UI_TO_PRISMA[patch.status] || patch.status
+      await api.adminUpdateOrderStatus(orderId, { status: prismaStatus })
+      await refreshFromApi()
+      return
+    }
     persist((s) => ({
       ...s,
       orders: s.orders.map((o) => {
@@ -214,9 +221,14 @@ export function StoreProvider({ children }) {
         return updated
       }),
     }))
-  }, [persist])
+  }, [apiMode, persist, refreshFromApi])
 
-  const assignPartner = useCallback((orderId, partnerId) => {
+  const assignPartner = useCallback(async (orderId, partnerId) => {
+    if (apiMode) {
+      await api.adminAssignOrder(orderId, partnerId)
+      await refreshFromApi()
+      return
+    }
     persist((s) => {
       const partner = s.partners.find((p) => p.id === partnerId)
       return {
@@ -233,7 +245,7 @@ export function StoreProvider({ children }) {
         ),
       }
     })
-  }, [persist])
+  }, [apiMode, persist, refreshFromApi])
 
   const addDiscount = useCallback((data) => {
     persist((s) => ({ ...s, discounts: [...s.discounts, { ...data, id: uid('d'), active: data.active !== false }] }))

@@ -308,7 +308,9 @@ export class OrdersService {
 
       if (dto.status === OrderStatus.ACCEPTED) {
         if (order.status !== OrderStatus.NEW) throw new BadRequestException('Заказ уже принят');
-        if (order.partnerId) throw new BadRequestException('Заказ уже принят другим партнёром');
+        if (order.partnerId && order.partnerId !== profile.id) {
+          throw new BadRequestException('Заказ назначен другому партнёру');
+        }
         const activeSubserviceIds = await this.partners.getActiveSubserviceIdsForPartnerProfile(profile.id);
         if (!orderMatchesActiveOffering(order, activeSubserviceIds)) {
           throw new ForbiddenException('Эта подуслуга не активна для вашего профиля');
@@ -326,7 +328,7 @@ export class OrdersService {
           where: { id: orderId },
           data: {
             status: OrderStatus.ACCEPTED,
-            partnerId: profile.id,
+            partnerId: order.partnerId || profile.id,
             acceptedAt: new Date(),
             executorLat: dto.executorLat ?? profile.lat ?? undefined,
             executorLng: dto.executorLng ?? profile.lng ?? undefined,

@@ -176,6 +176,22 @@ export const api = {
 
   adminOrders: () => get('/admin/orders'),
 
+  adminAssignOrder: (orderId, partnerId) =>
+    patch(`/admin/orders/${orderId}/assign`, { partnerId }),
+
+  adminUpdateOrderStatus: (orderId, body) =>
+    patch(`/admin/orders/${orderId}/status`, body),
+
+  adminMarketProducts: () => get('/admin/market/products'),
+
+  adminModerateMarketProduct: (productId, body) =>
+    patch(`/admin/market/products/${productId}`, body),
+
+  adminOfferings: (status) => {
+    const q = status ? `?status=${encodeURIComponent(status)}` : ''
+    return get(`/admin/offerings${q}`)
+  },
+
   adminCommissions: () =>
     get('/admin/commissions').then((list) =>
       list.map((t) => ({ ...t, amount: Number(t.amount) })),

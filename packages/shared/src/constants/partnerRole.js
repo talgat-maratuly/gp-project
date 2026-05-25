@@ -50,15 +50,24 @@ export function getEffectivePartnerRole(partnerRole, partnerType) {
   return partnerRole || resolvePartnerRoleFromType(partnerType) || PARTNER_ROLES.SPECIALIST
 }
 
+const ACTIVE_PARTNER = new Set(['APPROVED', 'active'])
+
+function isPartnerActive(partnerStatus) {
+  return ACTIVE_PARTNER.has(partnerStatus)
+}
+
+/** Только active (APPROVED) партнёр видит рабочие модули */
 export function canAccessShopModule(partnerRole, partnerStatus) {
+  if (!isPartnerActive(partnerStatus)) return false
   if (partnerRole === PARTNER_ROLES.SHOP) return true
-  if (partnerRole === PARTNER_ROLES.MIXED_PARTNER) return partnerStatus === 'APPROVED'
+  if (partnerRole === PARTNER_ROLES.MIXED_PARTNER) return true
   return false
 }
 
 export function canAccessServiceModule(partnerRole, partnerStatus) {
+  if (!isPartnerActive(partnerStatus)) return false
   if (partnerRole === PARTNER_ROLES.SPECIALIST) return true
-  if (partnerRole === PARTNER_ROLES.MIXED_PARTNER) return partnerStatus === 'APPROVED'
+  if (partnerRole === PARTNER_ROLES.MIXED_PARTNER) return true
   return false
 }
 

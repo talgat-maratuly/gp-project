@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api } from '@gp/shared/api'
-import { PARTNER_STATUS_LABELS, PARTNER_TYPES, PARTNER_ROLE_LABELS } from '@gp/shared/constants'
+import { PARTNER_TYPES, PARTNER_ROLE_LABELS } from '@gp/shared/constants'
+import { partnerStatusLabel } from '@gp/shared/constants/ecosystemStatuses'
 import { isDemoMode } from '@gp/shared/demo'
 import { useLanguage } from '../i18n/LanguageContext'
 
 const TABS = [
-  { id: 'PENDING_REVIEW', label: 'Ожидают проверки' },
-  { id: 'NEEDS_REVISION', label: 'На доработке' },
-  { id: 'APPROVED', label: 'Подтвержденные' },
-  { id: 'REJECTED', label: 'Отклонённые' },
-  { id: 'SUSPENDED', label: 'Заблокированные' },
+  { id: 'PENDING_REVIEW', label: 'На модерации (pending_moderation)' },
+  { id: 'NEEDS_REVISION', label: 'На доработке (needs_revision)' },
+  { id: 'APPROVED', label: 'Активные (active)' },
+  { id: 'REJECTED', label: 'Отклонённые (rejected)' },
+  { id: 'SUSPENDED', label: 'Заблокированные (blocked)' },
 ]
 
 const typeLabel = (id) => PARTNER_TYPES.find((t) => t.id === id)?.labelKey || id
@@ -149,7 +150,7 @@ export default function PartnerModerationPage() {
               <div>
                 <h2 className="font-bold text-lg">{selected.companyName || selected.company}</h2>
                 <p className="text-sm text-slate-400">
-                  {PARTNER_STATUS_LABELS[selected.status]} · {selected.region?.name || selected.city}
+                  {partnerStatusLabel(selected.status)} · {selected.region?.name || selected.city}
                 </p>
               </div>
               <span className="text-xs bg-slate-800 px-2 py-1 rounded">

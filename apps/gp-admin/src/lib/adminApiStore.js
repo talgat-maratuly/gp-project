@@ -1,5 +1,6 @@
 import { api } from '@gp/shared/api'
 import { CATEGORY_TO_UI } from '@gp/shared/api/mappers'
+import { ADMIN_ORDER_UI_TO_PRISMA } from '@gp/shared/constants'
 import { loadGlobalStore } from '@gp/shared/demo'
 
 const DEFAULT_FRANCHISE = {
@@ -44,6 +45,7 @@ function mapClient(u) {
 
 function mapPartner(p) {
   const u = p.user || {}
+  const approved = p.status === 'APPROVED'
   return {
     id: p.id,
     name: u.name || p.company,
@@ -54,8 +56,10 @@ function mapPartner(p) {
     franchiseId: DEFAULT_FRANCHISE.id,
     directions: (p.directions || []).map((d) => CATEGORY_TO_UI[d] || String(d).toLowerCase()),
     serviceIds: [],
-    active: true,
-    blocked: false,
+    active: approved,
+    blocked: p.status === 'SUSPENDED' || p.status === 'REJECTED',
+    partnerStatus: p.status,
+    partnerRole: p.partnerRole,
     isOnline: !!p.isOnline,
     rating: 5,
     completedCount: 0,
@@ -82,7 +86,11 @@ function mapOrder(o) {
     serviceName: o.serviceName || '',
     subserviceId: o.subserviceId || null,
     subserviceName: null,
-    status: ADMIN_ORDER_STATUS[o.status] || String(o.status).toLowerCase(),
+    status:
+      o.partnerId && o.status === 'NEW'
+        ? 'assigned'
+        : ADMIN_ORDER_STATUS[o.status] || String(o.status).toLowerCase(),
+    prismaStatus: o.status,
     amount: Number(o.total),
     gpCommission: Number(o.gpCommission) || 0,
     category: CATEGORY_TO_UI[o.category] || String(o.category || '').toLowerCase(),

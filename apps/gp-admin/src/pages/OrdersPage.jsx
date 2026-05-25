@@ -144,7 +144,7 @@ export default function OrdersPage() {
 
       <Modal open={!!assignOrder} onClose={() => setAssignId(null)} title={t('assignPartner')}>
         {assignOrder && franchisePartners(assignOrder.franchiseId).map((p) => (
-          <button key={p.id} type="button" className="w-full text-left px-4 py-3 rounded-xl border border-white/10 hover:bg-sky-500/10 mb-2" onClick={() => { assignPartner(assignOrder.id, p.id); setAssignId(null) }}>
+          <button key={p.id} type="button" className="w-full text-left px-4 py-3 rounded-xl border border-white/10 hover:bg-sky-500/10 mb-2" onClick={async () => { try { await assignPartner(assignOrder.id, p.id); setAssignId(null) } catch (e) { alert(e?.message || 'Ошибка назначения') } }}>
             <span className="font-semibold">{p.company || p.name}</span>
           </button>
         ))}
@@ -154,7 +154,7 @@ export default function OrdersPage() {
         {statusOrder && (
           <div className="grid grid-cols-2 gap-2">
             {orderStatuses.map((s) => (
-              <button key={s.id} type="button" className={`px-3 py-2 rounded-xl border text-sm ${statusOrder.status === s.id ? 'border-sky-500 bg-sky-500/20' : 'border-white/10'}`} onClick={() => { updateOrder(statusOrder.id, { status: s.id }); setStatusId(null) }}>
+              <button key={s.id} type="button" className={`px-3 py-2 rounded-xl border text-sm ${statusOrder.status === s.id ? 'border-sky-500 bg-sky-500/20' : 'border-white/10'}`} onClick={async () => { try { await updateOrder(statusOrder.id, { status: s.id }); setStatusId(null) } catch (e) { alert(e?.message || 'Ошибка статуса') } }}>
                 {statusLabel(s.id)}
               </button>
             ))}
