@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
+import { PartnersModule } from '../partners/partners.module';
 import { RegionsModule } from '../regions/regions.module';
 import { MarketAdminController } from './market-admin.controller';
 import { MarketAdminService } from './market-admin.service';
@@ -10,7 +11,7 @@ import { PartnerMarketService } from './partner-market.service';
 import { SuperAdminController } from './super-admin.controller';
 
 @Module({
-  imports: [AuthModule, RegionsModule],
+  imports: [AuthModule, PartnersModule, RegionsModule],
   controllers: [
     MarketController,
     PartnerMarketController,

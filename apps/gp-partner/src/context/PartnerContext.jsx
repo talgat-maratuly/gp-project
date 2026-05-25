@@ -11,20 +11,30 @@ const load = (k, fb) => { try { const r = localStorage.getItem(k); return r ? JS
 async function loadPartnerSession() {
   if (!getToken()) return null
   const me = await api.me()
-  const profile = me.partnerProfile
+  let profile = me.partnerProfile
   if (!profile) return null
+  try {
+    const full = await api.getPartnerApplication()
+    profile = { ...profile, ...full }
+  } catch {
+    /* fallback to /auth/me profile */
+  }
   return {
     id: me.id,
     email: me.email,
     name: me.name,
     phone: me.phone,
-    company: profile.company,
+    company: profile.companyName || profile.company,
     directions: (profile.directions || []).map((d) => CATEGORY_TO_UI[d] || d.toLowerCase()),
     balance: Number(profile.balance),
     isOnline: profile.isOnline,
     lat: profile.lat,
     lng: profile.lng,
     partnerProfileId: profile.id,
+    partnerStatus: profile.status || 'DRAFT',
+    partnerType: profile.partnerType,
+    rejectionReason: profile.rejectionReason,
+    revisionComment: profile.revisionComment,
     serviceOfferings: profile.serviceOfferings || [],
     serviceAccess: profile.serviceAccess || [],
     accountType: profile.accountType || 'INDIVIDUAL',
@@ -74,18 +84,22 @@ export function PartnerProvider({ children }) {
 
   const syncPartner = useCallback(async () => {
     if (!user?.id) return
-    const profile = await api.getPartnerMe()
+    const profile = await api.getPartnerApplication()
     setUser((u) => ({
       ...u,
-      company: profile.company,
+      company: profile.companyName || profile.company,
       directions: (profile.directions || []).map((d) => CATEGORY_TO_UI[d] || d.toLowerCase()),
       balance: Number(profile.balance),
       isOnline: profile.isOnline,
       lat: profile.lat,
       lng: profile.lng,
       partnerProfileId: profile.id,
+      partnerStatus: profile.status,
+      partnerType: profile.partnerType,
+      rejectionReason: profile.rejectionReason,
+      revisionComment: profile.revisionComment,
       serviceOfferings: profile.serviceOfferings || [],
-    serviceAccess: profile.serviceAccess || [],
+      serviceAccess: profile.serviceAccess || [],
       accountType: profile.accountType,
       bin: profile.bin,
       legalAddress: profile.legalAddress,
@@ -164,6 +178,13 @@ export function PartnerProvider({ children }) {
   const register = useCallback(async (data) => {
     setLoading(true)
     try {
+      let regionId = data.regionId
+      if (!regionId) {
+        const regions = await api.getRegions()
+        regionId = regions.find((r) => r.code === 'uralsk')?.id || regions[0]?.id
+      }
+      if (!regionId) throw new Error('Выберите регион')
+
       await api.registerPartner({
         name: data.name.trim(),
         company: data.company?.trim(),
@@ -171,7 +192,7 @@ export function PartnerProvider({ children }) {
         phone: data.phone?.trim() || undefined,
         password: data.password,
         referralCode: data.referralCode?.trim() || undefined,
-        subserviceIds: data.subserviceIds,
+        regionId,
         accountType: data.accountType || 'INDIVIDUAL',
         city: data.city?.trim() || 'Уральск',
         bin: data.bin?.trim(),
@@ -179,13 +200,35 @@ export function PartnerProvider({ children }) {
         idDocumentNumber: data.idDocumentNumber?.trim(),
         documents: data.documents,
       })
+
+      const { resolvePartnerTypeFromGroups } = await import('@gp/shared/constants')
+      const partnerType = data.partnerType || resolvePartnerTypeFromGroups(data.mainGroupIds || [])
+      await api.partnerApply({
+        partnerType,
+        regionId,
+        companyName: (data.company || data.name).trim(),
+        fullName: data.name.trim(),
+        phone: data.phone?.trim() || '',
+        city: data.city?.trim() || 'Уральск',
+        address: data.address?.trim(),
+        description: data.description?.trim(),
+        accountType: data.accountType || 'INDIVIDUAL',
+        bin: data.bin?.trim(),
+        legalAddress: data.legalAddress?.trim(),
+        idDocumentNumber: data.idDocumentNumber?.trim(),
+        documents: data.documents,
+        vehiclePhotos: data.vehiclePhotos || [],
+        equipmentPhotos: data.equipmentPhotos || [],
+        subserviceIds: data.subserviceIds?.length ? data.subserviceIds : undefined,
+      })
+
       const session = await loadPartnerSession()
       if (!session) {
         clearToken()
         throw new Error('Профиль партнёра не создан. Проверьте backend.')
       }
       setUser(session)
-      notify('Регистрация успешна!')
+      notify('Заявка отправлена на модерацию GP')
       return session
     } finally {
       setLoading(false)

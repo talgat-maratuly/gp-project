@@ -184,6 +184,7 @@ export default function AuthPage({ initialMode = 'register' }) {
         city: form.city.trim() || 'Уральск',
         referralCode: form.referralCode.trim() || undefined,
         subserviceIds,
+        mainGroupIds: [...selectedMainIds],
         accountType: isLegal ? 'LEGAL_ENTITY' : 'INDIVIDUAL',
         bin: isLegal ? form.bin.trim() : undefined,
         legalAddress: isLegal ? form.legalAddress.trim() : undefined,

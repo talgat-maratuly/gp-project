@@ -3,6 +3,8 @@ import {
   OrderStatus,
   PartnerDirection,
   PartnerOfferingStatus,
+  PartnerStatus,
+  PartnerType,
   PaymentMethod,
   PrismaClient,
   Role,
@@ -113,6 +115,18 @@ async function main() {
     include: { partnerProfile: true },
   });
 
+  await prisma.partnerProfile.update({
+    where: { id: partnerUser.partnerProfile!.id },
+    data: {
+      regionId: uralskRegion.id,
+      status: PartnerStatus.APPROVED,
+      partnerType: PartnerType.SHOP,
+      companyName: 'GP Услуги Уральск',
+      fullName: partnerUser.name,
+      approvedAt: new Date(),
+    },
+  });
+
   const partnerId = partnerUser.partnerProfile!.id;
   const clientId = clientUser.clientProfile!.id;
 
@@ -158,7 +172,7 @@ async function main() {
 
   const marketStore = await prisma.store.upsert({
     where: { id: 'store-uralsk-gp-shop' },
-    update: { name: 'GP Market Уральск', status: StoreStatus.ACTIVE },
+    update: { name: 'GP Market Уральск', status: StoreStatus.APPROVED },
     create: {
       id: 'store-uralsk-gp-shop',
       name: 'GP Market Уральск',
@@ -166,7 +180,7 @@ async function main() {
       regionId: uralskRegion.id,
       address: 'Уральск, пр. Достык 1',
       phone: partnerUser.phone,
-      status: StoreStatus.ACTIVE,
+      status: StoreStatus.APPROVED,
       isOfflineStore: false,
     },
   });

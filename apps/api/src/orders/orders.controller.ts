@@ -8,6 +8,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { PartnerApprovedGuard } from '../partners/guards/partner-approved.guard';
 
 @ApiTags('orders')
 @Controller('orders')
@@ -43,7 +44,7 @@ export class OrdersController {
   }
 
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, PartnerApprovedGuard)
   @Roles(Role.PARTNER)
   @Patch(':id/status')
   updateStatus(

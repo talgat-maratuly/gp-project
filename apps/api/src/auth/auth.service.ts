@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { AccountType, PartnerOfferingStatus, Role } from '@prisma/client';
+import { AccountType, PartnerStatus, Role } from '@prisma/client';
 import {
   normalizePartnerDocuments,
   validateClientRegistration,
@@ -18,11 +18,6 @@ import { PrismaService } from '../prisma/prisma.service';
 import { RegisterClientDto } from './dto/register-client.dto';
 import { RegisterPartnerDto } from './dto/register-partner.dto';
 import { LoginDto } from './dto/login.dto';
-import {
-  deriveDirectionsFromSubservices,
-  expandDirectionsToSubservices,
-} from '../common/partner-offerings.util';
-import { isFurnitureExecutorAccessId } from '../common/furniture-executor.util';
 import { PartnersService } from '../partners/partners.service';
 
 @Injectable()
@@ -110,35 +105,13 @@ export class AuthService {
     const exists = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (exists) throw new ConflictException('Email уже зарегистрирован');
 
-    let subIds: string[];
-    if (dto.subserviceIds?.length) {
-      subIds = this.partners.validateSubserviceIds(dto.subserviceIds);
-    } else if (dto.directions?.length) {
-      subIds = expandDirectionsToSubservices(dto.directions);
-    } else {
-      throw new BadRequestException('Укажите подуслуги (subserviceIds) или направления (directions)');
-    }
-
-    const directions = deriveDirectionsFromSubservices(subIds);
-    const hasFurnitureAccess = subIds.some((id) => isFurnitureExecutorAccessId(id));
-    if (!directions.length && !hasFurnitureAccess) {
-      throw new BadRequestException('Не удалось определить направления по подуслугам');
-    }
-
     const accountType = dto.accountType || AccountType.INDIVIDUAL;
-    const documents = normalizePartnerDocuments(dto.documents) ?? [];
-    validatePartnerRegistration({
-      accountType,
-      name: dto.name,
-      company: dto.company,
-      bin: dto.bin,
-      legalAddress: dto.legalAddress,
-      idDocumentNumber: dto.idDocumentNumber,
-      documents,
-    });
-
     const region = await this.assertActiveRegion(dto.regionId);
     const cityLabel = dto.city?.trim() || region.name;
+    const companyName =
+      accountType === AccountType.LEGAL_ENTITY
+        ? dto.company!.trim()
+        : dto.company?.trim() || dto.name.trim();
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const user = await this.prisma.user.create({
@@ -151,39 +124,27 @@ export class AuthService {
         regionId: region.id,
         partnerProfile: {
           create: {
+            regionId: region.id,
+            status: PartnerStatus.DRAFT,
             accountType,
-            company:
-              accountType === AccountType.LEGAL_ENTITY
-                ? dto.company!.trim()
-                : dto.company?.trim() || dto.name.trim(),
+            companyName,
+            company: companyName,
+            fullName: dto.name.trim(),
             bin: dto.bin?.trim() || null,
             legalAddress: dto.legalAddress?.trim() || null,
             idDocumentNumber: dto.idDocumentNumber?.trim() || null,
-            documents: documents.length ? documents : undefined,
+            documents: normalizePartnerDocuments(dto.documents)?.length
+              ? normalizePartnerDocuments(dto.documents)
+              : undefined,
             city: cityLabel,
             referralCode: dto.referralCode?.trim() || undefined,
-            directions,
+            directions: [],
             balance: 10000,
           },
         },
       },
       include: { partnerProfile: true },
     });
-
-    const partnerProfileId = user.partnerProfile!.id;
-    const offeringStatus =
-      process.env.NODE_ENV === 'production'
-        ? PartnerOfferingStatus.PENDING_MODERATION
-        : PartnerOfferingStatus.ACTIVE;
-    await this.prisma.partnerServiceOffering.createMany({
-      data: subIds.map((subserviceId) => ({
-        partnerId: partnerProfileId,
-        subserviceId,
-        status: offeringStatus,
-      })),
-    });
-    await this.partners.syncDirectionsFromOfferings(partnerProfileId);
-    await this.partners.syncServiceAccessFromOfferings(partnerProfileId);
 
     return this.signToken(user);
   }

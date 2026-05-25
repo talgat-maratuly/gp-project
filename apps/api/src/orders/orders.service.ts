@@ -222,6 +222,7 @@ export class OrdersService {
 
     if (role === Role.PARTNER) {
       const profile = await this.partners.ensurePartnerProfile(userId);
+      if (profile.status !== 'APPROVED') return [];
       const activeSubserviceIds = await this.partners.getActiveSubserviceIdsForPartnerProfile(profile.id);
       const all = await this.prisma.order.findMany({
         where: {

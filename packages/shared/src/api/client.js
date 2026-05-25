@@ -76,7 +76,41 @@ export const api = {
       legalAddress: p.legalAddress,
       idDocumentNumber: p.idDocumentNumber,
       documents: p.documents,
+      status: p.status,
+      partnerType: p.partnerType,
+      rejectionReason: p.rejectionReason,
+      revisionComment: p.revisionComment,
     })),
+
+  getPartnerApplication: () => get('/partner/me'),
+
+  partnerApply: (body) => post('/partner/apply', body),
+
+  partnerResubmit: (body) => patch('/partner/me/resubmit', body),
+
+  getRegions: () => get('/regions', { auth: false }),
+
+  adminModerationPartners: (status) => {
+    const q = status ? `?status=${encodeURIComponent(status)}` : ''
+    return get(`/admin/moderation/partners${q}`)
+  },
+
+  adminModerationPartner: (id) => get(`/admin/moderation/partners/${id}`),
+
+  adminApprovePartner: (id) => patch(`/admin/moderation/partners/${id}/approve`, {}),
+
+  adminRejectPartner: (id, reason) =>
+    patch(`/admin/moderation/partners/${id}/reject`, { reason }),
+
+  adminRevisionPartner: (id, comment) =>
+    patch(`/admin/moderation/partners/${id}/revision`, { comment }),
+
+  adminSuspendPartner: (id, reason) =>
+    patch(`/admin/moderation/partners/${id}/suspend`, reason ? { reason } : {}),
+
+  adminRestorePartner: (id) => patch(`/admin/moderation/partners/${id}/restore`, {}),
+
+  adminApproveStore: (id) => patch(`/admin/moderation/stores/${id}/approve`, {}),
 
   patchPartnerMe: (body) => patch('/partners/me', body),
 

@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { StoreStatus, User } from '@prisma/client';
+import { PartnerStatus, StoreStatus, User } from '@prisma/client';
 import { RegionAccessService } from '../common/region-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePartnerProductDto } from './dto/create-partner-product.dto';
@@ -26,6 +26,10 @@ export class PartnerMarketService {
 
   async createStore(user: User, dto: CreatePartnerStoreDto) {
     const regionId = this.regionAccess.requireRegionId(user);
+    const profile = await this.prisma.partnerProfile.findUnique({ where: { userId: user.id } });
+    if (profile?.status !== PartnerStatus.APPROVED) {
+      throw new BadRequestException('Сначала дождитесь одобрения заявки партнёра');
+    }
     return this.prisma.store.create({
       data: {
         name: dto.name.trim(),
@@ -34,7 +38,7 @@ export class PartnerMarketService {
         address: dto.address?.trim() || null,
         phone: dto.phone?.trim() || user.phone || null,
         isOfflineStore: dto.isOfflineStore ?? false,
-        status: StoreStatus.ACTIVE,
+        status: StoreStatus.PENDING_REVIEW,
       },
       include: { region: { select: { id: true, name: true, code: true } } },
     });

@@ -7,6 +7,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { PartnerApprovedGuard } from './guards/partner-approved.guard';
 
 @ApiTags('partners')
 @ApiBearerAuth()
@@ -22,6 +23,7 @@ export class PartnersController {
   }
 
   @Patch('me')
+  @UseGuards(PartnerApprovedGuard)
   updateMe(
     @CurrentUser() user: { id: string },
     @Body() body: { company?: string; isOnline?: boolean; lat?: number; lng?: number },
@@ -30,6 +32,7 @@ export class PartnersController {
   }
 
   @Post('me/offerings')
+  @UseGuards(PartnerApprovedGuard)
   addOfferings(@CurrentUser() user: { id: string }, @Body() dto: AddPartnerOfferingsDto) {
     return this.partners.addOfferings(user.id, dto.subserviceIds);
   }

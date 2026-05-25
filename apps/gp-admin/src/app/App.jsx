@@ -7,6 +7,7 @@ import DashboardPage from '../pages/DashboardPage'
 import FranchisesPage from '../pages/FranchisesPage'
 import ClientsPage from '../pages/ClientsPage'
 import PartnersPage from '../pages/PartnersPage'
+import PartnerModerationPage from '../pages/PartnerModerationPage'
 import OrdersPage from '../pages/OrdersPage'
 import ServicesPage from '../pages/ServicesPage'
 import DiscountsPage from '../pages/DiscountsPage'
@@ -49,6 +50,7 @@ export default function App() {
         <Route path="orders" element={<OrdersPage />} />
         <Route path="clients" element={<ClientsPage />} />
         <Route path="partners" element={<PartnersPage />} />
+        <Route path="partners/moderation" element={<PartnerModerationPage />} />
         <Route path="services" element={<ServicesPage />} />
         <Route path="services/hunter-irrigation" element={<ServiceProjectsAdminPage type="hunter_irrigation" />} />
         <Route path="services/furniture" element={<ServiceProjectsAdminPage type="furniture" />} />

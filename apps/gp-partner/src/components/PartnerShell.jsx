@@ -48,12 +48,13 @@ export default function PartnerShell() {
             </button>
             <button
               type="button"
+              disabled={user.partnerStatus && user.partnerStatus !== 'APPROVED'}
               onClick={() => setOnline(!user.isOnline)}
               className={`text-xs font-bold px-3 py-2 rounded-full transition ${
                 user.isOnline
                   ? 'gp-gradient-kaspi text-white shadow-md'
                   : 'bg-[var(--gp-surface-2)] text-[var(--gp-text-muted)]'
-              }`}
+              } disabled:opacity-40`}
             >
               {user.isOnline ? t('online') : t('offline')}
             </button>

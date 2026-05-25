@@ -33,7 +33,7 @@ export class MarketService {
 
   listStoresByRegionId(regionId: string, categoryId?: string) {
     return this.prisma.store.findMany({
-      where: { regionId, status: 'ACTIVE' },
+      where: { regionId, status: 'APPROVED' },
       orderBy: { name: 'asc' },
       select: {
         id: true,
@@ -63,7 +63,7 @@ export class MarketService {
     return this.prisma.store.findMany({
       where: {
         ...regionFilter,
-        status: 'ACTIVE',
+        status: 'APPROVED',
       },
       orderBy: { name: 'asc' },
       select: {
@@ -99,7 +99,7 @@ export class MarketService {
         isActive: true,
         ...(opts?.categoryId ? { categoryId: opts.categoryId } : {}),
         ...(opts?.storeId ? { storeId: opts.storeId } : {}),
-        store: { status: 'ACTIVE' },
+        store: { status: 'APPROVED' },
         stock: { quantity: { gt: 0 } },
       },
       select: productSelect,
@@ -115,7 +115,7 @@ export class MarketService {
         isActive: true,
         ...(opts?.categoryId ? { categoryId: opts.categoryId } : {}),
         ...(opts?.storeId ? { storeId: opts.storeId } : {}),
-        store: { status: 'ACTIVE' },
+        store: { status: 'APPROVED' },
         stock: { quantity: { gt: 0 } },
       },
       select: productSelect,
@@ -155,7 +155,7 @@ export class MarketService {
     const clientRegionId = this.regionAccess.requireRegionId(user);
 
     const store = await this.prisma.store.findUnique({ where: { id: dto.storeId } });
-    if (!store || store.status !== 'ACTIVE') {
+    if (!store || store.status !== 'APPROVED') {
       throw new NotFoundException('Магазин не найден или неактивен');
     }
     if (store.regionId !== clientRegionId) {

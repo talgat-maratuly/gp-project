@@ -41,6 +41,35 @@ enum PartnerOfferingStatus {
   REJECTED
 }
 
+enum PartnerType {
+  SEPTIC_SERVICE
+  LAWN_MOWING
+  IRRIGATION_SERVICE
+  CLEANING_SERVICE
+  SHOP
+  SPECIALIST
+  DELIVERY
+  OTHER
+}
+
+enum PartnerStatus {
+  DRAFT
+  PENDING_REVIEW
+  NEEDS_REVISION
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum PartnerModerationAction {
+  APPROVE
+  REJECT
+  REVISION
+  SUSPEND
+  RESTORE
+  RESUBMIT
+}
+
 enum OrderCategory {
   SEPTIC
   LAWN
@@ -133,6 +162,8 @@ model User {
   devices        UserDevice[]
   ownedStores    Store[]          @relation("StoreOwner")
   marketOrders   MarketOrder[]
+  approvedPartners PartnerProfile[] @relation("PartnerApprovedBy")
+  moderationActions PartnerModerationAuditLog[] @relation("ModerationAdmin")
 
   @@index([regionId])
 }
@@ -157,14 +188,31 @@ model PartnerProfile {
   id           String             @id @default(uuid())
   userId       String             @unique
   user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  regionId     String?
+  region       Region?            @relation(fields: [regionId], references: [id])
+  partnerType  PartnerType?
+  status       PartnerStatus      @default(DRAFT)
   accountType  AccountType        @default(INDIVIDUAL)
+  companyName  String?
   company      String?
+  fullName     String?
   bin          String?
   legalAddress String?
+  address      String?
+  description  String?
   /** Удостоверение / ИИН для физлица-специалиста */
   idDocumentNumber String?
-  /** Реквизиты и документы: [{ kind, number, note }] */
+  /** Реквизиты и документы: [{ kind, number, note, url? }] */
   documents    Json?
+  vehiclePhotos Json              @default("[]")
+  equipmentPhotos Json            @default("[]")
+  rejectionReason String?
+  revisionComment String?
+  approvedByAdminId String?
+  approvedByAdmin   User?          @relation("PartnerApprovedBy", fields: [approvedByAdminId], references: [id])
+  approvedAt   DateTime?
+  rejectedAt   DateTime?
+  suspendedAt  DateTime?
   /** Необязательный код приглашения при регистрации */
   referralCode String?
   directions   PartnerDirection[]
@@ -178,6 +226,7 @@ model PartnerProfile {
   createdAt  DateTime           @default(now())
   updatedAt  DateTime           @updatedAt
 
+  moderationAudit PartnerModerationAuditLog[]
   products     Product[]
   orders       Order[]              @relation("AssignedPartner")
   qrCodeObjects QRCodeObject[]
@@ -189,6 +238,10 @@ model PartnerProfile {
   trips        Trip[]
   serviceProjects ServiceProject[] @relation("AssignedPartnerProjects")
   furnitureExecutorOrders FurnitureExecutorOrder[] @relation("FurnitureExecutorPartner")
+
+  @@index([regionId])
+  @@index([status])
+  @@index([partnerType])
 }
 
 enum FurnitureServiceType {
@@ -236,6 +289,22 @@ model PartnerServiceOffering {
   @@unique([partnerId, subserviceId])
   @@index([partnerId])
   @@index([status])
+}
+
+model PartnerModerationAuditLog {
+  id         String                  @id @default(uuid())
+  partnerId  String
+  partner    PartnerProfile          @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  adminUserId String?
+  admin      User?                   @relation("ModerationAdmin", fields: [adminUserId], references: [id])
+  action     PartnerModerationAction
+  reason     String?
+  comment    String?
+  createdAt  DateTime                @default(now())
+
+  @@index([partnerId])
+  @@index([adminUserId])
+  @@index([createdAt])
 }
 
 model Product {
@@ -680,6 +749,7 @@ model Region {
   createdAt DateTime @default(now())
 
   users    User[]
+  partners PartnerProfile[]
   stores   Store[]
   products MarketProduct[]
   stocks   Stock[]
@@ -687,10 +757,15 @@ model Region {
 }
 
 enum StoreStatus {
+  DRAFT
+  PENDING_REVIEW
+  NEEDS_REVISION
+  APPROVED
+  REJECTED
+  SUSPENDED
   ACTIVE
   INACTIVE
   BLOCKED
-  PENDING
 }
 
 model Store {
@@ -702,7 +777,7 @@ model Store {
   region         Region      @relation(fields: [regionId], references: [id])
   address        String?
   phone          String?
-  status         StoreStatus @default(PENDING)
+  status         StoreStatus @default(PENDING_REVIEW)
   isOfflineStore Boolean     @default(false)
   createdAt      DateTime    @default(now())
 

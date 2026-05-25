@@ -11,6 +11,8 @@ import PartnerCabinetPage from '../pages/PartnerCabinetPage'
 import CabinetShopPage from '../pages/cabinet/CabinetShopPage'
 import AddProductPage from '../pages/AddProductPage'
 import ProfilePage from '../pages/ProfilePage'
+import PartnerApplyPage from '../pages/PartnerApplyPage'
+import PartnerAccessGate from '../components/PartnerAccessGate'
 import QrOrdersPage from '../pages/QrOrdersPage'
 import FurnitureExecutorOrdersPage from '../pages/FurnitureExecutorOrdersPage'
 
@@ -30,6 +32,9 @@ export default function App() {
         <Route path="settings" element={<CabinetShopPage />} />
       </Route>
       <Route element={<PartnerShell />}>
+        <Route path="apply" element={<PartnerApplyPage />} />
+        <Route path="profile" element={<ProfilePage />} />
+        <Route element={<PartnerAccessGate />}>
         <Route index element={<DashboardPage />} />
         <Route path="orders" element={<OrdersPage />} />
         <Route path="orders/qr" element={<QrOrdersPage />} />
@@ -44,7 +49,7 @@ export default function App() {
         <Route path="catalog/add" element={<AddProductPage />} />
         <Route path="map" element={<MapPage />} />
         <Route path="balance" element={<BalancePage />} />
-        <Route path="profile" element={<ProfilePage />} />
+        </Route>
         {/* legacy redirects */}
         <Route path="orders/new" element={<Navigate to="/orders" replace />} />
         <Route path="payouts" element={<Navigate to="/balance" replace />} />
