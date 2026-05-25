@@ -1,19 +1,25 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { AccountType } from '@prisma/client';
-import { IsEmail, IsEnum, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsEmail, IsEnum, IsOptional, IsString, MaxLength, MinLength, ValidateIf } from 'class-validator';
 
+/** MVP: region/email/password опциональны — подставляются на сервере */
 export class RegisterClientDto {
-  @ApiProperty({ example: 'client@gp.kz' })
+  @ApiProperty({ required: false, example: 'test_123@gp.local' })
+  @IsOptional()
+  @ValidateIf((o) => Boolean(o.email?.trim()))
   @IsEmail()
-  email: string;
+  email?: string;
 
-  @ApiProperty({ minLength: 6 })
+  @ApiProperty({ required: false, minLength: 6, example: '123456' })
+  @IsOptional()
   @IsString()
   @MinLength(6)
-  password: string;
+  password?: string;
 
-  @ApiProperty()
+  @ApiProperty({ example: 'Айдар' })
   @IsString()
+  @MinLength(1)
+  @MaxLength(128)
   name: string;
 
   @ApiProperty({ required: false })
@@ -49,11 +55,12 @@ export class RegisterClientDto {
   @MaxLength(128)
   contactPerson?: string;
 
-  @ApiProperty({ description: 'UUID региона (город GP Market)' })
+  @ApiProperty({ required: false, description: 'UUID региона (MVP: не обязателен)' })
+  @IsOptional()
   @IsString()
-  regionId: string;
+  regionId?: string;
 
-  @ApiProperty({ required: false, example: 'Уральск', description: 'Отображаемый город (если отличается от name региона)' })
+  @ApiProperty({ required: false, example: 'Уральск' })
   @IsOptional()
   @IsString()
   @MaxLength(128)

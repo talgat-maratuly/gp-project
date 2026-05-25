@@ -11,7 +11,6 @@ import * as bcrypt from 'bcrypt';
 import { AccountType, PartnerStatus, Role } from '@prisma/client';
 import {
   normalizePartnerDocuments,
-  validateClientRegistration,
   validatePartnerRegistration,
 } from '../common/account-type.util';
 import { PrismaService } from '../prisma/prisma.service';
@@ -55,43 +54,66 @@ export class AuthService {
     return region;
   }
 
+  private async resolveDefaultRegion() {
+    const region =
+      (await this.prisma.region.findFirst({ where: { isActive: true, code: 'uralsk' } })) ??
+      (await this.prisma.region.findFirst({ where: { isActive: true }, orderBy: { name: 'asc' } }));
+    if (!region) {
+      throw new NotFoundException('Нет активных регионов. Выполните prisma db seed.');
+    }
+    return region;
+  }
+
+  /** MVP: автогенерация email/phone/password, регион по умолчанию */
   async registerClient(dto: RegisterClientDto) {
-    const exists = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const ts = Date.now();
+    const email = (dto.email?.trim() || `test_${ts}@gp.local`).toLowerCase();
+    const password = dto.password?.length && dto.password.length >= 6 ? dto.password : '123456';
+    const phone = dto.phone?.trim() || `test_phone_${ts}`;
+
+    const exists = await this.prisma.user.findUnique({ where: { email } });
     if (exists) throw new ConflictException('Email уже зарегистрирован');
 
     const accountType = dto.accountType || AccountType.INDIVIDUAL;
-    validateClientRegistration({
-      accountType,
-      name: dto.name,
-      companyName: dto.companyName,
-      bin: dto.bin,
-      legalAddress: dto.legalAddress,
-    });
+    const baseName = dto.name?.trim() || dto.contactPerson?.trim() || dto.companyName?.trim() || 'Тест GP';
+    let companyName = dto.companyName?.trim();
+    let bin = dto.bin?.trim();
+    let legalAddress = dto.legalAddress?.trim();
+    let contactPerson = dto.contactPerson?.trim();
+
+    if (accountType === AccountType.LEGAL_ENTITY) {
+      companyName = companyName || baseName;
+      bin = bin || '000000000000';
+      legalAddress = legalAddress || 'Уральск (тест MVP)';
+      contactPerson = contactPerson || baseName;
+    } else if (!baseName) {
+      throw new BadRequestException('Укажите имя');
+    }
 
     const displayName =
-      accountType === AccountType.LEGAL_ENTITY
-        ? (dto.contactPerson?.trim() || dto.name?.trim())
-        : dto.name.trim();
+      accountType === AccountType.LEGAL_ENTITY ? contactPerson! : baseName;
 
-    const region = await this.assertActiveRegion(dto.regionId);
+    const region = dto.regionId
+      ? await this.assertActiveRegion(dto.regionId)
+      : await this.resolveDefaultRegion();
     const cityLabel = dto.city?.trim() || region.name;
 
-    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const passwordHash = await bcrypt.hash(password, 10);
     const user = await this.prisma.user.create({
       data: {
-        email: dto.email,
+        email,
         passwordHash,
         name: displayName,
-        phone: dto.phone,
+        phone,
         role: Role.CLIENT,
         regionId: region.id,
         clientProfile: {
           create: {
             accountType,
-            companyName: dto.companyName?.trim() || null,
-            bin: dto.bin?.trim() || null,
-            legalAddress: dto.legalAddress?.trim() || null,
-            contactPerson: dto.contactPerson?.trim() || null,
+            companyName: companyName || null,
+            bin: bin || null,
+            legalAddress: legalAddress || null,
+            contactPerson: contactPerson || null,
             city: cityLabel,
           },
         },

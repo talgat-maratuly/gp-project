@@ -6,6 +6,7 @@ import * as marketDemo from '../lib/marketDemoApi'
 import { subscribeGlobalOrderStatus, resetTrackingSocket } from '@gp/shared/api/trackingSocket'
 import { CATEGORY_TO_API, PAYMENT_TO_API } from '@gp/shared/api/mappers'
 import { calcServiceTotal, computeShopDeliveryFee, LAWN_SERVICE_IDS } from '@gp/shared/constants'
+import { buildTestClientCredentials } from '@gp/shared/utils'
 import { SERVICE_CATALOG, getServiceOrderCategory } from '../data/services'
 
 const KEYS = {
@@ -205,16 +206,20 @@ export function ServiceProvider({ children }) {
   }, [notify, refreshOrders])
 
   const register = useCallback(async (data) => {
+    const creds = buildTestClientCredentials(data)
+    const accountType = data.accountType || 'INDIVIDUAL'
+    const isLegal = accountType === 'LEGAL_ENTITY'
+    const displayName = data.name?.trim() || data.companyName?.trim() || creds.name
     await api.registerClient({
-      email: data.email,
-      password: data.password,
-      name: data.name || data.contactPerson,
-      phone: data.phone,
-      accountType: data.accountType || 'INDIVIDUAL',
-      companyName: data.companyName,
+      email: creds.email,
+      password: creds.password,
+      name: displayName,
+      phone: creds.phone,
+      accountType,
+      companyName: isLegal ? (data.companyName?.trim() || displayName) : undefined,
       bin: data.bin,
       legalAddress: data.legalAddress,
-      contactPerson: data.contactPerson,
+      contactPerson: isLegal ? (data.contactPerson?.trim() || displayName) : undefined,
     })
     await syncAuth()
     notify('Регистрация успешна')
