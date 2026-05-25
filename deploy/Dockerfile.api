@@ -6,7 +6,7 @@ COPY packages/shared/package.json packages/shared/
 RUN npm ci --workspace=@gp/api --include-workspace-root
 COPY apps/api apps/api
 COPY packages/shared packages/shared
-RUN npm run build -w @gp/api
+RUN npx prisma generate --schema apps/api/prisma/schema.prisma && npm run build -w @gp/api
 
 FROM node:20-alpine
 WORKDIR /app
