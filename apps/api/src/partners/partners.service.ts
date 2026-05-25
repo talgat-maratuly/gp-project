@@ -1,13 +1,19 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { PartnerDirection, PartnerOfferingStatus, Prisma } from '@prisma/client';
+import { BadRequestException, ForbiddenException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { isKnownSubserviceId, SUBSERVICE_TO_DIRECTION } from '../common/partner-offerings.util';
 import { FurnitureExecutorService } from '../furniture-executor/furniture-executor.service';
+
+const PartnerOfferingStatusValue = {
+  ACTIVE: 'ACTIVE',
+  PENDING_MODERATION: 'PENDING_MODERATION',
+  REJECTED: 'REJECTED',
+} as const;
 
 @Injectable()
 export class PartnersService {
   constructor(
     private prisma: PrismaService,
+    @Inject(forwardRef(() => FurnitureExecutorService))
     private furnitureExecutor: FurnitureExecutorService,
   ) {}
 
@@ -20,9 +26,9 @@ export class PartnersService {
 
   async syncDirectionsFromOfferings(partnerId: string) {
     const offerings = await this.prisma.partnerServiceOffering.findMany({ where: { partnerId } });
-    const dirs = new Set<PartnerDirection>();
+    const dirs = new Set<(typeof SUBSERVICE_TO_DIRECTION)[keyof typeof SUBSERVICE_TO_DIRECTION]>();
     for (const o of offerings) {
-      if (o.status === PartnerOfferingStatus.REJECTED) continue;
+      if (o.status === PartnerOfferingStatusValue.REJECTED) continue;
       const d = SUBSERVICE_TO_DIRECTION[o.subserviceId];
       if (d) dirs.add(d);
     }
@@ -70,7 +76,7 @@ export class PartnersService {
   /** Множество subserviceId со статусом ACTIVE (для фильтрации заказов). */
   async getActiveSubserviceIdsForPartnerProfile(partnerProfileId: string): Promise<Set<string>> {
     const rows = await this.prisma.partnerServiceOffering.findMany({
-      where: { partnerId: partnerProfileId, status: PartnerOfferingStatus.ACTIVE },
+      where: { partnerId: partnerProfileId, status: PartnerOfferingStatusValue.ACTIVE },
       select: { subserviceId: true },
     });
     return new Set(rows.map((r) => r.subserviceId));
@@ -97,17 +103,13 @@ export class PartnersService {
     });
     const existingMap = new Map(existing.map((e) => [e.subserviceId, e.status]));
 
-    const toCreate: Prisma.PartnerServiceOfferingCreateManyInput[] = [];
-    for (const sid of ids) {
-      const st = existingMap.get(sid);
-      if (!st) {
-        toCreate.push({
-          partnerId: profile.id,
-          subserviceId: sid,
-          status: PartnerOfferingStatus.PENDING_MODERATION,
-        });
-      }
-    }
+    const toCreate = ids
+      .filter((sid) => !existingMap.get(sid))
+      .map((sid) => ({
+        partnerId: profile.id,
+        subserviceId: sid,
+        status: PartnerOfferingStatusValue.PENDING_MODERATION,
+      }));
 
     if (toCreate.length) {
       await this.prisma.partnerServiceOffering.createMany({ data: toCreate });

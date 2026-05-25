@@ -1,10 +1,10 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { PartnersModule } from '../partners/partners.module';
 import { FurnitureExecutorController } from './furniture-executor.controller';
 import { FurnitureExecutorService } from './furniture-executor.service';
 
 @Module({
-  imports: [PartnersModule],
+  imports: [forwardRef(() => PartnersModule)],
   controllers: [FurnitureExecutorController],
   providers: [FurnitureExecutorService],
   exports: [FurnitureExecutorService],
