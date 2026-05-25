@@ -176,8 +176,8 @@ export const api = {
 
   adminOrders: () => get('/admin/orders'),
 
-  adminAssignOrder: (orderId, partnerId) =>
-    patch(`/admin/orders/${orderId}/assign`, { partnerId }),
+  adminAssignOrder: (orderId, assignedPartnerId) =>
+    patch(`/admin/orders/${orderId}/assign`, { assignedPartnerId }),
 
   adminUpdateOrderStatus: (orderId, body) =>
     patch(`/admin/orders/${orderId}/status`, body),

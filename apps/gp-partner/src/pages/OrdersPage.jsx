@@ -31,7 +31,7 @@ function openNavigation(order) {
 
 function OrderCard({ order, user, onAccept, onAdvance, onCancel, onSelect, selected }) {
   const action = getPartnerOrderAction(order.status, order.category)
-  const isMine = order.partnerId === user?.partnerProfileId
+  const isMine = (order.assignedPartnerId || order.partnerId) === user?.partnerProfileId
   const lawnLabel = LAWN_WORK_TYPES.find((t) => t.id === order.lawnWorkType)?.label
 
   return (
@@ -68,9 +68,9 @@ function OrderCard({ order, user, onAccept, onAdvance, onCancel, onSelect, selec
         <p className="text-2xl font-extrabold gp-text-gradient mt-3">{formatPrice(order.total)}</p>
 
         <div className="flex flex-col gap-2 mt-4">
-          {order.status === 'new' && !order.partnerId && (
+          {order.status === 'new' && isMine && (
             <button type="button" onClick={() => onAccept(order.id)} className="w-full py-4 rounded-2xl gp-btn-primary font-bold text-sm">
-              Принять
+              Принять заказ
             </button>
           )}
           {isMine && action && (

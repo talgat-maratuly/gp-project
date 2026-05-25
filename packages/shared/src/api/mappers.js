@@ -102,8 +102,11 @@ export const LAWN_WORK_TO_UI = {
 
 export function mapOrder(o, { forClient = false } = {}) {
   if (!o) return o
+  const assignedPartnerId = o.assignedPartnerId ?? o.partnerId ?? null
   const mapped = {
     ...o,
+    assignedPartnerId,
+    partnerId: assignedPartnerId,
     status: ORDER_STATUS_TO_UI[o.status] || o.status?.toLowerCase?.(),
     category: CATEGORY_TO_UI[o.category] || o.category?.toLowerCase?.(),
     total: Number(o.total),

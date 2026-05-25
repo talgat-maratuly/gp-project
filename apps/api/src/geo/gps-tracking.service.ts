@@ -40,7 +40,7 @@ export class GpsTrackingService {
       include: { trip: true },
     });
     if (!order) throw new NotFoundException('Заказ не найден');
-    if (order.partnerId !== profile.id) throw new ForbiddenException('Заказ не назначен вам');
+    if (order.assignedPartnerId !== profile.id) throw new ForbiddenException('Заказ не назначен вам');
     if (order.category !== OrderCategory.SEPTIC) {
       return this.ingestSimpleGps(profile.id, order, dto);
     }

@@ -18,7 +18,6 @@ import {
   isShopPartnerProfile,
   isServicePartnerProfile,
 } from '../common/partner-access.util';
-import { orderMatchesActiveOffering } from '../common/partner-offerings.util';
 import {
   getPartnerBusySlots,
   isOrderSlotBlockedForPartner,
@@ -192,22 +191,15 @@ export class OrdersService {
     return sanitizeOrderForRole(order, Role.CLIENT);
   }
 
+  /** Только заказы, назначенные админом (без пула неназначенных). */
   private filterOrdersForPartner(
     orders: Awaited<ReturnType<typeof this.prisma.order.findMany>>,
     profileId: string,
-    activeSubserviceIds: Set<string>,
     partnerType: PartnerType | null,
   ) {
-    const busySlots = getPartnerBusySlots(profileId, orders);
-
     return orders.filter((o) => {
-      if (!isOrderAllowedForPartnerType(o, partnerType)) return false;
-      if (o.partnerId && o.partnerId !== profileId) return false;
-      if (o.partnerId === profileId) return true;
-      if (o.status !== OrderStatus.NEW) return false;
-      if (!orderMatchesActiveOffering(o, activeSubserviceIds)) return false;
-      if (isOrderSlotBlockedForPartner(o, busySlots)) return false;
-      return true;
+      if (o.assignedPartnerId !== profileId) return false;
+      return isOrderAllowedForPartnerType(o, partnerType);
     });
   }
 
@@ -231,16 +223,16 @@ export class OrdersService {
       const profile = await this.partners.ensurePartnerProfile(userId);
       if (profile.status !== 'APPROVED') return [];
       if (!isServicePartnerProfile(profile)) return [];
-      const activeSubserviceIds = await this.partners.getActiveSubserviceIdsForPartnerProfile(profile.id);
       const all = await this.prisma.order.findMany({
         where: {
+          assignedPartnerId: profile.id,
           ...(filters?.status && { status: filters.status }),
           ...(filters?.category && { category: filters.category as never }),
         },
         include: this.orderInclude(),
         orderBy: { createdAt: 'desc' },
       });
-      return this.filterOrdersForPartner(all, profile.id, activeSubserviceIds, profile.partnerType);
+      return this.filterOrdersForPartner(all, profile.id, profile.partnerType);
     }
 
     return this.prisma.order.findMany({
@@ -308,16 +300,15 @@ export class OrdersService {
 
       if (dto.status === OrderStatus.ACCEPTED) {
         if (order.status !== OrderStatus.NEW) throw new BadRequestException('Заказ уже принят');
-        if (order.partnerId && order.partnerId !== profile.id) {
-          throw new BadRequestException('Заказ назначен другому партнёру');
+        if (!order.assignedPartnerId) {
+          throw new BadRequestException('Заказ не назначен администратором');
         }
-        const activeSubserviceIds = await this.partners.getActiveSubserviceIdsForPartnerProfile(profile.id);
-        if (!orderMatchesActiveOffering(order, activeSubserviceIds)) {
-          throw new ForbiddenException('Эта подуслуга не активна для вашего профиля');
+        if (order.assignedPartnerId !== profile.id) {
+          throw new BadRequestException('Заказ назначен другому партнёру');
         }
 
         const all = await this.prisma.order.findMany({ select: {
-          partnerId: true, preferredDate: true, preferredTime: true, flexibleTime: true, status: true,
+          assignedPartnerId: true, preferredDate: true, preferredTime: true, flexibleTime: true, status: true,
         } });
         const busySlots = getPartnerBusySlots(profile.id, all);
         if (isOrderSlotBlockedForPartner(order, busySlots)) {
@@ -328,7 +319,7 @@ export class OrdersService {
           where: { id: orderId },
           data: {
             status: OrderStatus.ACCEPTED,
-            partnerId: order.partnerId || profile.id,
+            assignedPartnerId: profile.id,
             acceptedAt: new Date(),
             executorLat: dto.executorLat ?? profile.lat ?? undefined,
             executorLng: dto.executorLng ?? profile.lng ?? undefined,
@@ -347,7 +338,7 @@ export class OrdersService {
         return updated;
       }
 
-      if (order.partnerId !== profile.id) throw new ForbiddenException('Заказ не ваш');
+      if (order.assignedPartnerId !== profile.id) throw new ForbiddenException('Заказ не ваш');
 
       if (dto.status === OrderStatus.CANCELLED) {
         const updated = await this.prisma.order.update({
@@ -397,7 +388,7 @@ export class OrdersService {
     if (order.status !== OrderStatus.COMPLETED) {
       throw new BadRequestException('Подтвердить можно только после завершения работы партнёром');
     }
-    if (!order.partnerId) throw new BadRequestException('Партнёр не назначен');
+    if (!order.assignedPartnerId) throw new BadRequestException('Партнёр не назначен');
 
     const updated = await this.prisma.order.update({
       where: { id: orderId },
@@ -408,7 +399,7 @@ export class OrdersService {
       include: this.orderInclude(),
     });
 
-    await this.chargeCommissionIfNeeded(order, order.partnerId);
+    await this.chargeCommissionIfNeeded(order, order.assignedPartnerId);
     await this.notifications.notifyOrderStatusChange(orderId, OrderStatus.CLIENT_CONFIRMED);
     this.broadcastOrderStatus(orderId, OrderStatus.CLIENT_CONFIRMED);
     return sanitizeOrderForRole(updated, Role.CLIENT);

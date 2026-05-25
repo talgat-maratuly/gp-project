@@ -2,7 +2,6 @@ import {
   findDemoUser,
   loadGlobalStore,
   updateGlobalOrder,
-  assignGlobalPartner,
   ordersForPartner,
   mapOrderToPartner,
   PARTNER_STATUS_MAP,
@@ -80,15 +79,12 @@ export async function demoUpdateStatus(orderId, partnerStatus, extra = {}) {
   const store = loadGlobalStore()
   const order = store.orders.find((o) => o.id === orderId)
   if (!order || order.franchiseId !== session.franchiseId) throw new Error('forbidden')
-  if (order.partnerId && order.partnerId !== session.partnerId && partnerStatus !== 'accepted') {
+  const assigned = order.assignedPartnerId ?? order.partnerId
+  if (!assigned || assigned !== session.partnerId) {
     throw new Error('forbidden')
   }
   const mapped = PARTNER_STATUS_MAP[partnerStatus] || partnerStatus
   const patch = { status: mapped, ...extra }
-  if (partnerStatus === 'accepted' && !order.partnerId) {
-    assignGlobalPartner(orderId, session.partnerId)
-  } else {
-    updateGlobalOrder(orderId, patch)
-  }
+  updateGlobalOrder(orderId, patch)
   await syncFromHub()
 }

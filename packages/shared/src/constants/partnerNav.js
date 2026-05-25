@@ -35,7 +35,6 @@ export function getPartnerBottomNav(user, { isDemoMode = false } = {}) {
   if (!shop && !service) {
     return [
       { to: '/', icon: 'LayoutDashboard', labelKey: 'nav_home', end: true },
-      { to: '/apply', icon: 'FileText', labelKey: 'partner_moderation_status' },
       { to: '/profile', icon: 'User', labelKey: 'nav_profile' },
     ]
   }
@@ -43,9 +42,8 @@ export function getPartnerBottomNav(user, { isDemoMode = false } = {}) {
   if (shop && !service) {
     return [
       { to: '/', icon: 'LayoutDashboard', labelKey: 'nav_home', end: true },
-      { to: '/shop/orders', icon: 'ShoppingCart', labelKey: 'market_orders' },
+      { to: '/shop/orders', icon: 'ClipboardList', labelKey: 'nav_orders' },
       { to: '/shop', icon: 'Store', labelKey: 'market_my_shop' },
-      { to: '/shop/products', icon: 'Package', labelKey: 'market_products' },
       { to: '/profile', icon: 'User', labelKey: 'nav_profile' },
     ]
   }
@@ -54,18 +52,8 @@ export function getPartnerBottomNav(user, { isDemoMode = false } = {}) {
     return [
       { to: '/', icon: 'LayoutDashboard', labelKey: 'nav_home', end: true },
       { to: '/orders', icon: 'ClipboardList', labelKey: 'nav_orders' },
+      { to: '/services', icon: 'Briefcase', labelKey: 'nav_my_services' },
       { to: '/shop', icon: 'Store', labelKey: 'market_my_shop' },
-      { to: '/services', icon: 'Briefcase', labelKey: 'nav_my_services' },
-      { to: '/profile', icon: 'User', labelKey: 'nav_profile' },
-    ]
-  }
-
-  if (partnerType === 'SEPTIC_SERVICE') {
-    return [
-      { to: '/', icon: 'LayoutDashboard', labelKey: 'nav_home', end: true },
-      { to: '/orders', icon: 'ClipboardList', labelKey: 'nav_orders' },
-      { to: '/services', icon: 'Briefcase', labelKey: 'nav_my_services' },
-      { to: '/map', icon: 'Map', labelKey: 'nav_map' },
       { to: '/profile', icon: 'User', labelKey: 'nav_profile' },
     ]
   }
@@ -73,7 +61,6 @@ export function getPartnerBottomNav(user, { isDemoMode = false } = {}) {
   return [
     { to: '/', icon: 'LayoutDashboard', labelKey: 'nav_home', end: true },
     { to: '/orders', icon: 'ClipboardList', labelKey: 'nav_orders' },
-    { to: '/services', icon: 'Briefcase', labelKey: 'nav_my_services' },
     { to: '/profile', icon: 'User', labelKey: 'nav_profile' },
   ]
 }

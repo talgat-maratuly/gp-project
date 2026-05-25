@@ -11,7 +11,10 @@ export function ordersForClient(orders, clientId) {
 
 /** Партнёр видит только заявки своего города, назначенные ему */
 export function ordersForPartner(orders, partnerId, franchiseId) {
-  return orders.filter((o) => o.franchiseId === franchiseId && o.partnerId === partnerId)
+  return orders.filter((o) => {
+    const assigned = o.assignedPartnerId ?? o.partnerId
+    return o.franchiseId === franchiseId && assigned === partnerId
+  })
 }
 
 export function ordersForAdmin(orders, role, franchiseId) {
@@ -46,7 +49,8 @@ export function mapOrderToService(o) {
 }
 
 export function mapOrderToPartner(o, partnerId) {
-  const assigned = o.partnerId === partnerId
+  const aid = o.assignedPartnerId ?? o.partnerId
+  const assigned = aid === partnerId
   return {
     id: o.id,
     category: o.serviceId?.includes('septic') ? 'septic' : 'lawn',
@@ -63,7 +67,8 @@ export function mapOrderToPartner(o, partnerId) {
     createdAt: new Date(o.createdAt).toISOString(),
     clientName: o.clientName,
     clientPhone: o.clientPhone,
-    partnerId: o.partnerId,
+    assignedPartnerId: aid,
+    partnerId: aid,
     franchiseId: o.franchiseId,
     note: o.note,
     partnerComment: o.partnerComment || '',

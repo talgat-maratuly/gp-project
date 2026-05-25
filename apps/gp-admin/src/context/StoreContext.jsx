@@ -29,7 +29,7 @@ function syncOrderFromRefs(order, state) {
   const client = state.clients.find((c) => c.id === order.clientId)
   const svc = state.services.find((s) => s.id === order.serviceId)
   const sub = svc?.subservices?.find((x) => x.id === order.subserviceId)
-  const partner = state.partners.find((p) => p.id === order.partnerId)
+  const partner = state.partners.find((p) => p.id === (order.assignedPartnerId ?? order.partnerId))
   return {
     ...order,
     franchiseId: order.franchiseId || client?.franchiseId || svc?.franchiseId,
@@ -223,21 +223,22 @@ export function StoreProvider({ children }) {
     }))
   }, [apiMode, persist, refreshFromApi])
 
-  const assignPartner = useCallback(async (orderId, partnerId) => {
+  const assignPartner = useCallback(async (orderId, assignedPartnerId) => {
     if (apiMode) {
-      await api.adminAssignOrder(orderId, partnerId)
+      await api.adminAssignOrder(orderId, assignedPartnerId)
       await refreshFromApi()
       return
     }
     persist((s) => {
-      const partner = s.partners.find((p) => p.id === partnerId)
+      const partner = s.partners.find((p) => p.id === assignedPartnerId)
       return {
         ...s,
         orders: s.orders.map((o) =>
           o.id === orderId
             ? {
                 ...o,
-                partnerId,
+                assignedPartnerId,
+                partnerId: assignedPartnerId,
                 partnerName: partner?.company || partner?.name || null,
                 status: o.status === 'new' ? 'assigned' : o.status,
               }

@@ -1,8 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsUUID } from 'class-validator';
+import { IsOptional, IsUUID } from 'class-validator';
 
 export class AdminAssignOrderDto {
   @ApiProperty({ description: 'PartnerProfile.id' })
   @IsUUID()
-  partnerId: string;
+  assignedPartnerId: string;
+
+  /** @deprecated use assignedPartnerId */
+  @ApiProperty({ required: false, deprecated: true })
+  @IsOptional()
+  @IsUUID()
+  partnerId?: string;
 }

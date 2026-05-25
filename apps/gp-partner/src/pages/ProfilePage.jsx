@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
+import { partnerStatusLabel } from '@gp/shared-core/statuses'
 import { LogOut, Package, Plus, Store } from 'lucide-react'
 import {
   getAccountTypeLabel,
@@ -16,7 +17,17 @@ import { usePartner } from '../context/PartnerContext'
 
 const ALL_GROUPS = [...PARTNER_REGISTRATION_GROUPS, FURNITURE_EXECUTOR_GROUP, SHOP_REGISTRATION_GROUP]
 
+const PROFILE_STATUS_HINT = {
+  PENDING_REVIEW: 'Заявка на проверке администратором GP. Модерация доступна только в GP Admin.',
+  APPROVED: 'Профиль одобрен. Заказы появятся после назначения администратором.',
+  REJECTED: 'Заявка отклонена. Обратитесь в поддержку GP.',
+  NEEDS_REVISION: 'Нужно исправить данные и отправить заявку снова.',
+  SUSPENDED: 'Аккаунт заблокирован.',
+  DRAFT: 'Заполните и отправьте заявку на проверку.',
+}
+
 export default function ProfilePage() {
+  const location = useLocation()
   const { user, logout, loading, addPartnerOfferings } = usePartner()
   const { shop, service } = getPartnerAccess(user || {})
   const [showAdd, setShowAdd] = useState(false)
@@ -69,8 +80,25 @@ export default function ProfilePage() {
     }
   }
 
+  const status = user?.partnerStatus || 'DRAFT'
+
   return (
     <div>
+      {location.state?.noAccess && (
+        <div className="mb-4 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
+          Нет доступа. Модерация доступна только в GP Admin.
+        </div>
+      )}
+      <div className="mb-4 rounded-2xl border border-[var(--gp-border)] bg-[var(--gp-surface-2)] px-4 py-3">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--gp-text-muted)]">Статус профиля</p>
+        <p className="text-lg font-extrabold text-[var(--gp-text)] mt-1">{partnerStatusLabel(status)}</p>
+        <p className="text-xs text-[var(--gp-text-muted)] mt-1">{PROFILE_STATUS_HINT[status] || ''}</p>
+        {(status === 'DRAFT' || status === 'NEEDS_REVISION') && (
+          <Link to="/apply" className="inline-block mt-3 text-sm font-bold text-emerald-600 underline">
+            {status === 'NEEDS_REVISION' ? 'Исправить заявку' : 'Заполнить заявку'}
+          </Link>
+        )}
+      </div>
       <h1 className="text-xl font-bold text-white mb-1">{user?.company || user?.name}</h1>
       <p className="text-xs font-bold text-emerald-600 mb-1">{getAccountTypeLabel(user?.accountType || 'INDIVIDUAL')}</p>
       {user?.accountType === 'LEGAL_ENTITY' && (

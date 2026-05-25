@@ -17,7 +17,7 @@ export type BusySlot = { date: string; time: string };
 export function getPartnerBusySlots(
   partnerId: string,
   orders: Array<{
-    partnerId: string | null;
+    assignedPartnerId: string | null;
     preferredDate: Date | null;
     preferredTime: string | null;
     flexibleTime: boolean;
@@ -38,7 +38,7 @@ export function getPartnerBusySlots(
   return orders
     .filter(
       (o) =>
-        o.partnerId === partnerId &&
+        o.assignedPartnerId === partnerId &&
         !o.flexibleTime &&
         o.preferredDate &&
         o.preferredTime &&

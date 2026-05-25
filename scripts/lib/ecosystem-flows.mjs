@@ -150,12 +150,12 @@ export async function runOrderFlow({ clientToken, partnerToken, adminToken, part
     const assigned = await req(`/admin/orders/${orderId}/assign`, {
       method: 'PATCH',
       token: adminToken,
-      body: { partnerId: partnerProfileId },
+      body: { assignedPartnerId: partnerProfileId },
     })
     steps.push({
       name: 'admin assign',
-      ok: assigned.partnerId === partnerProfileId,
-      detail: assigned.partnerId,
+      ok: (assigned.assignedPartnerId ?? assigned.partnerId) === partnerProfileId,
+      detail: assigned.assignedPartnerId ?? assigned.partnerId,
     })
 
     const accepted = await req(`/orders/${orderId}/status`, {

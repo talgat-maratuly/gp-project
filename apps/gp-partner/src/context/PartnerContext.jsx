@@ -468,16 +468,17 @@ export function PartnerProvider({ children }) {
     setUser((u) => (u ? { ...u, lat, lng } : u))
   }, [activeOrderId])
 
+  const isMyOrder = useCallback(
+    (o) => (o.assignedPartnerId ?? o.partnerId) === user?.partnerProfileId,
+    [user?.partnerProfileId],
+  )
   const newOrders = useMemo(
-    () => (isDemoMode() ? [] : orders.filter((o) => o.status === 'new')),
-    [orders],
+    () => orders.filter((o) => isMyOrder(o) && o.status === 'new'),
+    [orders, isMyOrder],
   )
   const myOrders = useMemo(
-    () =>
-      isDemoMode()
-        ? orders.filter((o) => o.partnerId === user?.partnerId)
-        : orders.filter((o) => o.partnerId && o.status !== 'new'),
-    [orders, user?.partnerId],
+    () => orders.filter((o) => isMyOrder(o) && o.status !== 'new'),
+    [orders, isMyOrder],
   )
   const activeOrders = useMemo(
     () => orders.filter((o) => !['new', 'cancelled', 'client_confirmed', 'done'].includes(o.status)),

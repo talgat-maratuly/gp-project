@@ -39,6 +39,8 @@ export default function App() {
         </Route>
       </Route>
       <Route element={<PartnerShell />}>
+        <Route path="moderation" element={<Navigate to="/profile" replace state={{ noAccess: true }} />} />
+        <Route path="moderation/*" element={<Navigate to="/profile" replace state={{ noAccess: true }} />} />
         <Route path="apply" element={<PartnerApplyPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route element={<PartnerAccessGate />}>

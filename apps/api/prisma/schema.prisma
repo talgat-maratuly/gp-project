@@ -408,8 +408,8 @@ model Order {
   id                String        @id @default(uuid())
   clientId          String
   client            ClientProfile @relation(fields: [clientId], references: [id])
-  partnerId         String?
-  partner           PartnerProfile? @relation("AssignedPartner", fields: [partnerId], references: [id])
+  assignedPartnerId String?
+  partner           PartnerProfile? @relation("AssignedPartner", fields: [assignedPartnerId], references: [id])
   category          OrderCategory
   status            OrderStatus   @default(NEW)
   serviceName       String?
@@ -450,7 +450,7 @@ model Order {
   disposalEvents DisposalEvent[]
 
   @@index([clientId])
-  @@index([partnerId])
+  @@index([assignedPartnerId])
   @@index([status])
   @@index([category])
   @@index([createdAt])

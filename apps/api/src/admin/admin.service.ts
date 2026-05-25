@@ -80,8 +80,9 @@ export class AdminService {
       throw new BadRequestException('Назначить партнёра можно только для нового заказа');
     }
 
+    const assignedPartnerId = dto.assignedPartnerId ?? dto.partnerId;
     const partner = await this.prisma.partnerProfile.findUnique({
-      where: { id: dto.partnerId },
+      where: { id: assignedPartnerId },
       include: { user: true },
     });
     if (!partner) throw new NotFoundException('Партнёр не найден');
@@ -91,7 +92,7 @@ export class AdminService {
 
     return this.prisma.order.update({
       where: { id: orderId },
-      data: { partnerId: dto.partnerId },
+      data: { assignedPartnerId },
       include: {
         client: { include: { user: { select: { name: true, phone: true } } } },
         partner: { include: { user: { select: { name: true, phone: true } } } },
@@ -103,14 +104,15 @@ export class AdminService {
     const order = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!order) throw new NotFoundException('Заказ не найден');
 
-    const data: { status: OrderStatus; partnerId?: string } = { status: dto.status };
-    if (dto.partnerId) {
-      const partner = await this.prisma.partnerProfile.findUnique({ where: { id: dto.partnerId } });
+    const data: { status: OrderStatus; assignedPartnerId?: string } = { status: dto.status };
+    const assignId = dto.assignedPartnerId ?? dto.partnerId;
+    if (assignId) {
+      const partner = await this.prisma.partnerProfile.findUnique({ where: { id: assignId } });
       if (!partner) throw new NotFoundException('Партнёр не найден');
       if (partner.status !== PartnerStatus.APPROVED) {
         throw new BadRequestException('Партнёр должен быть одобрен');
       }
-      data.partnerId = dto.partnerId;
+      data.assignedPartnerId = assignId;
     }
 
     const updated = await this.prisma.order.update({

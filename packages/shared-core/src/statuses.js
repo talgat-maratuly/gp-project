@@ -103,7 +103,8 @@ export function isPartnerActiveForOrders(partnerStatus) {
 }
 
 export function orderHasAssignedPartner(order) {
-  return Boolean(order?.partnerId) && (order?.status === 'NEW' || order?.prismaStatus === 'NEW')
+  const id = order?.assignedPartnerId ?? order?.partnerId
+  return Boolean(id) && (order?.status === 'NEW' || order?.prismaStatus === 'NEW')
 }
 
 export function mapAdminOrderStatusToPrisma(uiStatus) {

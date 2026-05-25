@@ -10,5 +10,10 @@ export class AdminUpdateOrderStatusDto {
   @ApiProperty({ required: false, description: 'PartnerProfile.id при назначении' })
   @IsOptional()
   @IsUUID()
+  assignedPartnerId?: string;
+
+  /** @deprecated use assignedPartnerId */
+  @IsOptional()
+  @IsUUID()
   partnerId?: string;
 }

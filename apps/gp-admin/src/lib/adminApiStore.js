@@ -77,7 +77,8 @@ function mapOrder(o) {
     clientId: o.clientId,
     clientName: clientUser?.name || 'Клиент',
     clientPhone: clientUser?.phone || '',
-    partnerId: o.partnerId,
+    assignedPartnerId: o.assignedPartnerId ?? o.partnerId,
+    partnerId: o.assignedPartnerId ?? o.partnerId,
     partnerName: o.partner?.company || partnerUser?.name || null,
     franchiseId: DEFAULT_FRANCHISE.id,
     city: o.city || clientUser?.city || 'Уральск',
@@ -87,7 +88,7 @@ function mapOrder(o) {
     subserviceId: o.subserviceId || null,
     subserviceName: null,
     status:
-      o.partnerId && o.status === 'NEW'
+      (o.assignedPartnerId ?? o.partnerId) && o.status === 'NEW'
         ? 'assigned'
         : ADMIN_ORDER_STATUS[o.status] || String(o.status).toLowerCase(),
     prismaStatus: o.status,
