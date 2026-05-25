@@ -1,0 +1,15 @@
+export {
+  activateTestMode,
+  getTestMe,
+  getTestSession,
+  isBackendUnavailableError,
+  isTestModeActive,
+  isTestModeFallbackEnabled,
+  isTestModeFlag,
+  loginTestClient,
+  logoutTestMode,
+  registerTestClient,
+  TEST_MODE_ACTIVE_KEY,
+  TEST_MODE_SESSION_KEY,
+  TEST_MODE_USERS_KEY,
+} from './store.js'

@@ -34,9 +34,10 @@ export class RegisterPartnerDto {
   @IsString()
   phone?: string;
 
-  @ApiProperty({ description: 'UUID региона GP Market' })
+  @ApiProperty({ required: false, description: 'UUID региона GP Market (MVP: не обязателен)' })
+  @IsOptional()
   @IsString()
-  regionId: string;
+  regionId?: string;
 
   @ApiProperty({ required: false, example: 'Уральск' })
   @IsOptional()

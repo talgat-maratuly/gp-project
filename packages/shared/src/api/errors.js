@@ -58,17 +58,24 @@ export function toApiError(err, { status = 0, data = null } = {}) {
   })
 }
 
-export function parseApiErrorBody(data, status) {
-  const prismaHint = [data?.message, data?.error, ...(Array.isArray(data?.message) ? data.message : [])]
+export function isDatabaseApiError(data, status) {
+  const prismaHint = [data?.message, data?.error, data?.hint, data?.code, ...(Array.isArray(data?.message) ? data.message : [])]
     .filter(Boolean)
     .join(' ')
     .toLowerCase()
-  if (
-    prismaHint.includes('prisma') ||
-    prismaHint.includes('database') ||
-    prismaHint.includes('p1001') ||
-    prismaHint.includes('postgresql')
-  ) {
+  if (data?.code === 'P1001' || prismaHint.includes('p1001')) return true
+  if (data?.error === 'PRISMA_INIT_ERROR') return true
+  if (status === 503 && prismaHint.includes('prisma')) return true
+  return (
+    prismaHint.includes('postgresql') ||
+    prismaHint.includes('не удалось подключиться') ||
+    prismaHint.includes('инициализации prisma') ||
+    (prismaHint.includes('database') && !prismaHint.includes('p2002'))
+  )
+}
+
+export function parseApiErrorBody(data, status) {
+  if (isDatabaseApiError(data, status)) {
     return new ApiError('Ошибка базы данных. Проверьте PostgreSQL и миграции.', {
       code: API_ERROR_CODES.SERVER,
       status,

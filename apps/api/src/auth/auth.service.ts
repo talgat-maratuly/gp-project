@@ -54,14 +54,19 @@ export class AuthService {
     return region;
   }
 
-  private async resolveDefaultRegion() {
-    const region =
+  private async ensureDefaultRegion() {
+    const existing =
       (await this.prisma.region.findFirst({ where: { isActive: true, code: 'uralsk' } })) ??
       (await this.prisma.region.findFirst({ where: { isActive: true }, orderBy: { name: 'asc' } }));
-    if (!region) {
-      throw new NotFoundException('Нет активных регионов. Выполните prisma db seed.');
-    }
-    return region;
+    if (existing) return existing;
+    this.logger.warn('Нет активных регионов — создаём uralsk (MVP fallback)');
+    return this.prisma.region.create({
+      data: { id: 'region_uralsk', code: 'uralsk', name: 'Уральск', isActive: true },
+    });
+  }
+
+  private async resolveDefaultRegion() {
+    return this.ensureDefaultRegion();
   }
 
   /** MVP: автогенерация email/phone/password, регион по умолчанию */
@@ -128,7 +133,9 @@ export class AuthService {
     if (exists) throw new ConflictException('Email уже зарегистрирован');
 
     const accountType = dto.accountType || AccountType.INDIVIDUAL;
-    const region = await this.assertActiveRegion(dto.regionId);
+    const region = dto.regionId
+      ? await this.assertActiveRegion(dto.regionId)
+      : await this.resolveDefaultRegion();
     const cityLabel = dto.city?.trim() || region.name;
     const companyName =
       accountType === AccountType.LEGAL_ENTITY

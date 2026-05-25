@@ -7,6 +7,16 @@ import { subscribeGlobalOrderStatus, resetTrackingSocket } from '@gp/shared/api/
 import { CATEGORY_TO_API, PAYMENT_TO_API } from '@gp/shared/api/mappers'
 import { calcServiceTotal, computeShopDeliveryFee, LAWN_SERVICE_IDS } from '@gp/shared/constants'
 import { buildTestClientCredentials } from '@gp/shared/utils'
+import {
+  activateTestMode,
+  getTestMe,
+  isBackendUnavailableError,
+  isTestModeActive,
+  isTestModeFallbackEnabled,
+  loginTestClient,
+  logoutTestMode,
+  registerTestClient,
+} from '@gp/shared/testMode'
 import { SERVICE_CATALOG, getServiceOrderCategory } from '../data/services'
 
 const KEYS = {
@@ -45,10 +55,39 @@ export function ServiceProvider({ children }) {
 
   const notify = useCallback((message, type = 'success') => setToast({ message, type }), [])
 
+  const applyTestSession = useCallback((me) => {
+    setAuthUser(me)
+    setProfile((p) => ({
+      ...p,
+      name: me.name || p.name,
+      phone: me.phone || p.phone,
+      email: me.email || p.email,
+      city: me.clientProfile?.city || p.city,
+    }))
+  }, [])
+
   const syncAuth = useCallback(async () => {
+    if (isTestModeActive()) {
+      const me = getTestMe()
+      if (me?.role === 'CLIENT') {
+        applyTestSession(me)
+        return
+      }
+      if (!getToken()) {
+        setAuthUser(null)
+        return
+      }
+    }
     if (!getToken()) {
       setAuthUser(null)
       return
+    }
+    if (getToken().startsWith('gp_test_')) {
+      const me = getTestMe()
+      if (me) {
+        applyTestSession(me)
+        return
+      }
     }
     try {
       const me = await api.me()
@@ -57,18 +96,16 @@ export function ServiceProvider({ children }) {
         setAuthUser(null)
         return
       }
-      setAuthUser(me)
-      setProfile((p) => ({
-        ...p,
-        name: me.name || p.name,
-        phone: me.phone || p.phone,
-        email: me.email || p.email,
-      }))
-    } catch {
+      applyTestSession(me)
+    } catch (err) {
+      if (isBackendUnavailableError(err) && getTestMe()) {
+        applyTestSession(getTestMe())
+        return
+      }
       clearToken()
       setAuthUser(null)
     }
-  }, [])
+  }, [applyTestSession])
 
   useEffect(() => {
     if (isDemoMode()) {
@@ -188,29 +225,38 @@ export function ServiceProvider({ children }) {
       notify('Вход выполнен')
       return true
     }
-    await api.login(email, password)
-    const me = await api.me()
-    if (me.role !== 'CLIENT' || !me.clientProfile) {
-      clearToken()
-      throw new Error('Это аккаунт партнёра. Для услуг войдите как client@gp.kz или откройте GP Partner.')
+    if (isTestModeActive() && getToken().startsWith('gp_test_')) {
+      const { user } = loginTestClient(email, password)
+      applyTestSession(user)
+      notify('Вход (тестовый режим)')
+      return true
     }
-    setAuthUser(me)
-    setProfile((p) => ({
-      ...p,
-      name: me.name || p.name,
-      phone: me.phone || p.phone,
-      email: me.email || p.email,
-    }))
-    notify('Вход выполнен')
-    return true
-  }, [notify, refreshOrders])
+    try {
+      await api.login(email, password)
+      const me = await api.me()
+      if (me.role !== 'CLIENT' || !me.clientProfile) {
+        clearToken()
+        throw new Error('Это аккаунт партнёра. Для услуг войдите как client@gp.kz или откройте GP Partner.')
+      }
+      applyTestSession(me)
+      notify('Вход выполнен')
+      return true
+    } catch (err) {
+      if (!isTestModeFallbackEnabled() || !isBackendUnavailableError(err)) throw err
+      activateTestMode()
+      const { user } = loginTestClient(email, password)
+      applyTestSession(user)
+      notify('API недоступен — тестовый режим (LocalStorage)', 'info')
+      return true
+    }
+  }, [notify, refreshOrders, applyTestSession])
 
   const register = useCallback(async (data) => {
     const creds = buildTestClientCredentials(data)
     const accountType = data.accountType || 'INDIVIDUAL'
     const isLegal = accountType === 'LEGAL_ENTITY'
     const displayName = data.name?.trim() || data.companyName?.trim() || creds.name
-    await api.registerClient({
+    const payload = {
       email: creds.email,
       password: creds.password,
       name: displayName,
@@ -220,15 +266,32 @@ export function ServiceProvider({ children }) {
       bin: data.bin,
       legalAddress: data.legalAddress,
       contactPerson: isLegal ? (data.contactPerson?.trim() || displayName) : undefined,
-    })
-    await syncAuth()
-    notify('Регистрация успешна')
-    return true
-  }, [syncAuth, notify])
+    }
+    try {
+      await api.registerClient(payload)
+      await syncAuth()
+      notify('Регистрация успешна')
+      return true
+    } catch (err) {
+      if (!isTestModeFallbackEnabled() || !isBackendUnavailableError(err)) throw err
+      activateTestMode()
+      const { user } = registerTestClient({ ...data, ...payload })
+      applyTestSession(user)
+      notify('БД недоступна — аккаунт сохранён локально (тестовый режим)', 'info')
+      return true
+    }
+  }, [syncAuth, notify, applyTestSession])
 
   const logout = useCallback(() => {
     if (isDemoMode()) {
       demoApi.demoLogout()
+      setAuthUser(null)
+      setOrders([])
+      notify('Вы вышли', 'info')
+      return
+    }
+    if (isTestModeActive() || getToken()?.startsWith('gp_test_')) {
+      logoutTestMode()
       setAuthUser(null)
       setOrders([])
       notify('Вы вышли', 'info')
@@ -435,6 +498,7 @@ export function ServiceProvider({ children }) {
     setCheckoutDraft, setProfile, setObjects, submitPartnerLead, notify,
     login, register, logout, refreshOrders,
     isDemoMode: isDemoMode(),
+    isTestMode: isTestModeActive(),
     demoFranchises: isDemoMode() ? demoApi.demoFranchises() : [],
     cancelOrder: async (orderId) => {
       requireAuth()

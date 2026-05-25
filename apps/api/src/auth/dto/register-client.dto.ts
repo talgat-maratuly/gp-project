@@ -16,20 +16,21 @@ export class RegisterClientDto {
   @MinLength(6)
   password?: string;
 
-  @ApiProperty({ example: 'Айдар' })
+  @ApiProperty({ required: false, example: 'Айдар' })
+  @IsOptional()
   @IsString()
-  @MinLength(1)
   @MaxLength(128)
-  name: string;
+  name?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
   phone?: string;
 
-  @ApiProperty({ enum: AccountType, default: AccountType.INDIVIDUAL })
+  @ApiProperty({ enum: AccountType, default: AccountType.INDIVIDUAL, required: false })
+  @IsOptional()
   @IsEnum(AccountType)
-  accountType: AccountType;
+  accountType?: AccountType;
 
   @ApiProperty({ required: false, description: 'Для юрлица' })
   @IsOptional()
