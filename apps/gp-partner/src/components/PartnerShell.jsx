@@ -1,22 +1,19 @@
 import { Link, NavLink, Navigate, Outlet } from 'react-router-dom'
-import { ClipboardList, LayoutDashboard, Map, Store, User } from 'lucide-react'
+import * as Icons from 'lucide-react'
 import LanguageSwitcher from '@gp/shared/components/LanguageSwitcher'
+import { getPartnerBottomNav, isShopPartner } from '@gp/shared/constants'
+import { isDemoMode } from '@gp/shared/demo'
 import { useLanguage } from '../i18n'
 import { usePartner } from '../context/PartnerContext'
 import { useTheme } from '../hooks/useTheme'
-
-const NAV = [
-  { to: '/', icon: LayoutDashboard, labelKey: 'nav_home', end: true },
-  { to: '/orders', icon: ClipboardList, labelKey: 'nav_orders' },
-  { to: '/shop', icon: Store, labelKey: 'market_my_shop' },
-  { to: '/map', icon: Map, labelKey: 'nav_map' },
-  { to: '/profile', icon: User, labelKey: 'nav_profile' },
-]
 
 export default function PartnerShell() {
   const { user, authReady, setOnline } = usePartner()
   const { dark, toggle } = useTheme()
   const { t } = useLanguage()
+
+  const partnerType = user?.partnerType || (isDemoMode() ? 'LAWN_MOWING' : null)
+  const nav = getPartnerBottomNav(partnerType, { isDemoMode: isDemoMode() })
 
   if (!authReady) {
     return (
@@ -27,6 +24,8 @@ export default function PartnerShell() {
   }
   if (!user) return <Navigate to="/auth" replace />
 
+  const showOnlineToggle = !isShopPartner(partnerType)
+
   return (
     <div className="min-h-screen flex flex-col gp-app-bg">
       <header className="sticky top-0 z-40 bg-[var(--gp-surface)]/90 backdrop-blur-md border-b border-[var(--gp-border)] shadow-[var(--gp-shadow-sm)]">
@@ -35,6 +34,7 @@ export default function PartnerShell() {
             <span className="font-extrabold text-lg gp-text-gradient">{t('app_partner')}</span>
             <p className="text-[10px] text-[var(--gp-text-muted)] truncate leading-none mt-0.5">
               {user.company || user.name}
+              {partnerType ? ` · ${partnerType}` : ''}
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -46,18 +46,20 @@ export default function PartnerShell() {
             >
               {dark ? '☀' : '☾'}
             </button>
-            <button
-              type="button"
-              disabled={user.partnerStatus && user.partnerStatus !== 'APPROVED'}
-              onClick={() => setOnline(!user.isOnline)}
-              className={`text-xs font-bold px-3 py-2 rounded-full transition ${
-                user.isOnline
-                  ? 'gp-gradient-kaspi text-white shadow-md'
-                  : 'bg-[var(--gp-surface-2)] text-[var(--gp-text-muted)]'
-              } disabled:opacity-40`}
-            >
-              {user.isOnline ? t('online') : t('offline')}
-            </button>
+            {showOnlineToggle && (
+              <button
+                type="button"
+                disabled={user.partnerStatus && user.partnerStatus !== 'APPROVED'}
+                onClick={() => setOnline(!user.isOnline)}
+                className={`text-xs font-bold px-3 py-2 rounded-full transition ${
+                  user.isOnline
+                    ? 'gp-gradient-kaspi text-white shadow-md'
+                    : 'bg-[var(--gp-surface-2)] text-[var(--gp-text-muted)]'
+                } disabled:opacity-40`}
+              >
+                {user.isOnline ? t('online') : t('offline')}
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -66,25 +68,28 @@ export default function PartnerShell() {
       </main>
       <nav className="fixed bottom-0 inset-x-0 z-50 bg-[var(--gp-surface)]/95 backdrop-blur-xl border-t border-[var(--gp-border)] shadow-[var(--gp-shadow-md)] pb-[env(safe-area-inset-bottom)]" style={{ height: 'var(--gp-nav-h)' }}>
         <div className="flex max-w-lg mx-auto h-full items-stretch px-1">
-          {NAV.map(({ to, icon: Icon, labelKey, end }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              className={({ isActive }) =>
-                `flex-1 flex flex-col items-center justify-center gap-0.5 rounded-2xl mx-0.5 my-1.5 text-[10px] font-bold transition ${
-                  isActive ? 'text-white gp-gradient-kaspi shadow-md' : 'text-[var(--gp-text-muted)]'
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <Icon className="w-5 h-5" strokeWidth={isActive ? 2.5 : 2} />
-                  {t(labelKey)}
-                </>
-              )}
-            </NavLink>
-          ))}
+          {nav.map(({ to, icon: iconName, labelKey, end }) => {
+            const Icon = Icons[iconName] || Icons.Circle
+            return (
+              <NavLink
+                key={to}
+                to={to}
+                end={end}
+                className={({ isActive }) =>
+                  `flex-1 flex flex-col items-center justify-center gap-0.5 rounded-2xl mx-0.5 my-1.5 text-[10px] font-bold transition ${
+                    isActive ? 'text-white gp-gradient-kaspi shadow-md' : 'text-[var(--gp-text-muted)]'
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <Icon className="w-5 h-5" strokeWidth={isActive ? 2.5 : 2} />
+                    {t(labelKey) || labelKey}
+                  </>
+                )}
+              </NavLink>
+            )
+          })}
         </div>
       </nav>
     </div>

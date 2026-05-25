@@ -6,11 +6,12 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { OnlyServicePartnerGuard } from '../partners/guards/only-service-partner.guard';
 import { PrismaService } from '../prisma/prisma.service';
 
 @ApiTags('furniture-executor')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, OnlyServicePartnerGuard)
 @Roles(Role.PARTNER)
 @Controller('furniture-executor/partner')
 export class FurnitureExecutorController {

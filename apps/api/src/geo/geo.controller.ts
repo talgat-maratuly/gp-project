@@ -10,6 +10,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { OnlySepticPartnerGuard } from '../partners/guards/only-septic-partner.guard';
 
 @ApiTags('geo')
 @ApiBearerAuth()
@@ -39,12 +40,14 @@ export class GeoController {
 
   @Post('gps')
   @Roles(Role.PARTNER)
+  @UseGuards(OnlySepticPartnerGuard)
   ingestGps(@CurrentUser() user: { id: string }, @Body() dto: GpsPointDto) {
     return this.tracking.ingestGps(user.id, dto);
   }
 
   @Patch('location')
   @Roles(Role.PARTNER)
+  @UseGuards(OnlySepticPartnerGuard)
   updateLocation(@CurrentUser() user: { id: string }, @Body() dto: UpdateLocationDto) {
     return this.geo.updatePartnerLocation(user.id, dto.lat, dto.lng, dto.orderId);
   }

@@ -7,7 +7,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { PartnerApprovedGuard } from '../partners/guards/partner-approved.guard';
+import { OnlyShopPartnerGuard } from '../partners/guards/only-shop-partner.guard';
 
 @ApiTags('products')
 @Controller('products')
@@ -25,7 +25,7 @@ export class ProductsController {
   }
 
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard, PartnerApprovedGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, OnlyShopPartnerGuard)
   @Roles(Role.PARTNER)
   @Post()
   create(@CurrentUser() user: { id: string }, @Body() dto: CreateProductDto) {

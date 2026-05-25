@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { FurnitureServiceType, OrderCategory, OrderStatus, Role } from '@prisma/client';
+import { FurnitureServiceType, OrderCategory, OrderStatus, PartnerType, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PartnersService } from '../partners/partners.service';
 import { PartnerBalanceService } from '../partner-balance/partner-balance.service';
@@ -13,6 +13,7 @@ import {
   calcOrderCommission,
   calcServiceTotal,
 } from '../common/commission.util';
+import { isOrderAllowedForPartnerType, isShopPartnerType } from '../common/partner-access.util';
 import { orderMatchesActiveOffering } from '../common/partner-offerings.util';
 import {
   getPartnerBusySlots,
@@ -191,10 +192,12 @@ export class OrdersService {
     orders: Awaited<ReturnType<typeof this.prisma.order.findMany>>,
     profileId: string,
     activeSubserviceIds: Set<string>,
+    partnerType: PartnerType | null,
   ) {
     const busySlots = getPartnerBusySlots(profileId, orders);
 
     return orders.filter((o) => {
+      if (!isOrderAllowedForPartnerType(o, partnerType)) return false;
       if (o.partnerId && o.partnerId !== profileId) return false;
       if (o.partnerId === profileId) return true;
       if (o.status !== OrderStatus.NEW) return false;
@@ -223,6 +226,7 @@ export class OrdersService {
     if (role === Role.PARTNER) {
       const profile = await this.partners.ensurePartnerProfile(userId);
       if (profile.status !== 'APPROVED') return [];
+      if (isShopPartnerType(profile.partnerType)) return [];
       const activeSubserviceIds = await this.partners.getActiveSubserviceIdsForPartnerProfile(profile.id);
       const all = await this.prisma.order.findMany({
         where: {
@@ -232,7 +236,7 @@ export class OrdersService {
         include: this.orderInclude(),
         orderBy: { createdAt: 'desc' },
       });
-      return this.filterOrdersForPartner(all, profile.id, activeSubserviceIds);
+      return this.filterOrdersForPartner(all, profile.id, activeSubserviceIds, profile.partnerType);
     }
 
     return this.prisma.order.findMany({
@@ -291,6 +295,12 @@ export class OrdersService {
 
     if (role === Role.PARTNER) {
       const profile = await this.partners.ensurePartnerProfile(userId);
+      if (isShopPartnerType(profile.partnerType)) {
+        throw new ForbiddenException('Заказы услуг недоступны для партнёров-магазинов');
+      }
+      if (!isOrderAllowedForPartnerType(order, profile.partnerType)) {
+        throw new ForbiddenException('Этот тип заказа недоступен для вашего профиля партнёра');
+      }
 
       if (dto.status === OrderStatus.ACCEPTED) {
         if (order.status !== OrderStatus.NEW) throw new BadRequestException('Заказ уже принят');

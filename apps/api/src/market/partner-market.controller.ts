@@ -16,13 +16,13 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { CreatePartnerProductDto } from './dto/create-partner-product.dto';
 import { CreatePartnerStoreDto } from './dto/create-partner-store.dto';
 import { UpdatePartnerProductDto } from './dto/update-partner-product.dto';
-import { PartnerApprovedGuard } from '../partners/guards/partner-approved.guard';
+import { OnlyShopPartnerGuard } from '../partners/guards/only-shop-partner.guard';
 import { PartnerMarketService } from './partner-market.service';
 
 @ApiTags('partner-market')
 @ApiBearerAuth()
 @Controller('partner')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, OnlyShopPartnerGuard)
 @Roles(Role.PARTNER)
 export class PartnerMarketController {
   constructor(private partnerMarket: PartnerMarketService) {}
@@ -33,19 +33,16 @@ export class PartnerMarketController {
   }
 
   @Post('stores')
-  @UseGuards(PartnerApprovedGuard)
   createStore(@CurrentUser() user: User, @Body() dto: CreatePartnerStoreDto) {
     return this.partnerMarket.createStore(user, dto);
   }
 
   @Post('products')
-  @UseGuards(PartnerApprovedGuard)
   createProduct(@CurrentUser() user: User, @Body() dto: CreatePartnerProductDto) {
     return this.partnerMarket.createProduct(user, dto);
   }
 
   @Patch('products/:id')
-  @UseGuards(PartnerApprovedGuard)
   updateProduct(
     @CurrentUser() user: User,
     @Param('id') id: string,

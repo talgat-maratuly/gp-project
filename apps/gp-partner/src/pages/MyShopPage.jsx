@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { Plus, Store } from 'lucide-react'
 import { MARKET_CATEGORIES, PRODUCT_UNITS } from '@gp/shared/constants'
 import { formatPrice } from '@gp/shared/utils'
@@ -7,14 +7,26 @@ import { useLanguage } from '../i18n'
 import { usePartner } from '../context/PartnerContext'
 import * as marketDemo from '../lib/marketDemoApi'
 
+const PATH_TAB = {
+  '/shop/stock': 'stock',
+  '/shop/orders': 'orders',
+  '/shop/settings': 'settings',
+}
+
 export default function MyShopPage() {
   const { t } = useLanguage()
+  const { pathname } = useLocation()
   const { isDemoMode, notify, refreshMarket } = usePartner()
   const [shop, setShop] = useState(null)
   const [products, setProducts] = useState([])
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState('products')
+  const [tab, setTab] = useState(() => PATH_TAB[pathname] || 'products')
+
+  useEffect(() => {
+    const next = PATH_TAB[pathname] || 'products'
+    setTab(next)
+  }, [pathname])
   const [showCreateShop, setShowCreateShop] = useState(false)
   const [showAddProduct, setShowAddProduct] = useState(false)
   const [shopForm, setShopForm] = useState({ shopName: '', ownerName: '', phone: '', address: '' })
