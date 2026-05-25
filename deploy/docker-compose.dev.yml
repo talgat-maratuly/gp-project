@@ -1,0 +1,82 @@
+# Dev/staging — /opt/gp/dev/gp-project
+
+services:
+  gp-api-dev:
+    container_name: gp-api-dev
+    image: ${GP_API_IMAGE}
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@gp-postgres-dev:5432/${POSTGRES_DB}?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+    ports:
+      - "127.0.0.1:${GP_API_PORT:-4001}:4000"
+    depends_on:
+      gp-postgres-dev:
+        condition: service_healthy
+    networks:
+      - gp-dev-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10M"
+        max-file: "5"
+
+  gp-postgres-dev:
+    container_name: gp-postgres-dev
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      TZ: UTC
+      PGTZ: UTC
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    expose:
+      - "5432"
+    volumes:
+      - gp_dev_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gp-dev-network
+
+  gp-service-dev:
+    container_name: gp-service-dev
+    image: ${GP_SERVICE_IMAGE}
+    restart: always
+    ports:
+      - "127.0.0.1:${GP_SERVICE_PORT:-5173}:80"
+    networks:
+      - gp-dev-network
+
+  gp-partner-dev:
+    container_name: gp-partner-dev
+    image: ${GP_PARTNER_IMAGE}
+    restart: always
+    ports:
+      - "127.0.0.1:${GP_PARTNER_PORT:-5174}:80"
+    networks:
+      - gp-dev-network
+
+  gp-admin-dev:
+    container_name: gp-admin-dev
+    image: ${GP_ADMIN_IMAGE}
+    restart: always
+    ports:
+      - "127.0.0.1:${GP_ADMIN_PORT:-5175}:80"
+    networks:
+      - gp-dev-network
+
+volumes:
+  gp_dev_postgres_data:
+    name: gp_dev_postgres_data
+
+networks:
+  gp-dev-network:
+    driver: bridge

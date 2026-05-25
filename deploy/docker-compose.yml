@@ -1,0 +1,103 @@
+# Production — серверде /opt/gp/gp-project
+# CI копирует этот файл и подставляет образы из контейнер registry
+
+services:
+  gp-api:
+    container_name: gp-api
+    image: ${GP_API_IMAGE}
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@gp-postgres:5432/${POSTGRES_DB}?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+    ports:
+      - "127.0.0.1:${GP_API_PORT:-4000}:4000"
+    depends_on:
+      gp-postgres:
+        condition: service_healthy
+    networks:
+      - gp-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10M"
+        max-file: "5"
+
+  gp-postgres:
+    container_name: gp-postgres
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      TZ: UTC
+      PGTZ: UTC
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    expose:
+      - "5432"
+    volumes:
+      - gp_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gp-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10M"
+        max-file: "3"
+
+  gp-service:
+    container_name: gp-service
+    image: ${GP_SERVICE_IMAGE}
+    restart: always
+    ports:
+      - "127.0.0.1:${GP_SERVICE_PORT:-5173}:80"
+    networks:
+      - gp-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "5M"
+        max-file: "3"
+
+  gp-partner:
+    container_name: gp-partner
+    image: ${GP_PARTNER_IMAGE}
+    restart: always
+    ports:
+      - "127.0.0.1:${GP_PARTNER_PORT:-5174}:80"
+    networks:
+      - gp-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "5M"
+        max-file: "3"
+
+  gp-admin:
+    container_name: gp-admin
+    image: ${GP_ADMIN_IMAGE}
+    restart: always
+    ports:
+      - "127.0.0.1:${GP_ADMIN_PORT:-5175}:80"
+    networks:
+      - gp-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "5M"
+        max-file: "3"
+
+volumes:
+  gp_postgres_data:
+    name: gp_postgres_data
+
+networks:
+  gp-network:
+    driver: bridge

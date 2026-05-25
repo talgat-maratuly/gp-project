@@ -1,0 +1,158 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: true
+
+jobs:
+  build-and-push:
+    name: Build and push images
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image_name: gp-api
+            dockerfile: deploy/Dockerfile.api
+            gp_app: ""
+          - image_name: gp-service
+            dockerfile: deploy/Dockerfile.frontend
+            gp_app: service
+          - image_name: gp-partner
+            dockerfile: deploy/Dockerfile.frontend
+            gp_app: partner
+          - image_name: gp-admin
+            dockerfile: deploy/Dockerfile.frontend
+            gp_app: admin
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Compute image prefix
+        id: image_vars
+        shell: bash
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          repo="${GITHUB_REPOSITORY#*/}"
+          repo="${repo,,}"
+          echo "image_prefix=ghcr.io/${owner}/${repo}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push ${{ matrix.image_name }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: |
+            ${{ steps.image_vars.outputs.image_prefix }}/${{ matrix.image_name }}:prod-latest
+            ${{ steps.image_vars.outputs.image_prefix }}/${{ matrix.image_name }}:sha-${{ github.sha }}
+          build-args: |
+            GP_APP=${{ matrix.gp_app }}
+            VITE_API_URL=${{ secrets.VITE_API_URL }}
+          cache-from: type=gha,scope=${{ matrix.image_name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image_name }}
+
+  deploy:
+    name: Deploy to server
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    env:
+      DEPLOY_PATH: /opt/gp/gp-project/deploy
+      POSTGRES_DB: gp
+      POSTGRES_USER: gp
+      GP_API_PORT: "4000"
+      GP_SERVICE_PORT: "5173"
+      GP_PARTNER_PORT: "5174"
+      GP_ADMIN_PORT: "5175"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Compute image prefix
+        id: image_vars
+        shell: bash
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          repo="${GITHUB_REPOSITORY#*/}"
+          repo="${repo,,}"
+          echo "image_prefix=ghcr.io/${owner}/${repo}" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare remote deploy directory
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: mkdir -p "${{ env.DEPLOY_PATH }}"
+
+      - name: Upload docker-compose file
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: deploy/docker-compose.yml
+          target: ${{ env.DEPLOY_PATH }}
+          strip_components: 1
+
+      - name: Pull and restart containers
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE_PREFIX: ${{ steps.image_vars.outputs.image_prefix }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          CORS_ORIGINS: ${{ secrets.CORS_ORIGINS }}
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          envs: GHCR_USERNAME,GHCR_TOKEN,IMAGE_PREFIX,POSTGRES_PASSWORD,JWT_SECRET,CORS_ORIGINS,DEPLOY_PATH,POSTGRES_DB,POSTGRES_USER,GP_API_PORT,GP_SERVICE_PORT,GP_PARTNER_PORT,GP_ADMIN_PORT
+          script: |
+            set -euo pipefail
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
+            cat > "${DEPLOY_PATH}/.env" <<EOF
+            GP_API_IMAGE=${IMAGE_PREFIX}/gp-api:prod-latest
+            GP_SERVICE_IMAGE=${IMAGE_PREFIX}/gp-service:prod-latest
+            GP_PARTNER_IMAGE=${IMAGE_PREFIX}/gp-partner:prod-latest
+            GP_ADMIN_IMAGE=${IMAGE_PREFIX}/gp-admin:prod-latest
+            POSTGRES_DB=${POSTGRES_DB}
+            POSTGRES_USER=${POSTGRES_USER}
+            POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+            JWT_SECRET=${JWT_SECRET}
+            CORS_ORIGINS=${CORS_ORIGINS}
+            GP_API_PORT=${GP_API_PORT}
+            GP_SERVICE_PORT=${GP_SERVICE_PORT}
+            GP_PARTNER_PORT=${GP_PARTNER_PORT}
+            GP_ADMIN_PORT=${GP_ADMIN_PORT}
+            EOF
+            docker pull "${IMAGE_PREFIX}/gp-api:prod-latest"
+            docker pull "${IMAGE_PREFIX}/gp-service:prod-latest"
+            docker pull "${IMAGE_PREFIX}/gp-partner:prod-latest"
+            docker pull "${IMAGE_PREFIX}/gp-admin:prod-latest"
+            cd "${DEPLOY_PATH}"
+            docker compose --env-file .env up -d --remove-orphans
+            docker image prune -f

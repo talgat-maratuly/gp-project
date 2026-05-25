@@ -1,0 +1,53 @@
+# GP Service / GP Partner / GP Admin — static build + nginx
+# docker build --build-arg GP_APP=service --build-arg VITE_API_URL=https://api.example.com/api ...
+FROM node:20-alpine AS builder
+
+ARG GP_APP=service
+ARG VITE_API_URL=http://localhost:4000/api
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+COPY apps/gp-service/package.json ./apps/gp-service/
+COPY apps/gp-partner/package.json ./apps/gp-partner/
+COPY apps/gp-admin/package.json ./apps/gp-admin/
+COPY apps/api/package.json ./apps/api/
+COPY packages/shared/package.json ./packages/shared/
+
+RUN npm ci
+
+COPY apps/gp-service ./apps/gp-service
+COPY apps/gp-partner ./apps/gp-partner
+COPY apps/gp-admin ./apps/gp-admin
+COPY packages/shared ./packages/shared
+
+ENV VITE_API_URL=${VITE_API_URL}
+
+RUN set -e; \
+  case "$GP_APP" in \
+    service) \
+      export VITE_APP_NAME=service; \
+      npm run build -w @gp/service; \
+      ;; \
+    partner) \
+      export VITE_APP_NAME=partner; \
+      npm run build -w @gp/partner; \
+      ;; \
+    admin) \
+      export VITE_APP_NAME=admin; \
+      npm run build -w @gp/admin; \
+      ;; \
+    *) echo "GP_APP must be service, partner or admin"; exit 1 ;; \
+  esac
+
+FROM nginx:1.27-alpine AS runner
+
+ARG GP_APP=service
+
+COPY deploy/nginx/spa.conf /etc/nginx/conf.d/default.conf
+COPY --from=builder /app/apps/gp-${GP_APP}/dist /usr/share/nginx/html
+
+EXPOSE 80
+
+HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
+  CMD wget -qO- http://127.0.0.1/ || exit 1
