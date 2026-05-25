@@ -15,7 +15,7 @@ const NAV = [
 
 export default function PartnerShell() {
   const { user, authReady, setOnline } = usePartner()
-  useTheme()
+  const { dark, toggle } = useTheme()
   const { t } = useLanguage()
 
   if (!authReady) {
