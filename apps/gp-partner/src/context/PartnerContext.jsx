@@ -1,6 +1,21 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { api, clearToken, getToken, mapOrder } from '@gp/shared/api'
 import { isDemoMode, subscribeGlobalStore, syncFromHub } from '@gp/shared/demo'
+import {
+  resolvePartnerRoleFromGroups,
+  resolvePartnerTypeFromGroups,
+} from '@gp/shared/constants'
+import { buildTestPartnerCredentials } from '@gp/shared/utils'
+import {
+  activateTestMode,
+  getTestMe,
+  isBackendUnavailableError,
+  isTestModeActive,
+  isTestModeFallbackEnabled,
+  loginTestPartner,
+  logoutTestMode,
+  registerTestPartner,
+} from '@gp/shared/testMode'
 import * as demoApi from '../lib/demoApi'
 import { subscribeGlobalOrderStatus, resetTrackingSocket } from '@gp/shared/api/trackingSocket'
 import { CATEGORY_TO_UI, ORDER_STATUS_TO_API } from '@gp/shared/api/mappers'
@@ -8,8 +23,33 @@ import { CATEGORY_TO_UI, ORDER_STATUS_TO_API } from '@gp/shared/api/mappers'
 const KEYS = { activeOrder: 'gp-partner-active-order' }
 const load = (k, fb) => { try { const r = localStorage.getItem(k); return r ? JSON.parse(r) : fb } catch { return fb } }
 
+function mapTestPartnerToSession(me) {
+  const profile = me.partnerProfile || {}
+  return {
+    id: me.id,
+    email: me.email,
+    name: me.name,
+    phone: me.phone,
+    company: profile.companyName || profile.company,
+    directions: [],
+    balance: Number(profile.balance ?? 10000),
+    isOnline: false,
+    partnerProfileId: profile.id,
+    partnerStatus: profile.status || 'DRAFT',
+    partnerType: profile.partnerType,
+    partnerRole: profile.partnerRole,
+    serviceOfferings: profile.serviceOfferings || [],
+    serviceAccess: profile.serviceAccess || [],
+    accountType: profile.accountType || 'INDIVIDUAL',
+  }
+}
+
 async function loadPartnerSession() {
   if (!getToken()) return null
+  if (isTestModeActive() && getToken().startsWith('gp_test_')) {
+    const me = getTestMe()
+    return me?.role === 'PARTNER' ? mapTestPartnerToSession(me) : null
+  }
   const me = await api.me()
   let profile = me.partnerProfile
   if (!profile) return null
@@ -180,52 +220,63 @@ export function PartnerProvider({ children }) {
   const register = useCallback(async (data) => {
     setLoading(true)
     try {
-      let regionId = data.regionId
-      if (!regionId) {
-        const regions = await api.getRegions()
-        regionId = regions.find((r) => r.code === 'uralsk')?.id || regions[0]?.id
-      }
-      if (!regionId) throw new Error('Выберите регион')
-
-      await api.registerPartner({
-        name: data.name.trim(),
-        company: data.company?.trim(),
-        email: data.email.trim().toLowerCase(),
-        phone: data.phone?.trim() || undefined,
-        password: data.password,
-        referralCode: data.referralCode?.trim() || undefined,
-        regionId,
-        accountType: data.accountType || 'INDIVIDUAL',
-        city: data.city?.trim() || 'Уральск',
-        bin: data.bin?.trim(),
-        legalAddress: data.legalAddress?.trim(),
-        idDocumentNumber: data.idDocumentNumber?.trim(),
-        documents: data.documents,
-      })
-
-      const { resolvePartnerTypeFromGroups, resolvePartnerRoleFromGroups } = await import('@gp/shared/constants')
+      const creds = buildTestPartnerCredentials(data)
       const mainGroupIds = data.mainGroupIds || []
       const partnerRole = data.partnerRole || resolvePartnerRoleFromGroups(mainGroupIds)
+      if (!partnerRole) throw new Error('Выберите тип партнёра (категории услуг)')
+
       const partnerType = data.partnerType || resolvePartnerTypeFromGroups(mainGroupIds)
-      await api.partnerApply({
-        partnerType,
-        partnerRole,
-        regionId,
-        companyName: (data.company || data.name).trim(),
-        fullName: data.name.trim(),
-        phone: data.phone?.trim() || '',
-        city: data.city?.trim() || 'Уральск',
-        address: data.address?.trim(),
-        description: data.description?.trim(),
-        accountType: data.accountType || 'INDIVIDUAL',
-        bin: data.bin?.trim(),
-        legalAddress: data.legalAddress?.trim(),
-        idDocumentNumber: data.idDocumentNumber?.trim(),
-        documents: data.documents,
-        vehiclePhotos: data.vehiclePhotos || [],
-        equipmentPhotos: data.equipmentPhotos || [],
-        subserviceIds: data.subserviceIds?.length ? data.subserviceIds : undefined,
-      })
+      const displayName = creds.name
+
+      const runRegister = async () => {
+        await api.registerPartner({
+          name: displayName,
+          company: data.company?.trim() || displayName,
+          email: creds.email,
+          phone: creds.phone,
+          password: creds.password,
+          referralCode: data.referralCode?.trim() || undefined,
+          accountType: data.accountType || 'INDIVIDUAL',
+          city: data.city?.trim() || 'Уральск',
+          partnerRole,
+          partnerType,
+          bin: data.bin?.trim(),
+          legalAddress: data.legalAddress?.trim(),
+          idDocumentNumber: data.idDocumentNumber?.trim(),
+          documents: data.documents,
+        })
+
+        await api.partnerApply({
+          partnerType,
+          partnerRole,
+          companyName: data.company?.trim() || displayName,
+          fullName: displayName,
+          phone: creds.phone,
+          city: data.city?.trim() || 'Уральск',
+          address: data.address?.trim(),
+          description: data.description?.trim(),
+          accountType: data.accountType || 'INDIVIDUAL',
+          bin: data.bin?.trim(),
+          legalAddress: data.legalAddress?.trim(),
+          idDocumentNumber: data.idDocumentNumber?.trim(),
+          documents: data.documents,
+          vehiclePhotos: data.vehiclePhotos || [],
+          equipmentPhotos: data.equipmentPhotos || [],
+          subserviceIds: data.subserviceIds?.length ? data.subserviceIds : undefined,
+        })
+      }
+
+      try {
+        await runRegister()
+      } catch (err) {
+        if (!isTestModeFallbackEnabled() || !isBackendUnavailableError(err)) throw err
+        activateTestMode()
+        const { user } = registerTestPartner({ ...data, ...creds, partnerRole, partnerType })
+        const session = mapTestPartnerToSession(user)
+        setUser(session)
+        notify('БД недоступна — партнёр сохранён локально (тестовый режим)')
+        return session
+      }
 
       const session = await loadPartnerSession()
       if (!session) {
@@ -233,7 +284,7 @@ export function PartnerProvider({ children }) {
         throw new Error('Профиль партнёра не создан. Проверьте backend.')
       }
       setUser(session)
-      notify('Заявка отправлена на модерацию GP')
+      notify('Регистрация успешна')
       return session
     } finally {
       setLoading(false)
@@ -250,9 +301,29 @@ export function PartnerProvider({ children }) {
         notify('Добро пожаловать!')
         return session
       }
+      if (isTestModeActive() && getToken().startsWith('gp_test_')) {
+        const loginId = email.trim().toLowerCase()
+        const apiEmail = loginId.includes('@') ? loginId : `${loginId}@gp.kz`
+        const { user } = loginTestPartner(apiEmail, password)
+        const session = mapTestPartnerToSession(user)
+        setUser(session)
+        notify('Вход (тестовый режим)')
+        return session
+      }
       const loginId = email.trim().toLowerCase()
       const apiEmail = loginId.includes('@') ? loginId : `${loginId}@gp.kz`
-      await api.login(apiEmail, password)
+      const pwd = password || '123456'
+      try {
+        await api.login(apiEmail, pwd)
+      } catch (err) {
+        if (!isTestModeFallbackEnabled() || !isBackendUnavailableError(err)) throw err
+        activateTestMode()
+        const { user } = loginTestPartner(apiEmail, pwd)
+        const session = mapTestPartnerToSession(user)
+        setUser(session)
+        notify('API недоступен — тестовый режим')
+        return session
+      }
       const session = await loadPartnerSession()
       if (!session) {
         clearToken()
@@ -269,6 +340,13 @@ export function PartnerProvider({ children }) {
   const logout = useCallback(() => {
     if (isDemoMode()) {
       demoApi.demoLogout()
+      setUser(null)
+      setActiveOrderId(null)
+      setOrders([])
+      return
+    }
+    if (isTestModeActive() || getToken()?.startsWith('gp_test_')) {
+      logoutTestMode()
       setUser(null)
       setActiveOrderId(null)
       setOrders([])

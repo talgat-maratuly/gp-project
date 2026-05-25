@@ -19,6 +19,16 @@ export const PARTNER_ROLE_ALIASES = {
   mixed_partner: PARTNER_ROLES.MIXED_PARTNER,
 }
 
+/** Нормализация partnerRole из UI/API (specialist | shop | mixed_partner | SPECIALIST …) */
+export function normalizePartnerRoleInput(role) {
+  if (!role) return null
+  const raw = String(role).trim()
+  const lower = raw.toLowerCase()
+  if (PARTNER_ROLE_ALIASES[lower]) return PARTNER_ROLE_ALIASES[lower]
+  if (Object.values(PARTNER_ROLES).includes(raw)) return raw
+  return null
+}
+
 export const SHOP_MAIN_GROUP_IDS = new Set(['shop', 'nursery'])
 
 export function resolvePartnerRoleFromGroups(mainGroupIds = []) {

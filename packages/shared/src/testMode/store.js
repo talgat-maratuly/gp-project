@@ -1,4 +1,5 @@
-import { buildTestClientCredentials } from '../utils/testAuthCredentials.js'
+import { buildTestClientCredentials, buildTestPartnerCredentials } from '../utils/testAuthCredentials.js'
+import { normalizePartnerRoleInput } from '../constants/partnerRole.js'
 import { setToken, clearToken, getToken } from '../api/token.js'
 
 export const TEST_MODE_ACTIVE_KEY = 'gp-test-mode-active'
@@ -146,4 +147,66 @@ export function getTestMe() {
   const session = getTestSession()
   if (!session) return null
   return session
+}
+
+export function registerTestPartner(data = {}) {
+  activateTestMode()
+  const creds = buildTestPartnerCredentials(data)
+  const partnerRole = normalizePartnerRoleInput(data.partnerRole) || 'SPECIALIST'
+  const partnerType = data.partnerType || (partnerRole === 'SHOP' ? 'SHOP' : 'OTHER')
+  const userId = `test_partner_${Date.now()}`
+  const profileId = `test_pp_${Date.now()}`
+  const user = {
+    id: userId,
+    email: creds.email,
+    name: creds.name,
+    phone: creds.phone,
+    role: 'PARTNER',
+    regionId: 'region_uralsk',
+    partnerProfile: {
+      id: profileId,
+      status: 'DRAFT',
+      partnerRole,
+      partnerType,
+      accountType: data.accountType || 'INDIVIDUAL',
+      companyName: data.company?.trim() || creds.name,
+      company: data.company?.trim() || creds.name,
+      fullName: creds.name,
+      city: data.city?.trim() || 'Уральск',
+      balance: 10000,
+      directions: [],
+      serviceOfferings: [],
+      serviceAccess: [],
+    },
+  }
+  const users = loadUsers()
+  users.push({ ...user, password: creds.password })
+  saveUsers(users)
+  const token = makeTestToken(userId)
+  setToken(token)
+  setTestSession(user)
+  return { accessToken: token, user }
+}
+
+export function loginTestPartner(email, password) {
+  activateTestMode()
+  const normalized = email?.trim()?.toLowerCase()
+  const users = loadUsers()
+  let user = users.find((u) => u.email === normalized && u.password === password && u.role === 'PARTNER')
+  if (!user && normalized === 'partner@gp.kz' && password === '1234') {
+    user = registerTestPartner({
+      email: 'partner@gp.kz',
+      password: '1234',
+      name: 'Demo Partner',
+      partnerRole: 'SPECIALIST',
+    }).user
+    const users2 = loadUsers()
+    user = users2.find((u) => u.email === normalized) || user
+  }
+  if (!user) throw new Error('Неверный email или пароль (тестовый режим)')
+  const { password: _, ...safe } = user
+  const token = makeTestToken(safe.id)
+  setToken(token)
+  setTestSession(safe)
+  return { accessToken: token, user: safe }
 }

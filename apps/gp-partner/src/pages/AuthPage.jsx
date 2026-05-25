@@ -116,14 +116,14 @@ export default function AuthPage({ initialMode = 'register' }) {
   }
 
   const validateStep2 = () => {
-    if (!form.name.trim()) return 'Укажите имя или ФИО'
-    if (!form.email.trim()) return 'Укажите email'
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return 'Некорректный email'
+    if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      return 'Некорректный email'
+    }
     return null
   }
 
   const validatePassword = () => {
-    if (!form.password) return 'Введите пароль'
+    if (!form.password) return null
     if (form.password.length < 6 && form.password !== '1234') return 'Пароль минимум 6 символов'
     return null
   }
@@ -160,6 +160,30 @@ export default function AuthPage({ initialMode = 'register' }) {
     return null
   }
 
+  const quickTestRegister = async (preset) => {
+    setError('')
+    const presets = {
+      specialist: { main: ['lawn'], subs: ['grass-mowing'], label: 'Специалист' },
+      shop: { main: ['shop'], subs: ['gp-shop'], label: 'Магазин' },
+      mixed_partner: { main: ['lawn', 'shop'], subs: ['grass-mowing', 'gp-shop'], label: 'Смешанный' },
+    }
+    const cfg = presets[preset]
+    if (!cfg) return
+    try {
+      setSelectedMainIds(new Set(cfg.main))
+      setSelectedSubIds(new Set(cfg.subs))
+      await register({
+        name: `Тест ${cfg.label}`,
+        mainGroupIds: cfg.main,
+        subserviceIds: cfg.subs,
+        accountType: 'INDIVIDUAL',
+      })
+      navigate('/', { replace: true })
+    } catch (err) {
+      setError(err?.message || 'Ошибка регистрации')
+    }
+  }
+
   const finishRegister = async () => {
     setError('')
     const pwdErr = validatePassword()
@@ -176,11 +200,11 @@ export default function AuthPage({ initialMode = 'register' }) {
     try {
       const isLegal = isLegalBusinessForm(form.businessForm)
       await register({
-        name: form.name.trim(),
-        company: (form.company.trim() || form.name.trim()),
-        email: form.email.trim(),
+        name: form.name.trim() || undefined,
+        company: (form.company.trim() || form.name.trim() || undefined),
+        email: form.email.trim() || undefined,
         phone: form.phone.trim() || undefined,
-        password: form.password,
+        password: form.password || undefined,
         city: form.city.trim() || 'Уральск',
         referralCode: form.referralCode.trim() || undefined,
         subserviceIds,
@@ -233,7 +257,26 @@ export default function AuthPage({ initialMode = 'register' }) {
         <p className="text-[var(--gp-text-muted)] text-sm mt-1">
           {mode === 'register' ? 'Регистрация специалиста' : 'Вход в аккаунт'}
         </p>
+        {import.meta.env.DEV && mode === 'register' && (
+          <p className="text-[11px] text-emerald-600/90 mt-2">
+            MVP: email, телефон и пароль можно оставить пустыми — подставятся тестовые значения. Регион не обязателен.
+          </p>
+        )}
       </div>
+
+      {import.meta.env.DEV && mode === 'register' && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          <button type="button" disabled={loading} onClick={() => quickTestRegister('specialist')} className="text-xs px-3 py-2 rounded-xl bg-white/10 border border-white/20">
+            Тест: specialist
+          </button>
+          <button type="button" disabled={loading} onClick={() => quickTestRegister('shop')} className="text-xs px-3 py-2 rounded-xl bg-white/10 border border-white/20">
+            Тест: shop
+          </button>
+          <button type="button" disabled={loading} onClick={() => quickTestRegister('mixed_partner')} className="text-xs px-3 py-2 rounded-xl bg-white/10 border border-white/20">
+            Тест: mixed_partner
+          </button>
+        </div>
+      )}
 
       <div className="flex bg-[var(--gp-surface)] rounded-2xl p-1 mb-5 border border-[var(--gp-border)] shadow-sm">
         {['register', 'login'].map((m) => (

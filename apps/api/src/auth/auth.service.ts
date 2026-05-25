@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { AccountType, PartnerStatus, Role } from '@prisma/client';
+import { AccountType, PartnerRole, PartnerStatus, PartnerType, Role } from '@prisma/client';
 import {
   normalizePartnerDocuments,
   validatePartnerRegistration,
@@ -128,8 +128,15 @@ export class AuthService {
     return this.signToken(user);
   }
 
+  /** MVP: автогенерация email/phone/password, регион по умолчанию; partnerRole обязателен */
   async registerPartner(dto: RegisterPartnerDto) {
-    const exists = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const ts = Date.now();
+    const email = (dto.email?.trim() || `test_partner_${ts}@gp.local`).toLowerCase();
+    const password = dto.password?.length && dto.password.length >= 6 ? dto.password : '123456';
+    const phone = dto.phone?.trim() || `test_phone_${ts}`;
+    const displayName = dto.name?.trim() || dto.company?.trim() || 'Тест партнёр GP';
+
+    const exists = await this.prisma.user.findUnique({ where: { email } });
     if (exists) throw new ConflictException('Email уже зарегистрирован');
 
     const accountType = dto.accountType || AccountType.INDIVIDUAL;
@@ -139,16 +146,21 @@ export class AuthService {
     const cityLabel = dto.city?.trim() || region.name;
     const companyName =
       accountType === AccountType.LEGAL_ENTITY
-        ? dto.company!.trim()
-        : dto.company?.trim() || dto.name.trim();
+        ? dto.company?.trim() || displayName
+        : dto.company?.trim() || displayName;
 
-    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const partnerRole = dto.partnerRole;
+    const partnerType =
+      dto.partnerType ??
+      (partnerRole === PartnerRole.SHOP ? PartnerType.SHOP : PartnerType.OTHER);
+
+    const passwordHash = await bcrypt.hash(password, 10);
     const user = await this.prisma.user.create({
       data: {
-        email: dto.email,
+        email,
         passwordHash,
-        name: dto.name.trim(),
-        phone: dto.phone,
+        name: displayName,
+        phone,
         role: Role.PARTNER,
         regionId: region.id,
         partnerProfile: {
@@ -156,9 +168,11 @@ export class AuthService {
             regionId: region.id,
             status: PartnerStatus.DRAFT,
             accountType,
+            partnerRole,
+            partnerType,
             companyName,
             company: companyName,
-            fullName: dto.name.trim(),
+            fullName: displayName,
             bin: dto.bin?.trim() || null,
             legalAddress: dto.legalAddress?.trim() || null,
             idDocumentNumber: dto.idDocumentNumber?.trim() || null,

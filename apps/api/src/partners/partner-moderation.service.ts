@@ -4,7 +4,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PartnerRole, PartnerType } from '@prisma/client';
+import { AccountType, PartnerRole, PartnerType } from '@prisma/client';
+import { GP_SHOP_SUBSERVICE_ID } from '../common/partner-offerings.util';
 import { normalizePartnerDocuments, validatePartnerRegistration } from '../common/account-type.util';
 import { resolveSubserviceIdsForPartnerType } from '../common/partner-type.util';
 import { PrismaService } from '../prisma/prisma.service';
@@ -59,6 +60,28 @@ export class PartnerModerationService {
     return PartnerRole.SPECIALIST;
   }
 
+  private async resolveRegionForApply(userId: string, regionId?: string) {
+    if (regionId) {
+      const region = await this.prisma.region.findUnique({ where: { id: regionId } });
+      if (!region?.isActive) throw new NotFoundException('Регион не найден');
+      return region;
+    }
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (user?.regionId) {
+      const region = await this.prisma.region.findUnique({ where: { id: user.regionId } });
+      if (region?.isActive) return region;
+    }
+    const fallback =
+      (await this.prisma.region.findFirst({ where: { isActive: true, code: 'uralsk' } })) ??
+      (await this.prisma.region.findFirst({ where: { isActive: true }, orderBy: { name: 'asc' } }));
+    if (!fallback) {
+      return this.prisma.region.create({
+        data: { id: 'region_uralsk', code: 'uralsk', name: 'Уральск', isActive: true },
+      });
+    }
+    return fallback;
+  }
+
   async apply(userId: string, dto: PartnerApplyDto) {
     const profile = await this.partners.ensurePartnerProfile(userId);
     if (profile.status === PartnerStatusValue.PENDING_REVIEW) {
@@ -75,48 +98,58 @@ export class PartnerModerationService {
       throw new BadRequestException(`Нельзя отправить заявку из статуса ${profile.status}`);
     }
 
-    const region = await this.prisma.region.findUnique({ where: { id: dto.regionId } });
-    if (!region?.isActive) throw new NotFoundException('Регион не найден');
+    const region = await this.resolveRegionForApply(userId, dto.regionId);
+    const regionId = region.id;
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (user?.regionId && user.regionId !== dto.regionId) {
+    if (user?.regionId && user.regionId !== regionId) {
       throw new ForbiddenException('Регион заявки не совпадает с регионом аккаунта');
     }
 
-    const documents = normalizePartnerDocuments(dto.documents) ?? [];
-    validatePartnerRegistration({
-      accountType: dto.accountType,
-      name: dto.fullName,
-      company: dto.companyName,
-      bin: dto.bin,
-      legalAddress: dto.legalAddress,
-      idDocumentNumber: dto.idDocumentNumber,
-      documents,
-    });
+    const fullName = dto.fullName?.trim() || user?.name?.trim() || 'Тест партнёр GP';
+    const companyName = dto.companyName?.trim() || fullName;
+    const phone = dto.phone?.trim() || user?.phone?.trim() || `test_phone_${Date.now()}`;
 
-    const subIds = resolveSubserviceIdsForPartnerType(dto.partnerType, dto.subserviceIds);
+    const documents = normalizePartnerDocuments(dto.documents) ?? [];
+    if (dto.accountType === AccountType.LEGAL_ENTITY || dto.bin || dto.legalAddress) {
+      validatePartnerRegistration({
+        accountType: dto.accountType,
+        name: fullName,
+        company: companyName,
+        bin: dto.bin,
+        legalAddress: dto.legalAddress,
+        idDocumentNumber: dto.idDocumentNumber,
+        documents,
+      });
+    }
+
+    let subIds = resolveSubserviceIdsForPartnerType(dto.partnerType, dto.subserviceIds);
     if (!subIds.length) {
-      throw new BadRequestException('Укажите подуслуги для выбранного типа партнёра');
+      const role = this.resolvePartnerRole(dto);
+      subIds =
+        role === PartnerRole.SHOP || dto.partnerType === PartnerType.SHOP
+          ? [GP_SHOP_SUBSERVICE_ID]
+          : ['grass-mowing'];
     }
     const validatedSubs = this.partners.validateSubserviceIds(subIds);
 
     await this.prisma.$transaction(async (tx) => {
       await tx.user.update({
         where: { id: userId },
-        data: { regionId: dto.regionId, phone: dto.phone, name: dto.fullName.trim() },
+        data: { regionId, phone, name: fullName },
       });
 
       await tx.partnerProfile.update({
         where: { id: profile.id },
         data: {
-          regionId: dto.regionId,
+          regionId,
           partnerType: dto.partnerType,
           partnerRole: this.resolvePartnerRole(dto),
           status: PartnerStatusValue.PENDING_REVIEW,
           accountType: dto.accountType,
-          companyName: dto.companyName.trim(),
-          company: dto.companyName.trim(),
-          fullName: dto.fullName.trim(),
+          companyName,
+          company: companyName,
+          fullName,
           city: dto.city?.trim() || region.name,
           address: dto.address?.trim() || null,
           description: dto.description?.trim() || null,

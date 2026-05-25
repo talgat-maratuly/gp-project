@@ -24,26 +24,28 @@ export class PartnerApplyDto {
   @IsEnum(PartnerRole)
   partnerRole?: PartnerRole;
 
-  @ApiProperty()
+  @ApiProperty({ required: false, description: 'MVP: регион из аккаунта или uralsk по умолчанию' })
+  @IsOptional()
   @IsUUID()
-  regionId: string;
+  regionId?: string;
 
-  @ApiProperty()
+  @ApiProperty({ required: false })
+  @IsOptional()
   @IsString()
-  @MinLength(2)
   @MaxLength(256)
-  companyName: string;
+  companyName?: string;
 
-  @ApiProperty()
+  @ApiProperty({ required: false })
+  @IsOptional()
   @IsString()
-  @MinLength(2)
   @MaxLength(128)
-  fullName: string;
+  fullName?: string;
 
-  @ApiProperty()
+  @ApiProperty({ required: false })
+  @IsOptional()
   @IsString()
-  @MinLength(8)
-  phone: string;
+  @MaxLength(32)
+  phone?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()

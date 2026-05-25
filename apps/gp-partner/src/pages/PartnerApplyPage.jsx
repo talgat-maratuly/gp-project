@@ -66,10 +66,10 @@ export default function PartnerApplyPage() {
       const body = {
         partnerType,
         partnerRole,
-        regionId: form.regionId,
-        companyName: form.companyName.trim(),
-        fullName: form.fullName.trim(),
-        phone: form.phone.trim(),
+        ...(form.regionId ? { regionId: form.regionId } : {}),
+        companyName: form.companyName.trim() || user?.company || user?.name,
+        fullName: form.fullName.trim() || user?.name,
+        phone: form.phone.trim() || user?.phone,
         city: form.city.trim(),
         address: form.address.trim() || undefined,
         description: form.description.trim() || undefined,
@@ -97,14 +97,14 @@ export default function PartnerApplyPage() {
       {error && <p className="text-sm text-red-600 font-medium bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</p>}
 
       <div className="gp-form-field">
-        <label className="gp-form-label" htmlFor="apply-region">Регион</label>
+        <label className="gp-form-label" htmlFor="apply-region">Регион (необязательно)</label>
         <select
           id="apply-region"
           className="gp-input-kaspi"
           value={form.regionId}
           onChange={(e) => setForm((f) => ({ ...f, regionId: e.target.value }))}
-          required
         >
+          <option value="">По умолчанию (Уральск)</option>
           {regions.map((r) => (
             <option key={r.id} value={r.id}>{r.name}</option>
           ))}

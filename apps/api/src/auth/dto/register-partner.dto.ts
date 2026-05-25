@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { AccountType, PartnerDirection } from '@prisma/client';
+import { AccountType, PartnerDirection, PartnerRole, PartnerType } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
@@ -15,19 +15,25 @@ import {
 } from 'class-validator';
 import { PartnerDocumentItemDto } from './partner-document.dto';
 
+/** MVP: email/password/name/phone/region опциональны — подставляются на сервере; partnerRole обязателен */
 export class RegisterPartnerDto {
-  @ApiProperty()
+  @ApiProperty({ required: false, example: 'test_partner_123@gp.local' })
+  @IsOptional()
+  @ValidateIf((o) => Boolean(o.email?.trim()))
   @IsEmail()
-  email: string;
+  email?: string;
 
-  @ApiProperty({ minLength: 6 })
+  @ApiProperty({ required: false, minLength: 6, example: '123456' })
+  @IsOptional()
   @IsString()
   @MinLength(6)
-  password: string;
+  password?: string;
 
-  @ApiProperty()
+  @ApiProperty({ required: false, example: 'Тест партнёр' })
+  @IsOptional()
   @IsString()
-  name: string;
+  @MaxLength(128)
+  name?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
@@ -45,9 +51,19 @@ export class RegisterPartnerDto {
   @MaxLength(128)
   city?: string;
 
-  @ApiProperty({ enum: AccountType, default: AccountType.INDIVIDUAL })
+  @ApiProperty({ enum: AccountType, default: AccountType.INDIVIDUAL, required: false })
+  @IsOptional()
   @IsEnum(AccountType)
-  accountType: AccountType;
+  accountType?: AccountType;
+
+  @ApiProperty({ enum: PartnerRole, description: 'specialist | shop | mixed_partner' })
+  @IsEnum(PartnerRole)
+  partnerRole: PartnerRole;
+
+  @ApiProperty({ enum: PartnerType, required: false })
+  @IsOptional()
+  @IsEnum(PartnerType)
+  partnerType?: PartnerType;
 
   @ApiProperty({ required: false })
   @IsOptional()
