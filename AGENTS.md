@@ -25,9 +25,18 @@
 
 Import: `@gp/shared/ecosystem`
 
-## STABILIZATION MODE
+## STABILIZATION MODE + CORE FREEZE
 
-**No new features.** Preserve ecosystem integrity. Use `@gp/shared-core` for roles/statuses/permissions.
+**No new features. No constant rewrites of `@gp/shared-core`.**
+
+Frozen until stable: auth, roles, statuses, shared-core, moderation, orders, partner flows, deploy.
+
+Rule: `.cursor/rules/gp-core-freeze.mdc`
+
+**Before any new module/feature:** complete `docs/ECOSYSTEM_IMPACT_ANALYSIS.md`.
+
+> **What connected systems will break?**  
+> If unclear → **do not implement yet.**
 
 ## Pre-commit / pre-deploy
 
