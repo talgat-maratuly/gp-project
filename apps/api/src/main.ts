@@ -73,8 +73,8 @@ async function bootstrap() {
     .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('docs', app, document, {
-    jsonDocumentUrl: 'openapi.json',
+  SwaggerModule.setup('api/docs', app, document, {
+    jsonDocumentUrl: 'api/openapi.json',
   });
 
   const port = configService.get<number>('PORT', 4000);

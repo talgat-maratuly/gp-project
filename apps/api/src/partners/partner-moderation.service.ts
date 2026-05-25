@@ -4,18 +4,28 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import {
-  PartnerModerationAction,
-  PartnerOfferingStatus,
-  PartnerStatus,
-  Prisma,
-} from '@prisma/client';
 import { normalizePartnerDocuments, validatePartnerRegistration } from '../common/account-type.util';
 import { resolveSubserviceIdsForPartnerType } from '../common/partner-type.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { PartnerApplyDto } from './dto/partner-apply.dto';
 import { PartnerResubmitDto } from './dto/partner-resubmit.dto';
 import { PartnersService } from './partners.service';
+
+const PartnerStatusValue = {
+  DRAFT: 'DRAFT',
+  PENDING_REVIEW: 'PENDING_REVIEW',
+  NEEDS_REVISION: 'NEEDS_REVISION',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+} as const;
+
+const PartnerOfferingStatusValue = {
+  PENDING_MODERATION: 'PENDING_MODERATION',
+} as const;
+
+const PartnerModerationActionValue = {
+  RESUBMIT: 'RESUBMIT',
+} as const;
 
 @Injectable()
 export class PartnerModerationService {
@@ -44,13 +54,17 @@ export class PartnerModerationService {
 
   async apply(userId: string, dto: PartnerApplyDto) {
     const profile = await this.partners.ensurePartnerProfile(userId);
-    if (profile.status === PartnerStatus.PENDING_REVIEW) {
+    if (profile.status === PartnerStatusValue.PENDING_REVIEW) {
       throw new BadRequestException('Заявка уже на проверке');
     }
-    if (profile.status === PartnerStatus.APPROVED) {
+    if (profile.status === PartnerStatusValue.APPROVED) {
       throw new BadRequestException('Партнёр уже подтверждён');
     }
-    if (![PartnerStatus.DRAFT, PartnerStatus.NEEDS_REVISION, PartnerStatus.REJECTED].includes(profile.status)) {
+    if (
+      profile.status !== PartnerStatusValue.DRAFT &&
+      profile.status !== PartnerStatusValue.NEEDS_REVISION &&
+      profile.status !== PartnerStatusValue.REJECTED
+    ) {
       throw new BadRequestException(`Нельзя отправить заявку из статуса ${profile.status}`);
     }
 
@@ -90,7 +104,7 @@ export class PartnerModerationService {
         data: {
           regionId: dto.regionId,
           partnerType: dto.partnerType,
-          status: PartnerStatus.PENDING_REVIEW,
+          status: PartnerStatusValue.PENDING_REVIEW,
           accountType: dto.accountType,
           companyName: dto.companyName.trim(),
           company: dto.companyName.trim(),
@@ -101,7 +115,7 @@ export class PartnerModerationService {
           bin: dto.bin?.trim() || null,
           legalAddress: dto.legalAddress?.trim() || null,
           idDocumentNumber: dto.idDocumentNumber?.trim() || null,
-          documents: documents.length ? documents : Prisma.JsonNull,
+          documents: documents.length ? documents : undefined,
           vehiclePhotos: dto.vehiclePhotos ?? [],
           equipmentPhotos: dto.equipmentPhotos ?? [],
           rejectionReason: null,
@@ -115,14 +129,14 @@ export class PartnerModerationService {
         data: validatedSubs.map((subserviceId) => ({
           partnerId: profile.id,
           subserviceId,
-          status: PartnerOfferingStatus.PENDING_MODERATION,
+          status: PartnerOfferingStatusValue.PENDING_MODERATION,
         })),
       });
 
       await tx.partnerModerationAuditLog.create({
         data: {
           partnerId: profile.id,
-          action: PartnerModerationAction.RESUBMIT,
+          action: PartnerModerationActionValue.RESUBMIT,
           comment: 'Заявка отправлена на модерацию',
         },
       });
@@ -135,7 +149,7 @@ export class PartnerModerationService {
 
   async resubmit(userId: string, dto: PartnerResubmitDto) {
     const profile = await this.partners.ensurePartnerProfile(userId);
-    if (profile.status !== PartnerStatus.NEEDS_REVISION) {
+    if (profile.status !== PartnerStatusValue.NEEDS_REVISION) {
       throw new BadRequestException('Повторная отправка доступна только после возврата на доработку');
     }
     if (!dto.partnerType || !dto.regionId || !dto.companyName || !dto.fullName || !dto.phone) {

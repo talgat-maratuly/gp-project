@@ -29,12 +29,35 @@ CREATE TYPE "PartnerModerationAction" AS ENUM (
   'RESUBMIT'
 );
 
-ALTER TYPE "StoreStatus" ADD VALUE 'DRAFT';
-ALTER TYPE "StoreStatus" ADD VALUE 'PENDING_REVIEW';
-ALTER TYPE "StoreStatus" ADD VALUE 'NEEDS_REVISION';
-ALTER TYPE "StoreStatus" ADD VALUE 'APPROVED';
-ALTER TYPE "StoreStatus" ADD VALUE 'REJECTED';
-ALTER TYPE "StoreStatus" ADD VALUE 'SUSPENDED';
+ALTER TABLE "Store" ALTER COLUMN "status" DROP DEFAULT;
+
+ALTER TYPE "StoreStatus" RENAME TO "StoreStatus_old";
+
+CREATE TYPE "StoreStatus" AS ENUM (
+  'DRAFT',
+  'PENDING_REVIEW',
+  'NEEDS_REVISION',
+  'APPROVED',
+  'REJECTED',
+  'SUSPENDED',
+  'ACTIVE',
+  'INACTIVE',
+  'BLOCKED'
+);
+
+ALTER TABLE "Store"
+ALTER COLUMN "status" TYPE "StoreStatus"
+USING (
+  CASE "status"::text
+    WHEN 'PENDING' THEN 'PENDING_REVIEW'::"StoreStatus"
+    WHEN 'ACTIVE' THEN 'APPROVED'::"StoreStatus"
+    ELSE "status"::text::"StoreStatus"
+  END
+);
+
+ALTER TABLE "Store" ALTER COLUMN "status" SET DEFAULT 'PENDING_REVIEW';
+
+DROP TYPE "StoreStatus_old";
 
 ALTER TABLE "PartnerProfile" ADD COLUMN "regionId" TEXT;
 ALTER TABLE "PartnerProfile" ADD COLUMN "partnerType" "PartnerType";
@@ -82,4 +105,3 @@ CREATE INDEX "PartnerModerationAuditLog_createdAt_idx" ON "PartnerModerationAudi
 ALTER TABLE "PartnerModerationAuditLog" ADD CONSTRAINT "PartnerModerationAuditLog_partnerId_fkey" FOREIGN KEY ("partnerId") REFERENCES "PartnerProfile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "PartnerModerationAuditLog" ADD CONSTRAINT "PartnerModerationAuditLog_adminUserId_fkey" FOREIGN KEY ("adminUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
-UPDATE "Store" SET "status" = 'APPROVED' WHERE "status" = 'ACTIVE';
