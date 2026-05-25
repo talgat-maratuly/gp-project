@@ -18,6 +18,8 @@ jobs:
   build-and-push:
     name: Build and push images
     runs-on: ubuntu-latest
+    env:
+      PUBLIC_API_URL: ${{ secrets.VITE_API_URL != '' && secrets.VITE_API_URL || vars.VITE_API_URL }}
     strategy:
       fail-fast: false
       matrix:
@@ -38,6 +40,18 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+
+      - name: Validate build inputs
+        shell: bash
+        run: |
+          if [ -z "${PUBLIC_API_URL}" ]; then
+            echo "VITE_API_URL is not set. Add it as a repository Secret or Variable."
+            exit 1
+          fi
+          if [ ! -f "deploy/nginx/spa.conf" ]; then
+            echo "deploy/nginx/spa.conf is missing from the repository."
+            exit 1
+          fi
 
       - name: Compute image prefix
         id: image_vars
@@ -69,7 +83,7 @@ jobs:
             ${{ steps.image_vars.outputs.image_prefix }}/${{ matrix.image_name }}:sha-${{ github.sha }}
           build-args: |
             GP_APP=${{ matrix.gp_app }}
-            VITE_API_URL=${{ secrets.VITE_API_URL }}
+            VITE_API_URL=${{ env.PUBLIC_API_URL }}
           cache-from: type=gha,scope=${{ matrix.image_name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image_name }}
 
@@ -78,6 +92,9 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     env:
+      DEPLOY_HOST: ${{ secrets.SERVER_HOST != '' && secrets.SERVER_HOST || vars.SERVER_HOST }}
+      DEPLOY_USER: ${{ secrets.SERVER_USER != '' && secrets.SERVER_USER || vars.SERVER_USER }}
+      CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ORIGINS != '' && secrets.CORS_ORIGINS || vars.CORS_ORIGINS }}
       DEPLOY_PATH: /opt/gp/gp-project/deploy
       POSTGRES_DB: gp
       POSTGRES_USER: gp
@@ -89,6 +106,30 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+
+      - name: Validate deploy inputs
+        shell: bash
+        run: |
+          if [ -z "${DEPLOY_HOST}" ]; then
+            echo "SERVER_HOST is not set. Add it as a repository Secret or Variable."
+            exit 1
+          fi
+          if [ -z "${DEPLOY_USER}" ]; then
+            echo "SERVER_USER is not set. Add it as a repository Secret or Variable."
+            exit 1
+          fi
+          if [ -z "${CORS_ALLOWED_ORIGINS}" ]; then
+            echo "CORS_ORIGINS is not set. Add it as a repository Secret or Variable."
+            exit 1
+          fi
+          if [ -z "${{ secrets.POSTGRES_PASSWORD }}" ]; then
+            echo "POSTGRES_PASSWORD must be configured as a repository Secret."
+            exit 1
+          fi
+          if [ -z "${{ secrets.JWT_SECRET }}" ]; then
+            echo "JWT_SECRET must be configured as a repository Secret."
+            exit 1
+          fi
 
       - name: Compute image prefix
         id: image_vars
@@ -102,16 +143,16 @@ jobs:
       - name: Prepare remote deploy directory
         uses: appleboy/ssh-action@v1.2.0
         with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
+          host: ${{ env.DEPLOY_HOST }}
+          username: ${{ env.DEPLOY_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: mkdir -p "${{ env.DEPLOY_PATH }}"
 
       - name: Upload docker-compose file
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
+          host: ${{ env.DEPLOY_HOST }}
+          username: ${{ env.DEPLOY_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           source: deploy/docker-compose.yml
           target: ${{ env.DEPLOY_PATH }}
@@ -125,10 +166,10 @@ jobs:
           IMAGE_PREFIX: ${{ steps.image_vars.outputs.image_prefix }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          CORS_ORIGINS: ${{ secrets.CORS_ORIGINS }}
+          CORS_ORIGINS: ${{ env.CORS_ALLOWED_ORIGINS }}
         with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
+          host: ${{ env.DEPLOY_HOST }}
+          username: ${{ env.DEPLOY_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           envs: GHCR_USERNAME,GHCR_TOKEN,IMAGE_PREFIX,POSTGRES_PASSWORD,JWT_SECRET,CORS_ORIGINS,DEPLOY_PATH,POSTGRES_DB,POSTGRES_USER,GP_API_PORT,GP_SERVICE_PORT,GP_PARTNER_PORT,GP_ADMIN_PORT
           script: |
