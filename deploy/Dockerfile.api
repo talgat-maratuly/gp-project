@@ -1,21 +1,29 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
+
 COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/
 COPY packages/shared/package.json packages/shared/
+
+# devDependencies (@nestjs/cli, prisma, typescript) required for nest build
 RUN npm ci --workspace=@gp/api --include-workspace-root
+
 COPY apps/api apps/api
 COPY packages/shared packages/shared
-RUN npx prisma generate --schema apps/api/prisma/schema.prisma && npm run build -w @gp/api
+
+RUN npx prisma generate --schema apps/api/prisma/schema.prisma \
+  && npm run build -w @gp/api
 
 FROM node:20-alpine
 WORKDIR /app
 ENV NODE_ENV=production
+
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/apps/api/package.json ./apps/api/
 COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
 COPY --from=builder /app/apps/api/src ./apps/api/src
 COPY package.json ./
+
 EXPOSE 4000
 CMD ["sh", "-c", "npx prisma migrate deploy --schema apps/api/prisma/schema.prisma && node apps/api/dist/main.js"]

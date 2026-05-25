@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { PartnerRole, PartnerType } from '@prisma/client';
 import { normalizePartnerDocuments, validatePartnerRegistration } from '../common/account-type.util';
 import { resolveSubserviceIdsForPartnerType } from '../common/partner-type.util';
 import { PrismaService } from '../prisma/prisma.service';
@@ -50,6 +51,12 @@ export class PartnerModerationService {
     });
     if (!profile) throw new NotFoundException('Профиль партнёра не найден');
     return profile;
+  }
+
+  private resolvePartnerRole(dto: PartnerApplyDto): PartnerRole {
+    if (dto.partnerRole) return dto.partnerRole;
+    if (dto.partnerType === PartnerType.SHOP) return PartnerRole.SHOP;
+    return PartnerRole.SPECIALIST;
   }
 
   async apply(userId: string, dto: PartnerApplyDto) {
@@ -104,7 +111,7 @@ export class PartnerModerationService {
         data: {
           regionId: dto.regionId,
           partnerType: dto.partnerType,
-          partnerRole: dto.partnerRole,
+          partnerRole: this.resolvePartnerRole(dto),
           status: PartnerStatusValue.PENDING_REVIEW,
           accountType: dto.accountType,
           companyName: dto.companyName.trim(),
@@ -157,6 +164,7 @@ export class PartnerModerationService {
       const current = await this.getMe(userId);
       return this.apply(userId, {
         partnerType: dto.partnerType ?? current.partnerType!,
+        partnerRole: dto.partnerRole ?? current.partnerRole!,
         regionId: dto.regionId ?? current.regionId!,
         companyName: dto.companyName ?? current.companyName ?? current.company ?? '',
         fullName: dto.fullName ?? current.fullName ?? current.user.name,

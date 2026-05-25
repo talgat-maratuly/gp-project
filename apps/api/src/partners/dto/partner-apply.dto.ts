@@ -19,9 +19,10 @@ export class PartnerApplyDto {
   @IsEnum(PartnerType)
   partnerType: PartnerType;
 
-  @ApiProperty({ enum: PartnerRole })
+  @ApiProperty({ enum: PartnerRole, required: false })
+  @IsOptional()
   @IsEnum(PartnerRole)
-  partnerRole: PartnerRole;
+  partnerRole?: PartnerRole;
 
   @ApiProperty()
   @IsUUID()
