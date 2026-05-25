@@ -12,7 +12,9 @@ import { GeoModule } from './geo/geo.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AdminModule } from './admin/admin.module';
 import { ServiceProjectsModule } from './service-projects/service-projects.module';
+import { CommonModule } from './common/common.module';
 import { MarketModule } from './market/market.module';
+import { RegionsModule } from './regions/regions.module';
 import { QrModule } from './qr/qr.module';
 import { FurnitureExecutorModule } from './furniture-executor/furniture-executor.module';
 import { HealthController } from './health.controller';
@@ -32,7 +34,9 @@ import { HealthModule } from './health/health.module';
       ],
     }),
     PrismaModule,
+    CommonModule,
     AuthModule,
+    RegionsModule,
     PartnersModule,
     ProductsModule,
     OrdersModule,

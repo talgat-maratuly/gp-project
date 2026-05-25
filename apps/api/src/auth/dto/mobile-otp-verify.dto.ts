@@ -32,4 +32,8 @@ export class MobileOtpVerifyDto {
   @IsOptional()
   @IsBoolean()
   enableBiometric?: boolean;
+
+  @IsOptional()
+  @IsString()
+  regionId?: string;
 }

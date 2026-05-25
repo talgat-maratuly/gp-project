@@ -195,6 +195,17 @@ export class MobileAuthService {
       isNewUser = true;
       const email = phoneToEmail(phone);
       const passwordHash = await bcrypt.hash(newRefreshToken(), 10);
+      let regionId = dto.regionId;
+      let city = 'Уральск';
+      if (regionId) {
+        const region = await this.prisma.region.findUnique({ where: { id: regionId } });
+        if (!region?.isActive) throw new BadRequestException('Регион не найден');
+        city = region.name;
+      } else {
+        const defaultRegion = await this.prisma.region.findUnique({ where: { code: 'uralsk' } });
+        regionId = defaultRegion?.id;
+        city = defaultRegion?.name ?? city;
+      }
       user = await this.prisma.user.create({
         data: {
           email,
@@ -202,7 +213,8 @@ export class MobileAuthService {
           name: dto.name?.trim() || 'Клиент GP',
           phone,
           role: Role.CLIENT,
-          clientProfile: { create: { accountType: AccountType.INDIVIDUAL, city: 'Уральск' } },
+          regionId,
+          clientProfile: { create: { accountType: AccountType.INDIVIDUAL, city } },
         },
         include: { clientProfile: true },
       });

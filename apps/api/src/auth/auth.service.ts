@@ -1,4 +1,11 @@
-import { ConflictException, Injectable, Logger, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { AccountType, PartnerOfferingStatus, Role } from '@prisma/client';
@@ -28,19 +35,29 @@ export class AuthService {
     private partners: PartnersService,
   ) {}
 
-  private async signToken(user: { id: string; email: string; role: Role }) {
+  private async signToken(user: { id: string; email: string; role: Role; regionId?: string | null }) {
     return {
       accessToken: await this.jwt.signAsync({
         sub: user.id,
         email: user.email,
         role: user.role,
+        regionId: user.regionId ?? null,
       }),
       user: {
         id: user.id,
         email: user.email,
         role: user.role,
+        regionId: user.regionId ?? null,
       },
     };
+  }
+
+  private async assertActiveRegion(regionId: string) {
+    const region = await this.prisma.region.findUnique({ where: { id: regionId } });
+    if (!region?.isActive) {
+      throw new NotFoundException('Регион не найден или неактивен');
+    }
+    return region;
   }
 
   async registerClient(dto: RegisterClientDto) {
@@ -61,6 +78,9 @@ export class AuthService {
         ? (dto.contactPerson?.trim() || dto.name?.trim())
         : dto.name.trim();
 
+    const region = await this.assertActiveRegion(dto.regionId);
+    const cityLabel = dto.city?.trim() || region.name;
+
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const user = await this.prisma.user.create({
       data: {
@@ -69,6 +89,7 @@ export class AuthService {
         name: displayName,
         phone: dto.phone,
         role: Role.CLIENT,
+        regionId: region.id,
         clientProfile: {
           create: {
             accountType,
@@ -76,6 +97,7 @@ export class AuthService {
             bin: dto.bin?.trim() || null,
             legalAddress: dto.legalAddress?.trim() || null,
             contactPerson: dto.contactPerson?.trim() || null,
+            city: cityLabel,
           },
         },
       },
@@ -115,6 +137,9 @@ export class AuthService {
       documents,
     });
 
+    const region = await this.assertActiveRegion(dto.regionId);
+    const cityLabel = dto.city?.trim() || region.name;
+
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const user = await this.prisma.user.create({
       data: {
@@ -123,6 +148,7 @@ export class AuthService {
         name: dto.name.trim(),
         phone: dto.phone,
         role: Role.PARTNER,
+        regionId: region.id,
         partnerProfile: {
           create: {
             accountType,
@@ -134,7 +160,7 @@ export class AuthService {
             legalAddress: dto.legalAddress?.trim() || null,
             idDocumentNumber: dto.idDocumentNumber?.trim() || null,
             documents: documents.length ? documents : undefined,
-            city: dto.city?.trim() || 'Уральск',
+            city: cityLabel,
             referralCode: dto.referralCode?.trim() || undefined,
             directions,
             balance: 10000,

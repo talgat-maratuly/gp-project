@@ -48,4 +48,14 @@ export class RegisterClientDto {
   @IsString()
   @MaxLength(128)
   contactPerson?: string;
+
+  @ApiProperty({ description: 'UUID региона (город GP Market)' })
+  @IsString()
+  regionId: string;
+
+  @ApiProperty({ required: false, example: 'Уральск', description: 'Отображаемый город (если отличается от name региона)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
+  city?: string;
 }

@@ -19,6 +19,6 @@ import { PartnersModule } from '../partners/partners.module';
   ],
   controllers: [AuthController, MobileAuthController],
   providers: [AuthService, MobileAuthService, JwtStrategy],
-  exports: [AuthService, MobileAuthService, JwtModule],
+  exports: [AuthService, MobileAuthService, JwtModule, PassportModule],
 })
 export class AuthModule {}
