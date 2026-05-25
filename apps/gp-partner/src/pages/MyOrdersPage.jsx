@@ -75,7 +75,7 @@ export default function MyOrdersPage() {
                 </button>
               )}
               <textarea
-                className="mt-2 w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm"
+                className="gp-input-kaspi mt-2"
                 placeholder={t('comment')}
                 value={comment[o.id] || o.partnerComment || ''}
                 onChange={(e) => setComment((c) => ({ ...c, [o.id]: e.target.value }))}

@@ -122,11 +122,23 @@ export default function MyShopPage() {
             {t('market_create_shop')}
           </button>
         ) : (
-          <form onSubmit={createShop} className="text-left space-y-3 mt-4">
-            <input className="gp-input-kaspi" placeholder={t('market_shop_name')} value={shopForm.shopName} onChange={(e) => setShopForm({ ...shopForm, shopName: e.target.value })} required />
-            <input className="gp-input-kaspi" placeholder={t('market_owner')} value={shopForm.ownerName} onChange={(e) => setShopForm({ ...shopForm, ownerName: e.target.value })} required />
-            <input className="gp-input-kaspi" placeholder={t('phone')} value={shopForm.phone} onChange={(e) => setShopForm({ ...shopForm, phone: e.target.value })} />
-            <input className="gp-input-kaspi" placeholder={t('address')} value={shopForm.address} onChange={(e) => setShopForm({ ...shopForm, address: e.target.value })} required />
+          <form onSubmit={createShop} className="text-left gp-form-stack mt-4">
+            <div className="gp-form-field">
+              <label className="gp-form-label">{t('market_shop_name')}</label>
+              <input className="gp-input-kaspi" placeholder={t('market_shop_name')} value={shopForm.shopName} onChange={(e) => setShopForm({ ...shopForm, shopName: e.target.value })} required />
+            </div>
+            <div className="gp-form-field">
+              <label className="gp-form-label">{t('market_owner')}</label>
+              <input className="gp-input-kaspi" placeholder={t('market_owner')} value={shopForm.ownerName} onChange={(e) => setShopForm({ ...shopForm, ownerName: e.target.value })} required />
+            </div>
+            <div className="gp-form-field">
+              <label className="gp-form-label">{t('phone')}</label>
+              <input className="gp-input-kaspi" type="tel" placeholder="+7 701 000 00 00" value={shopForm.phone} onChange={(e) => setShopForm({ ...shopForm, phone: e.target.value })} />
+            </div>
+            <div className="gp-form-field">
+              <label className="gp-form-label">{t('address')}</label>
+              <input className="gp-input-kaspi" placeholder={t('address')} value={shopForm.address} onChange={(e) => setShopForm({ ...shopForm, address: e.target.value })} required />
+            </div>
             <button type="submit" className="w-full py-3 rounded-xl partner-gradient font-bold text-white">{t('save')}</button>
           </form>
         )}
@@ -164,20 +176,35 @@ export default function MyShopPage() {
             <Plus className="w-4 h-4" /> {t('market_add_product')}
           </button>
           {showAddProduct && (
-            <form onSubmit={addProduct} className="partner-card p-4 mb-4 space-y-2">
-              <input className="gp-input-kaspi" placeholder={t('market_product_name')} value={productForm.name} onChange={(e) => setProductForm({ ...productForm, name: e.target.value })} required />
-              <select className="gp-input-kaspi" value={productForm.categoryId} onChange={(e) => setProductForm({ ...productForm, categoryId: e.target.value })}>
-                {MARKET_CATEGORIES.map((c) => (
-                  <option key={c.id} value={c.id}>{t(c.labelKey)}</option>
-                ))}
-              </select>
-              <div className="flex gap-2">
-                <input className="gp-input-kaspi flex-1" type="number" placeholder={t('price')} value={productForm.price} onChange={(e) => setProductForm({ ...productForm, price: e.target.value })} required />
-                <input className="gp-input-kaspi w-24" type="number" placeholder={t('market_stock')} value={productForm.quantity} onChange={(e) => setProductForm({ ...productForm, quantity: e.target.value })} />
+            <form onSubmit={addProduct} className="partner-card p-4 mb-4 gp-form-stack">
+              <div className="gp-form-field">
+                <label className="gp-form-label">{t('market_product_name')}</label>
+                <input className="gp-input-kaspi" placeholder={t('market_product_name')} value={productForm.name} onChange={(e) => setProductForm({ ...productForm, name: e.target.value })} required />
               </div>
-              <select className="gp-input-kaspi" value={productForm.unit} onChange={(e) => setProductForm({ ...productForm, unit: e.target.value })}>
-                {PRODUCT_UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
-              </select>
+              <div className="gp-form-field">
+                <label className="gp-form-label">Категория</label>
+                <select className="gp-input-kaspi" value={productForm.categoryId} onChange={(e) => setProductForm({ ...productForm, categoryId: e.target.value })}>
+                  {MARKET_CATEGORIES.map((c) => (
+                    <option key={c.id} value={c.id}>{t(c.labelKey)}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="gp-form-field flex-1 min-w-0">
+                  <label className="gp-form-label">{t('price')}</label>
+                  <input className="gp-input-kaspi" type="number" inputMode="decimal" placeholder="0" value={productForm.price} onChange={(e) => setProductForm({ ...productForm, price: e.target.value })} required />
+                </div>
+                <div className="gp-form-field w-full sm:w-28">
+                  <label className="gp-form-label">{t('market_stock')}</label>
+                  <input className="gp-input-kaspi" type="number" inputMode="numeric" placeholder="0" value={productForm.quantity} onChange={(e) => setProductForm({ ...productForm, quantity: e.target.value })} />
+                </div>
+              </div>
+              <div className="gp-form-field">
+                <label className="gp-form-label">Единица</label>
+                <select className="gp-input-kaspi" value={productForm.unit} onChange={(e) => setProductForm({ ...productForm, unit: e.target.value })}>
+                  {PRODUCT_UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
+                </select>
+              </div>
               <button type="submit" className="w-full py-2.5 rounded-xl partner-gradient font-bold text-white">{t('save')}</button>
             </form>
           )}
