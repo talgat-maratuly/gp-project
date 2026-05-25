@@ -51,46 +51,95 @@ export default function AddProductPage() {
   }
 
   return (
-    <div>
-      <h1 className="text-xl font-bold mb-4">Добавить товар</h1>
-      <p className="text-xs text-slate-500 mb-4">Товар появится в GP Shop у всех клиентов</p>
-      <form onSubmit={submit} className="partner-card p-5 space-y-4">
-        <input placeholder="Название" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full p-3 rounded-xl bg-[#0a0f1a] border border-white/10" required />
-        <input placeholder="Цена, ₸" type="number" min="0" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="w-full p-3 rounded-xl bg-[#0a0f1a] border border-white/10" required />
-        <input placeholder="Остаток, шт" type="number" min="0" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} className="w-full p-3 rounded-xl bg-[#0a0f1a] border border-white/10" required />
-        <label className="block text-sm text-slate-400">
-          Категория
-          <select value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })} className="w-full mt-1 p-3 rounded-xl bg-[#0a0f1a] border border-white/10">
+    <div className="w-full max-w-lg mx-auto">
+      <h1 className="text-xl font-bold mb-1 text-[var(--gp-text)]">Добавить товар</h1>
+      <p className="text-sm text-[var(--gp-text-muted)] mb-4">Товар появится в GP Shop у клиентов вашего региона</p>
+      <form onSubmit={submit} className="partner-card p-4 sm:p-5 gp-form-stack">
+        <div className="gp-form-field">
+          <label className="gp-form-label" htmlFor="product-name">Название товара</label>
+          <input
+            id="product-name"
+            placeholder="Например: Семена газона 1 кг"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            className="gp-input-kaspi"
+            required
+            autoComplete="off"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="gp-form-field">
+            <label className="gp-form-label" htmlFor="product-price">Цена, ₸</label>
+            <input
+              id="product-price"
+              placeholder="15000"
+              type="number"
+              min="0"
+              inputMode="decimal"
+              value={form.price}
+              onChange={(e) => setForm({ ...form, price: e.target.value })}
+              className="gp-input-kaspi"
+              required
+            />
+          </div>
+          <div className="gp-form-field">
+            <label className="gp-form-label" htmlFor="product-stock">Остаток, шт</label>
+            <input
+              id="product-stock"
+              placeholder="10"
+              type="number"
+              min="0"
+              inputMode="numeric"
+              value={form.stock}
+              onChange={(e) => setForm({ ...form, stock: e.target.value })}
+              className="gp-input-kaspi"
+              required
+            />
+          </div>
+        </div>
+
+        <div className="gp-form-field">
+          <label className="gp-form-label" htmlFor="product-category">Категория</label>
+          <select
+            id="product-category"
+            value={form.categoryId}
+            onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
+            className="gp-input-kaspi"
+          >
             {CATEGORIES.map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
-        </label>
-        <label className="block text-sm text-slate-400">
-          Описание
+        </div>
+
+        <div className="gp-form-field">
+          <label className="gp-form-label" htmlFor="product-description">Описание</label>
           <textarea
-            placeholder="Общее описание товара"
+            id="product-description"
+            placeholder="Краткое описание для клиентов"
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
             rows={3}
-            className="w-full mt-1 p-3 rounded-xl bg-[#0a0f1a] border border-white/10 text-slate-200 placeholder:text-slate-600"
+            className="gp-textarea-kaspi"
           />
-        </label>
-        <label className="block text-sm text-slate-400">
-          Характеристики
+        </div>
+
+        <div className="gp-form-field">
+          <label className="gp-form-label" htmlFor="product-specs">Характеристики</label>
+          <span className="gp-form-hint">Каждая строка — отдельный пункт. Пример: Зона полива: 4</span>
           <textarea
-            placeholder={'Каждая строка — отдельный пункт.\nПример:\nЗона полива: 4\nДавление: 1–6 бар'}
+            id="product-specs"
+            placeholder={'Зона полива: 4\nДавление: 1–6 бар'}
             value={form.specifications}
             onChange={(e) => setForm({ ...form, specifications: e.target.value })}
             rows={5}
-            className="w-full mt-1 p-3 rounded-xl bg-[#0a0f1a] border border-white/10 font-mono text-sm text-slate-200 placeholder:text-slate-600"
+            className="gp-textarea-kaspi font-mono text-sm"
           />
-        </label>
-        <p className="text-[11px] text-slate-500 leading-snug -mt-1">
-          Формат удобен как «название: значение». Простые строки без двоеточия тоже поддерживаются.
-        </p>
-        {error && <p className="text-red-400 text-sm">{error}</p>}
-        <button type="submit" disabled={saving} className="w-full py-3 partner-gradient rounded-xl font-bold disabled:opacity-50">
+        </div>
+
+        {error && <p className="text-red-600 text-sm font-medium bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</p>}
+        <button type="submit" disabled={saving} className="w-full min-h-[48px] py-3 partner-gradient rounded-xl font-bold text-white disabled:opacity-50">
           {saving ? 'Сохранение…' : 'Сохранить в GP Shop'}
         </button>
       </form>

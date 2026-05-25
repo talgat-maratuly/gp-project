@@ -322,13 +322,13 @@ export default function AuthPage({ initialMode = 'register' }) {
 
         {/* ——— Регистрация: шаг 2 — контакты ——— */}
         {mode === 'register' && regStep === 2 && (
-          <div className="space-y-4">
+          <div className="gp-form-stack">
             <div>
-              <p className="text-sm font-semibold text-white">Ваши контакты</p>
+              <p className="text-sm font-semibold text-[var(--gp-text)]">Ваши контакты</p>
               <p className="text-[11px] text-slate-500 mt-1">Для входа и уведомлений о новых заявках</p>
             </div>
             <label className="block">
-              <span className="text-xs text-slate-400 mb-1 block">Имя / ФИО</span>
+              <span className="gp-form-hint">Имя / ФИО</span>
               <input
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -338,7 +338,7 @@ export default function AuthPage({ initialMode = 'register' }) {
               />
             </label>
             <label className="block">
-              <span className="text-xs text-slate-400 mb-1 block">Телефон</span>
+              <span className="gp-form-hint">Телефон</span>
               <input
                 type="tel"
                 value={form.phone}
@@ -349,7 +349,7 @@ export default function AuthPage({ initialMode = 'register' }) {
               />
             </label>
             <label className="block">
-              <span className="text-xs text-slate-400 mb-1 block">Email</span>
+              <span className="gp-form-hint">Email</span>
               <input
                 type="email"
                 value={form.email}
@@ -360,7 +360,7 @@ export default function AuthPage({ initialMode = 'register' }) {
               />
             </label>
             <label className="block">
-              <span className="text-xs text-slate-400 mb-1 block">Пароль</span>
+              <span className="gp-form-hint">Пароль</span>
               <input
                 type="password"
                 value={form.password}
@@ -409,7 +409,7 @@ export default function AuthPage({ initialMode = 'register' }) {
               <p className="text-[11px] text-[var(--gp-text-muted)] mt-1">Как вас увидят клиенты</p>
             </div>
             <label className="block">
-              <span className="text-xs font-semibold text-[var(--gp-text-muted)] mb-1 block">
+              <span className="gp-form-hint">
                 {form.businessForm === 'too' ? 'Название ТОО' : form.businessForm === 'ip' ? 'ИП / бренд' : 'Ник / бренд'}
               </span>
               <input
@@ -420,7 +420,7 @@ export default function AuthPage({ initialMode = 'register' }) {
               />
             </label>
             <label className="block">
-              <span className="text-xs font-semibold text-[var(--gp-text-muted)] mb-1 block">Город работы</span>
+              <span className="gp-form-hint">Город работы</span>
               <input
                 value={form.city}
                 onChange={(e) => setForm({ ...form, city: e.target.value })}
@@ -439,7 +439,7 @@ export default function AuthPage({ initialMode = 'register' }) {
               <div className="space-y-3 rounded-2xl border border-[var(--gp-border)] bg-[var(--gp-surface-2)] p-4">
                 <p className="text-sm font-bold">Реквизиты юрлица</p>
                 <label className="block">
-                  <span className="text-xs font-semibold text-[var(--gp-text-muted)] mb-1 block">БИН</span>
+                  <span className="gp-form-hint">БИН</span>
                   <input
                     value={form.bin}
                     onChange={(e) => setForm({ ...form, bin: e.target.value })}
@@ -450,7 +450,7 @@ export default function AuthPage({ initialMode = 'register' }) {
                   />
                 </label>
                 <label className="block">
-                  <span className="text-xs font-semibold text-[var(--gp-text-muted)] mb-1 block">Юридический адрес</span>
+                  <span className="gp-form-hint">Юридический адрес</span>
                   <input
                     value={form.legalAddress}
                     onChange={(e) => setForm({ ...form, legalAddress: e.target.value })}
@@ -460,7 +460,7 @@ export default function AuthPage({ initialMode = 'register' }) {
                   />
                 </label>
                 <label className="block">
-                  <span className="text-xs font-semibold text-[var(--gp-text-muted)] mb-1 block">Документ</span>
+                  <span className="gp-form-hint">Документ</span>
                   <select
                     value={form.docKind}
                     onChange={(e) => setForm({ ...form, docKind: e.target.value })}
@@ -474,7 +474,7 @@ export default function AuthPage({ initialMode = 'register' }) {
                   </select>
                 </label>
                 <label className="block">
-                  <span className="text-xs font-semibold text-[var(--gp-text-muted)] mb-1 block">Номер документа</span>
+                  <span className="gp-form-hint">Номер документа</span>
                   <input
                     value={form.docNumber}
                     onChange={(e) => setForm({ ...form, docNumber: e.target.value })}
@@ -543,7 +543,7 @@ export default function AuthPage({ initialMode = 'register' }) {
 
         {/* ——— Вход ——— */}
         {mode === 'login' && (
-          <div className="space-y-3">
+          <div className="gp-form-stack">
             <input
               type="text"
               value={form.email}

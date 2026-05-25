@@ -11,6 +11,15 @@ import { usePartner } from '../context/PartnerContext'
 
 const GROUPS = [...PARTNER_REGISTRATION_GROUPS, FURNITURE_EXECUTOR_GROUP, SHOP_REGISTRATION_GROUP]
 
+const FIELD_LABELS = {
+  companyName: 'Название компании',
+  fullName: 'ФИО',
+  phone: 'Телефон',
+  city: 'Город',
+  address: 'Адрес',
+  description: 'Описание услуг',
+}
+
 export default function PartnerApplyPage() {
   const navigate = useNavigate()
   const { user, syncPartner, notify, loading } = usePartner()
@@ -79,14 +88,15 @@ export default function PartnerApplyPage() {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-4 max-w-lg mx-auto pb-8">
-      <h1 className="text-xl font-bold">Заявка партнёра GP</h1>
-      {error && <p className="text-sm text-red-500">{error}</p>}
+    <form onSubmit={submit} className="gp-form-stack max-w-lg mx-auto pb-8 w-full">
+      <h1 className="text-xl font-bold text-[var(--gp-text)]">Заявка партнёра GP</h1>
+      {error && <p className="text-sm text-red-600 font-medium bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</p>}
 
-      <label className="block text-sm">
-        Регион
+      <div className="gp-form-field">
+        <label className="gp-form-label" htmlFor="apply-region">Регион</label>
         <select
-          className="mt-1 w-full rounded-xl border border-[var(--gp-border)] bg-[var(--gp-surface-2)] p-3"
+          id="apply-region"
+          className="gp-input-kaspi"
           value={form.regionId}
           onChange={(e) => setForm((f) => ({ ...f, regionId: e.target.value }))}
           required
@@ -95,10 +105,10 @@ export default function PartnerApplyPage() {
             <option key={r.id} value={r.id}>{r.name}</option>
           ))}
         </select>
-      </label>
+      </div>
 
       <div>
-        <p className="text-sm font-semibold mb-2">Направления услуг</p>
+        <p className="gp-form-label mb-2">Направления услуг</p>
         <div className="flex flex-wrap gap-2">
           {GROUPS.map((g) => (
             <button
@@ -111,7 +121,7 @@ export default function PartnerApplyPage() {
                 return n
               })}
               className={`px-3 py-1.5 rounded-full text-xs font-bold ${
-                selectedMainIds.has(g.id) ? 'gp-gradient-kaspi text-white' : 'bg-[var(--gp-surface-2)]'
+                selectedMainIds.has(g.id) ? 'gp-gradient-kaspi text-white' : 'bg-[var(--gp-surface-2)] text-[var(--gp-text)]'
               }`}
             >
               {g.title}
@@ -122,7 +132,7 @@ export default function PartnerApplyPage() {
 
       {visibleGroups.map((g) => (
         <div key={g.id}>
-          <p className="text-xs text-[var(--gp-text-muted)] mb-1">{g.title}</p>
+          <p className="gp-form-hint">{g.title}</p>
           <div className="flex flex-wrap gap-2">
             {g.subservices.map((s) => (
               <button
@@ -135,7 +145,7 @@ export default function PartnerApplyPage() {
                   return n
                 })}
                 className={`px-2 py-1 rounded-lg text-xs ${
-                  selectedSubIds.has(s.id) ? 'bg-emerald-600 text-white' : 'bg-[var(--gp-surface-2)]'
+                  selectedSubIds.has(s.id) ? 'bg-emerald-600 text-white' : 'bg-white text-black border border-gray-300'
                 }`}
               >
                 {s.name}
@@ -146,35 +156,43 @@ export default function PartnerApplyPage() {
       ))}
 
       {['companyName', 'fullName', 'phone', 'city', 'address', 'description'].map((key) => (
-        <label key={key} className="block text-sm capitalize">
-          {key}
+        <div key={key} className="gp-form-field">
+          <label className="gp-form-label" htmlFor={`apply-${key}`}>{FIELD_LABELS[key] || key}</label>
           <input
-            className="mt-1 w-full rounded-xl border border-[var(--gp-border)] bg-[var(--gp-surface-2)] p-3"
+            id={`apply-${key}`}
+            className="gp-input-kaspi"
             value={form[key]}
             onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
             required={['companyName', 'fullName', 'phone'].includes(key)}
+            autoComplete={key === 'phone' ? 'tel' : key === 'fullName' ? 'name' : 'off'}
           />
-        </label>
+        </div>
       ))}
 
-      <label className="block text-sm">
-        URL фото техники (по одному на строку)
+      <div className="gp-form-field">
+        <label className="gp-form-label" htmlFor="apply-vehicle-photos">URL фото техники</label>
+        <span className="gp-form-hint">По одному URL на строку</span>
         <textarea
-          className="mt-1 w-full rounded-xl border border-[var(--gp-border)] bg-[var(--gp-surface-2)] p-3 min-h-[80px]"
+          id="apply-vehicle-photos"
+          className="gp-textarea-kaspi"
           value={form.vehiclePhotos}
           onChange={(e) => setForm((f) => ({ ...f, vehiclePhotos: e.target.value }))}
+          placeholder="https://example.com/photo1.jpg"
         />
-      </label>
-      <label className="block text-sm">
-        URL фото оборудования
+      </div>
+
+      <div className="gp-form-field">
+        <label className="gp-form-label" htmlFor="apply-equipment-photos">URL фото оборудования</label>
         <textarea
-          className="mt-1 w-full rounded-xl border border-[var(--gp-border)] bg-[var(--gp-surface-2)] p-3 min-h-[80px]"
+          id="apply-equipment-photos"
+          className="gp-textarea-kaspi"
           value={form.equipmentPhotos}
           onChange={(e) => setForm((f) => ({ ...f, equipmentPhotos: e.target.value }))}
+          placeholder="https://example.com/equip1.jpg"
         />
-      </label>
+      </div>
 
-      <button type="submit" disabled={loading} className="w-full py-3 rounded-xl gp-gradient-kaspi text-white font-bold">
+      <button type="submit" disabled={loading} className="w-full min-h-[48px] py-3 rounded-xl gp-gradient-kaspi text-white font-bold disabled:opacity-50">
         Отправить на модерацию
       </button>
     </form>
