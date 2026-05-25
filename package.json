@@ -54,6 +54,8 @@
     "validate:ecosystem:docker": "node scripts/validate-ecosystem.mjs --docker",
     "validate:shared-core": "node scripts/ecosystem-check.mjs --shared-core",
     "ecosystem:check": "node scripts/ecosystem-check.mjs",
+    "ecosystem:report": "node scripts/ecosystem-report.mjs",
+    "ecosystem:report:quick": "node scripts/ecosystem-report.mjs --quick",
     "predeploy": "node scripts/ecosystem-check.mjs",
     "health:api": "curl -sf http://localhost:4000/health && curl -sf http://localhost:4000/health/db && curl -sf http://localhost:4000/health/ws",
     "start:api": "npm run start:prod -w @gp/api",

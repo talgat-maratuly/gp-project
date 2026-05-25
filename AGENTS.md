@@ -42,6 +42,8 @@ Rule: `.cursor/rules/gp-core-freeze.mdc`
 
 ```bash
 npm run ecosystem:check            # REQUIRED before deploy (builds all apps)
+npm run ecosystem:report           # stability scores + GREEN/YELLOW/RED report
+npm run ecosystem:report:quick     # report without rebuild (uses dist cache)
 npm run validate:ecosystem:quick   # fast local (~1–2 min)
 npm run validate:ecosystem:docker  # + Docker images
 ```
