@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { PARTNER_ROLES } from '@gp/shared/constants'
 import {
   PARTNER_REGISTRATION_GROUPS,
   FURNITURE_EXECUTOR_GROUP,
@@ -10,7 +11,8 @@ import {
 import { api } from '@gp/shared/api'
 import { usePartner } from '../context/PartnerContext'
 
-const GROUPS = [...PARTNER_REGISTRATION_GROUPS, FURNITURE_EXECUTOR_GROUP, SHOP_REGISTRATION_GROUP]
+const ALL_GROUPS = [...PARTNER_REGISTRATION_GROUPS, FURNITURE_EXECUTOR_GROUP, SHOP_REGISTRATION_GROUP]
+const SPECIALIST_GROUPS = [...PARTNER_REGISTRATION_GROUPS, FURNITURE_EXECUTOR_GROUP]
 
 const FIELD_LABELS = {
   companyName: 'Название компании',
@@ -21,9 +23,10 @@ const FIELD_LABELS = {
   description: 'Описание услуг',
 }
 
-export default function PartnerApplyPage() {
+export default function PartnerApplyPage({ specialistOnly = false }) {
   const navigate = useNavigate()
   const { user, syncPartner, notify, loading } = usePartner()
+  const groups = specialistOnly ? SPECIALIST_GROUPS : ALL_GROUPS
   const [regions, setRegions] = useState([])
   const [selectedMainIds, setSelectedMainIds] = useState(() => new Set(['lawn']))
   const [selectedSubIds, setSelectedSubIds] = useState(() => new Set())
@@ -49,8 +52,8 @@ export default function PartnerApplyPage() {
   }, [])
 
   const visibleGroups = useMemo(
-    () => GROUPS.filter((g) => selectedMainIds.has(g.id)),
-    [selectedMainIds],
+    () => groups.filter((g) => selectedMainIds.has(g.id)),
+    [selectedMainIds, groups],
   )
 
   const submit = async (e) => {
@@ -59,7 +62,9 @@ export default function PartnerApplyPage() {
     const subserviceIds = [...selectedSubIds]
     const mainGroupIds = [...selectedMainIds]
     const partnerType = resolvePartnerTypeFromGroups(mainGroupIds)
-    const partnerRole = resolvePartnerRoleFromGroups(mainGroupIds)
+    const partnerRole = specialistOnly
+      ? PARTNER_ROLES.SPECIALIST
+      : resolvePartnerRoleFromGroups(mainGroupIds)
     const vehiclePhotos = form.vehiclePhotos.split('\n').map((s) => s.trim()).filter(Boolean)
     const equipmentPhotos = form.equipmentPhotos.split('\n').map((s) => s.trim()).filter(Boolean)
     try {
@@ -84,7 +89,7 @@ export default function PartnerApplyPage() {
         await api.partnerApply(body)
       }
       await syncPartner()
-      notify('Заявка отправлена на модерацию')
+      notify(specialistOnly ? 'Маман өтінімі модерацияға жіберілді' : 'Заявка отправлена на модерацию')
       navigate('/', { replace: true })
     } catch (err) {
       setError(err?.message || 'Ошибка отправки')
@@ -93,7 +98,14 @@ export default function PartnerApplyPage() {
 
   return (
     <form onSubmit={submit} className="gp-form-stack max-w-lg mx-auto pb-8 w-full">
-      <h1 className="text-xl font-bold text-[var(--gp-text)]">Заявка партнёра GP</h1>
+      <h1 className="text-xl font-bold text-[var(--gp-text)]">
+        {specialistOnly ? 'Маман ретінде тіркелу' : 'Заявка партнёра GP'}
+      </h1>
+      {specialistOnly && (
+        <p className="text-sm text-[var(--gp-text-muted)]">
+          Өтінім GP Admin арқылы қабылданғаннан кейін ғана қызметтер мен тапсырыстарға қол жеткізесіз.
+        </p>
+      )}
       {error && <p className="text-sm text-red-600 font-medium bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</p>}
 
       <div className="gp-form-field">
@@ -114,7 +126,7 @@ export default function PartnerApplyPage() {
       <div>
         <p className="gp-form-label mb-2">Направления услуг</p>
         <div className="flex flex-wrap gap-2">
-          {GROUPS.map((g) => (
+          {groups.map((g) => (
             <button
               key={g.id}
               type="button"

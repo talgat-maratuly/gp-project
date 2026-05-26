@@ -90,8 +90,12 @@ export const api = {
 
   getRegions: () => get('/regions', { auth: false }),
 
-  adminModerationPartners: (status) => {
-    const q = status ? `?status=${encodeURIComponent(status)}` : ''
+  adminModerationPartners: (status, opts = {}) => {
+    const params = new URLSearchParams()
+    if (status) params.set('status', status)
+    if (opts.scope) params.set('scope', opts.scope)
+    if (opts.partnerRole) params.set('partnerRole', opts.partnerRole)
+    const q = params.toString() ? `?${params.toString()}` : ''
     return get(`/admin/moderation/partners${q}`)
   },
 

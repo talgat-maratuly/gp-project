@@ -20,6 +20,7 @@ import {
   LayoutGrid,
   FlaskConical,
   QrCode,
+  UserCog,
 } from 'lucide-react'
 import { navForRole } from '../lib/permissions'
 import { useLanguage } from '../i18n/LanguageContext'
@@ -44,6 +45,7 @@ const ICONS = {
   LayoutGrid,
   FlaskConical,
   QrCode,
+  UserCog,
 }
 
 export default function Sidebar({ role, open, onClose }) {

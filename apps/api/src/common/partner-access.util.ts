@@ -15,8 +15,9 @@ export function canAccessShopModule(
   role: PartnerRole,
   status: PartnerStatus,
 ): boolean {
+  if (status !== PartnerStatus.APPROVED) return false;
   if (role === PartnerRole.SHOP) return true;
-  if (role === PartnerRole.MIXED_PARTNER) return status === PartnerStatus.APPROVED;
+  if (role === PartnerRole.MIXED_PARTNER) return true;
   return false;
 }
 
@@ -24,8 +25,9 @@ export function canAccessServiceModule(
   role: PartnerRole,
   status: PartnerStatus,
 ): boolean {
+  if (status !== PartnerStatus.APPROVED) return false;
   if (role === PartnerRole.SPECIALIST) return true;
-  if (role === PartnerRole.MIXED_PARTNER) return status === PartnerStatus.APPROVED;
+  if (role === PartnerRole.MIXED_PARTNER) return true;
   return false;
 }
 

@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { PartnerStatus, Role, User } from '@prisma/client';
+import { PartnerRole, PartnerStatus, Role, User } from '@prisma/client';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -19,8 +19,15 @@ export class PartnerModerationController {
 
   @Get()
   @ApiQuery({ name: 'status', enum: PartnerStatus, required: false })
-  list(@CurrentUser() admin: User, @Query('status') status?: PartnerStatus) {
-    return this.moderation.list(admin, status);
+  @ApiQuery({ name: 'scope', enum: ['specialist', 'shop'], required: false })
+  @ApiQuery({ name: 'partnerRole', enum: PartnerRole, required: false })
+  list(
+    @CurrentUser() admin: User,
+    @Query('status') status?: PartnerStatus,
+    @Query('scope') scope?: 'specialist' | 'shop',
+    @Query('partnerRole') partnerRole?: PartnerRole,
+  ) {
+    return this.moderation.list(admin, { status, scope, partnerRole });
   }
 
   @Get(':id')

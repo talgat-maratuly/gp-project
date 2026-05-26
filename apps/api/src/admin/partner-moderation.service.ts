@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import {
   PartnerModerationAction,
   PartnerOfferingStatus,
+  PartnerRole,
   PartnerStatus,
   Role,
   User,
@@ -22,11 +23,26 @@ export class PartnerModerationAdminService {
     return this.regionAccess.regionWhere(admin);
   }
 
-  list(admin: User, status?: PartnerStatus) {
+  private roleScopeWhere(scope?: 'specialist' | 'shop', partnerRole?: PartnerRole) {
+    if (partnerRole) return { partnerRole };
+    if (scope === 'specialist') {
+      return { partnerRole: { in: [PartnerRole.SPECIALIST, PartnerRole.MIXED_PARTNER] } };
+    }
+    if (scope === 'shop') {
+      return { partnerRole: { in: [PartnerRole.SHOP, PartnerRole.MIXED_PARTNER] } };
+    }
+    return {};
+  }
+
+  list(
+    admin: User,
+    opts?: { status?: PartnerStatus; scope?: 'specialist' | 'shop'; partnerRole?: PartnerRole },
+  ) {
     return this.prisma.partnerProfile.findMany({
       where: {
         ...this.regionFilter(admin),
-        ...(status ? { status } : {}),
+        ...this.roleScopeWhere(opts?.scope, opts?.partnerRole),
+        ...(opts?.status ? { status: opts.status } : {}),
       },
       include: {
         user: { select: { id: true, email: true, name: true, phone: true } },

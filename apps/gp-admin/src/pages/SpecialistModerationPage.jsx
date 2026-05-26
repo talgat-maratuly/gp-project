@@ -1,12 +1,13 @@
 import PartnerModerationPanel from '../components/PartnerModerationPanel'
 import { useLanguage } from '../i18n/LanguageContext'
 
-export default function PartnerModerationPage() {
+export default function SpecialistModerationPage() {
   const { t } = useLanguage()
   return (
     <PartnerModerationPanel
-      title={t('partner_moderation')}
-      subtitle={t('partner_moderation_desc')}
+      scope="specialist"
+      title={t('specialist_moderation')}
+      subtitle={t('specialist_moderation_desc')}
     />
   )
 }

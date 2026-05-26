@@ -42,6 +42,7 @@ export default function App() {
         <Route path="moderation" element={<Navigate to="/profile" replace state={{ noAccess: true }} />} />
         <Route path="moderation/*" element={<Navigate to="/profile" replace state={{ noAccess: true }} />} />
         <Route path="apply" element={<PartnerApplyPage />} />
+        <Route path="apply/specialist" element={<PartnerApplyPage specialistOnly />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route element={<PartnerAccessGate />}>
           <Route index element={<DashboardPage />} />
