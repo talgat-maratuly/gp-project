@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, getToken } from '@gp/shared/api'
 import {
@@ -27,7 +27,7 @@ export default function OfferingModerationPanel({ scope, title, subtitle, backTo
   const [rejectNote, setRejectNote] = useState('')
   const [rejectId, setRejectId] = useState(null)
 
-  const listOpts = scope ? { scope } : {}
+  const listOpts = useMemo(() => (scope ? { scope } : {}), [scope])
 
   const load = useCallback(async () => {
     if (isDemoMode() && !getToken()) {
