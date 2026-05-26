@@ -65,7 +65,7 @@ export default function ProfilePage() {
     setMsg('')
     const subserviceIds = [...picked]
     if (!subserviceIds.length) {
-      setMsg('Выберите хотя бы одну подуслугу')
+      setMsg('Кемінде бір қызмет түрін таңдаңыз')
       return
     }
     setSaving(true)
@@ -119,11 +119,11 @@ export default function ProfilePage() {
             disabled={loading}
             className="flex items-center gap-1 text-xs font-semibold text-emerald-400 hover:text-emerald-300 disabled:opacity-50"
           >
-            <Plus className="w-3.5 h-3.5" /> Добавить
+            <Plus className="w-3.5 h-3.5" /> Қызмет қосу
           </button>
         </div>
         <p className="text-[11px] text-slate-500 mb-3 leading-snug">
-          Заказы приходят только по позициям со статусом «Активна». Блокировка действует отдельно по каждой подуслуге, не на весь аккаунт.
+          Жаңа қызмет түрін қосқанда өтінім GP Admin модерациясына жіберіледі. Тапсырыс тек «Активна» статусы бар қызметтер бойынша келеді.
         </p>
         {offerings.length ? (
           <ul className="space-y-2 max-h-[40vh] overflow-y-auto pr-1">

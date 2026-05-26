@@ -1,8 +1,16 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { OrderStatus, PartnerStatus } from '@prisma/client';
+import {
+  OrderStatus,
+  PartnerOfferingStatus,
+  PartnerRole,
+  PartnerStatus,
+  PartnerType,
+  User,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PartnersService } from '../partners/partners.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { RegionAccessService } from '../common/region-access.service';
 import { UpdateOfferingStatusDto } from './dto/update-offering-status.dto';
 import { AdminAssignOrderDto } from './dto/admin-assign-order.dto';
 import { AdminUpdateOrderStatusDto } from './dto/admin-update-order-status.dto';
@@ -13,7 +21,20 @@ export class AdminService {
     private prisma: PrismaService,
     private partners: PartnersService,
     private notifications: NotificationsService,
+    private regionAccess: RegionAccessService,
   ) {}
+
+  private specialistPartnerWhere() {
+    return {
+      OR: [
+        { partnerRole: { in: [PartnerRole.SPECIALIST, PartnerRole.MIXED_PARTNER] } },
+        {
+          partnerRole: null,
+          OR: [{ partnerType: { not: PartnerType.SHOP } }, { partnerType: null }],
+        },
+      ],
+    };
+  }
 
   dashboard() {
     return Promise.all([
@@ -153,23 +174,40 @@ export class AdminService {
     });
   }
 
-  listOfferingsForModeration(status?: string) {
+  listOfferingsForModeration(
+    admin: User,
+    opts?: { status?: string; scope?: 'specialist' },
+  ) {
+    const regionId = this.regionAccess.regionWhere(admin).regionId;
     return this.prisma.partnerServiceOffering.findMany({
-      where: status ? { status: status as never } : undefined,
+      where: {
+        ...(opts?.status ? { status: opts.status as PartnerOfferingStatus } : {}),
+        partner: {
+          ...(regionId ? { regionId } : {}),
+          ...(opts?.scope === 'specialist' ? this.specialistPartnerWhere() : {}),
+        },
+      },
       include: {
         partner: {
-          include: { user: { select: { id: true, name: true, email: true } } },
+          include: {
+            user: { select: { id: true, name: true, email: true, phone: true } },
+            region: { select: { id: true, name: true, code: true } },
+          },
         },
       },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async updateOfferingStatus(offeringId: string, dto: UpdateOfferingStatusDto) {
+  async updateOfferingStatus(admin: User, offeringId: string, dto: UpdateOfferingStatusDto) {
     const offering = await this.prisma.partnerServiceOffering.findUnique({
       where: { id: offeringId },
+      include: { partner: { select: { regionId: true } } },
     });
     if (!offering) throw new NotFoundException('Предложение не найдено');
+    if (offering.partner.regionId) {
+      this.regionAccess.assertCanAccessRegion(admin, offering.partner.regionId);
+    }
 
     const updated = await this.prisma.partnerServiceOffering.update({
       where: { id: offeringId },

@@ -7,6 +7,7 @@ const PartnerOfferingStatusValue = {
   ACTIVE: 'ACTIVE',
   PENDING_MODERATION: 'PENDING_MODERATION',
   REJECTED: 'REJECTED',
+  TEMPORARILY_BLOCKED: 'TEMPORARILY_BLOCKED',
 } as const;
 
 @Injectable()
@@ -104,15 +105,30 @@ export class PartnersService {
     const existingMap = new Map(existing.map((e) => [e.subserviceId, e.status]));
 
     const toCreate = ids
-      .filter((sid) => !existingMap.get(sid))
+      .filter((sid) => !existingMap.has(sid))
       .map((sid) => ({
         partnerId: profile.id,
         subserviceId: sid,
         status: PartnerOfferingStatusValue.PENDING_MODERATION,
       }));
 
+    const toResubmit = ids.filter((sid) => {
+      const st = existingMap.get(sid);
+      return (
+        st === PartnerOfferingStatusValue.REJECTED ||
+        st === PartnerOfferingStatusValue.TEMPORARILY_BLOCKED
+      );
+    });
+
     if (toCreate.length) {
       await this.prisma.partnerServiceOffering.createMany({ data: toCreate });
+    }
+
+    if (toResubmit.length) {
+      await this.prisma.partnerServiceOffering.updateMany({
+        where: { partnerId: profile.id, subserviceId: { in: toResubmit } },
+        data: { status: PartnerOfferingStatusValue.PENDING_MODERATION, moderationNote: null },
+      });
     }
 
     await this.syncDirectionsFromOfferings(profile.id);

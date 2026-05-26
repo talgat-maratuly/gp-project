@@ -20,6 +20,7 @@ import MarketShopsPage from '../pages/MarketShopsPage'
 import MarketProductsPage from '../pages/MarketProductsPage'
 import MarketProductsModerationPage from '../pages/MarketProductsModerationPage'
 import OfferingModerationPage from '../pages/OfferingModerationPage'
+import SpecialistOfferingsModerationPage from '../pages/SpecialistOfferingsModerationPage'
 import MarketOrdersPage from '../pages/MarketOrdersPage'
 import MarketDeliveryPage from '../pages/MarketDeliveryPage'
 import ServiceProjectsAdminPage from '../pages/ServiceProjectsAdminPage'
@@ -55,6 +56,7 @@ export default function App() {
         <Route path="partners" element={<PartnersPage />} />
         <Route path="partners/moderation" element={<PartnerModerationPage />} />
         <Route path="specialists/moderation" element={<SpecialistModerationPage />} />
+        <Route path="specialists/offerings" element={<SpecialistOfferingsModerationPage />} />
         <Route path="services/moderation" element={<OfferingModerationPage />} />
         <Route path="services" element={<ServicesPage />} />
         <Route path="services/hunter-irrigation" element={<ServiceProjectsAdminPage type="hunter_irrigation" />} />

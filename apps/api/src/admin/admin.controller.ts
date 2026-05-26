@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Patch, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { Role, User } from '@prisma/client';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AdminService } from './admin.service';
 import { UpdateOfferingStatusDto } from './dto/update-offering-status.dto';
 import { AdminAssignOrderDto } from './dto/admin-assign-order.dto';
@@ -68,15 +69,21 @@ export class AdminController {
 
   @Get('offerings')
   @ApiQuery({ name: 'status', required: false })
-  listOfferings(@Query('status') status?: string) {
-    return this.admin.listOfferingsForModeration(status);
+  @ApiQuery({ name: 'scope', enum: ['specialist'], required: false })
+  listOfferings(
+    @CurrentUser() admin: User,
+    @Query('status') status?: string,
+    @Query('scope') scope?: 'specialist',
+  ) {
+    return this.admin.listOfferingsForModeration(admin, { status, scope });
   }
 
   @Patch('offerings/:offeringId')
   updateOfferingStatus(
+    @CurrentUser() admin: User,
     @Param('offeringId') offeringId: string,
     @Body() dto: UpdateOfferingStatusDto,
   ) {
-    return this.admin.updateOfferingStatus(offeringId, dto);
+    return this.admin.updateOfferingStatus(admin, offeringId, dto);
   }
 }

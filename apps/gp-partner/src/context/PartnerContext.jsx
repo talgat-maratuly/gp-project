@@ -381,7 +381,7 @@ export function PartnerProvider({ children }) {
     serviceAccess: profile.serviceAccess || [],
           }
         : u))
-      notify('Подуслуги отправлены на модерацию')
+      notify('Жаңа қызмет түрлері модерацияға жіберілді')
     },
     [notify],
   )

@@ -191,8 +191,11 @@ export const api = {
   adminModerateMarketProduct: (productId, body) =>
     patch(`/admin/market/products/${productId}`, body),
 
-  adminOfferings: (status) => {
-    const q = status ? `?status=${encodeURIComponent(status)}` : ''
+  adminOfferings: (status, opts = {}) => {
+    const params = new URLSearchParams()
+    if (status) params.set('status', status)
+    if (opts.scope) params.set('scope', opts.scope)
+    const q = params.toString() ? `?${params.toString()}` : ''
     return get(`/admin/offerings${q}`)
   },
 
