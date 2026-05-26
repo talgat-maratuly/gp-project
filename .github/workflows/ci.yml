@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -36,7 +37,13 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v5
+      # Fork PR: token cannot read base repo (403) — use PR head repo + SHA.
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
 
       - uses: actions/setup-node@v5
         with:
@@ -83,7 +90,12 @@ jobs:
             file: deploy/Dockerfile.frontend
             gp_app: admin
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
       - uses: docker/setup-buildx-action@v3
       - name: Build ${{ matrix.image }}
         uses: docker/build-push-action@v6
