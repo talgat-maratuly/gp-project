@@ -1,16 +1,16 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { api, getToken } from '@gp/shared/api'
+import { api } from '@gp/shared/api'
 import {
   getPartnerOfferingStatusLabel,
   getPartnerSubserviceLabel,
   PARTNER_OFFERING_STATUS_LABELS,
 } from '@gp/shared/constants'
 import { SERVICE_STATUS_SPEC, partnerStatusLabel } from '@gp/shared-core/statuses'
-import { isDemoMode } from '@gp/shared/demo'
 import { useAccess } from '../context/AccessContext'
 import { ACTIONS } from '../lib/permissions'
 import { useLanguage } from '../i18n/LanguageContext'
+import { useAdminModerationLoad } from '../hooks/useAdminModerationLoad'
 
 const TAB_IDS = ['PENDING_MODERATION', 'ACTIVE', 'REJECTED', 'TEMPORARILY_BLOCKED']
 
@@ -21,37 +21,17 @@ export default function OfferingModerationPanel({ scope, title, subtitle, backTo
   const { t } = useLanguage()
   const { can } = useAccess()
   const [tab, setTab] = useState('PENDING_MODERATION')
-  const [list, setList] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
   const [rejectNote, setRejectNote] = useState('')
   const [rejectId, setRejectId] = useState(null)
 
-  const listOpts = useMemo(() => (scope ? { scope } : {}), [scope])
-
-  const load = useCallback(async () => {
-    if (isDemoMode() && !getToken()) {
-      setList([])
-      setError(t('moderationApiOnly'))
-      return
-    }
-    setLoading(true)
-    setError('')
-    try {
-      setList(await api.adminOfferings(tab, listOpts))
-    } catch (e) {
-      setError(e?.message || t('loadError'))
-    } finally {
-      setLoading(false)
-    }
-  }, [tab, listOpts, t])
-
-  useEffect(() => {
-    load()
-  }, [load])
+  const { list, loading, error, setError, load } = useAdminModerationLoad({
+    tab,
+    scope,
+    fetchList: api.adminOfferings,
+    demoBlockedMessage: t('moderationApiOnly'),
+  })
 
   const setStatus = async (id, status, moderationNote) => {
-    setLoading(true)
     setError('')
     try {
       await api.adminUpdateOfferingStatus(id, {
@@ -63,8 +43,6 @@ export default function OfferingModerationPanel({ scope, title, subtitle, backTo
       await load()
     } catch (e) {
       setError(e?.message || t('actionError'))
-    } finally {
-      setLoading(false)
     }
   }
 

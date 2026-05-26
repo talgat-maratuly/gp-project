@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { api, getToken } from '@gp/shared/api'
+import { useMemo, useRef, useState } from 'react'
+import { api } from '@gp/shared/api'
 import {
   PARTNER_TYPES,
   PARTNER_ROLE_LABELS,
@@ -7,10 +7,10 @@ import {
   getPartnerSubserviceLabel,
 } from '@gp/shared/constants'
 import { partnerStatusLabel, SERVICE_STATUS_SPEC } from '@gp/shared-core/statuses'
-import { isDemoMode } from '@gp/shared/demo'
 import { useAccess } from '../context/AccessContext'
 import { ACTIONS } from '../lib/permissions'
 import { useLanguage } from '../i18n/LanguageContext'
+import { useAdminModerationLoad } from '../hooks/useAdminModerationLoad'
 
 const TAB_IDS = ['PENDING_REVIEW', 'NEEDS_REVISION', 'APPROVED', 'REJECTED', 'SUSPENDED']
 
@@ -23,42 +23,28 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
   const { t } = useLanguage()
   const { can } = useAccess()
   const [tab, setTab] = useState('PENDING_REVIEW')
-  const [list, setList] = useState([])
   const [selected, setSelected] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
   const [rejectReason, setRejectReason] = useState('')
   const [revisionComment, setRevisionComment] = useState('')
 
-  const listOpts = useMemo(() => (scope ? { scope } : {}), [scope])
+  const selectedIdRef = useRef(null)
+  selectedIdRef.current = selected?.id
 
-  const selectedId = selected?.id
-
-  const load = useCallback(async () => {
-    if (isDemoMode() && !getToken()) {
-      setList([])
-      setError(t('moderationApiOnly'))
-      return
-    }
-    setLoading(true)
-    setError('')
-    try {
-      const rows = await api.adminModerationPartners(tab, listOpts)
-      setList(rows)
-      if (selectedId) {
-        const fresh = rows.find((r) => r.id === selectedId)
-        if (fresh) setSelected(fresh)
-      }
-    } catch (e) {
-      setError(e?.message || t('loadError'))
-    } finally {
-      setLoading(false)
-    }
-  }, [tab, listOpts, selectedId, t])
-
-  useEffect(() => {
-    load()
-  }, [load])
+  const { list, loading, error, setError, load } = useAdminModerationLoad({
+    tab,
+    scope,
+    fetchList: api.adminModerationPartners,
+    demoBlockedMessage: t('moderationApiOnly'),
+    onLoaded: (rows) => {
+      const id = selectedIdRef.current
+      if (!id) return
+      const fresh = rows.find((r) => r.id === id)
+      if (!fresh) return
+      setSelected((prev) => (
+        prev?.id === fresh.id && prev?.updatedAt === fresh.updatedAt ? prev : fresh
+      ))
+    },
+  })
 
   const openDetail = async (id) => {
     try {
