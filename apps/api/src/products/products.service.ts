@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PartnersService } from '../partners/partners.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { GP_SHOP_SUBSERVICE_ID } from '../common/partner-offerings.util';
+import { assertApprovedStoreForOwner } from '../common/store-approval.util';
 
 @Injectable()
 export class ProductsService {
@@ -30,6 +31,7 @@ export class ProductsService {
 
   async create(userId: string, dto: CreateProductDto) {
     const profile = await this.partners.ensurePartnerProfile(userId);
+    await assertApprovedStoreForOwner(this.prisma, userId);
 
     const shopOffering = await this.prisma.partnerServiceOffering.findUnique({
       where: {

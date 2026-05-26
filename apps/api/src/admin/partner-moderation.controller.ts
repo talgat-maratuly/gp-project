@@ -26,8 +26,11 @@ export class PartnerModerationController {
     @Query('status') status?: PartnerStatus,
     @Query('scope') scope?: 'specialist' | 'shop',
     @Query('partnerRole') partnerRole?: PartnerRole,
+    @Query('regionId') regionId?: string,
+    @Query('q') q?: string,
+    @Query('city') city?: string,
   ) {
-    return this.moderation.list(admin, { status, scope, partnerRole });
+    return this.moderation.list(admin, { status, scope, partnerRole, regionId, q, city });
   }
 
   @Get(':id')

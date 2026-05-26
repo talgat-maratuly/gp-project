@@ -29,7 +29,9 @@ const PROFILE_STATUS_HINT = {
 export default function ProfilePage() {
   const location = useLocation()
   const { user, logout, loading, addPartnerOfferings } = usePartner()
-  const { shop, service } = getPartnerAccess(user || {})
+  const { shop, shopProducts, service } = getPartnerAccess(user || {}, {
+    storeUiState: user?.storeUiState,
+  })
   const [showAdd, setShowAdd] = useState(false)
   const [picked, setPicked] = useState(() => new Set())
   const [saving, setSaving] = useState(false)
@@ -258,12 +260,22 @@ export default function ProfilePage() {
               Мой магазин
             </Link>
           </li>
-          <li>
-            <Link to="/catalog/add" className="partner-card p-4 flex items-center gap-3">
-              <Package className="w-5 h-5 text-emerald-400" />
-              Добавить товар
-            </Link>
-          </li>
+          {shopProducts ? (
+            <li>
+              <Link to="/catalog/add" className="partner-card p-4 flex items-center gap-3">
+                <Package className="w-5 h-5 text-emerald-400" />
+                Добавить товар
+              </Link>
+            </li>
+          ) : (
+            <li className="partner-card p-4 text-sm partner-muted">
+              {user?.storeUiState === 'UNDER_REVIEW'
+                ? 'Магазин на проверке — товары пока недоступны'
+                : user?.storeUiState === 'REJECTED'
+                  ? 'Магазин отклонён — подайте заявку снова в «Мой магазин»'
+                  : 'Зарегистрируйте магазин в разделе «Мой магазин»'}
+            </li>
+          )}
         </ul>
       )}
       {service && !shop && (

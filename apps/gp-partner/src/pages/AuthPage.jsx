@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Check, ChevronLeft, ChevronRight } from 'lucide-react'
 import {
   PARTNER_REGISTRATION_GROUPS,
@@ -605,6 +605,7 @@ export default function AuthPage({ initialMode = 'register' }) {
               autoComplete="current-password"
             />
             <p className="text-[11px] text-slate-500">API: partner@gp.kz / password123 · Demo: uralsk_partner / 1234</p>
+            <Link to="/forgot-password" className="text-xs text-emerald-400 hover:underline">Забыли пароль?</Link>
           </div>
         )}
 

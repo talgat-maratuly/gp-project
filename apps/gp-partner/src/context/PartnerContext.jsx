@@ -4,7 +4,9 @@ import { isDemoMode, subscribeGlobalStore, syncFromHub } from '@gp/shared/demo'
 import {
   resolvePartnerRoleFromGroups,
   resolvePartnerTypeFromGroups,
+  getPartnerAccess,
 } from '@gp/shared/constants'
+import { getStoreUiState } from '@gp/shared-core/storeUi'
 import { buildTestPartnerCredentials } from '@gp/shared/utils'
 import {
   activateTestMode,
@@ -192,9 +194,26 @@ export function PartnerProvider({ children }) {
     }
   }, [])
 
+  const refreshStores = useCallback(async () => {
+    if (!getToken() || isDemoMode()) return
+    try {
+      const stores = await api.listPartnerStores()
+      const { state } = getStoreUiState(stores)
+      setUser((u) => (u ? { ...u, stores, storeUiState: state } : u))
+    } catch {
+      /* store optional until shop flow */
+    }
+  }, [])
+
   const refreshAll = useCallback(async () => {
-    await Promise.all([refreshOrders(), refreshProducts(), refreshTransactions(), syncPartner()])
-  }, [refreshOrders, refreshProducts, refreshTransactions, syncPartner])
+    await Promise.all([
+      refreshOrders(),
+      refreshProducts(),
+      refreshTransactions(),
+      syncPartner(),
+      refreshStores(),
+    ])
+  }, [refreshOrders, refreshProducts, refreshTransactions, syncPartner, refreshStores])
 
   useEffect(() => {
     if (!user?.id) return
@@ -439,6 +458,10 @@ export function PartnerProvider({ children }) {
   const addProduct = useCallback(async (p) => {
     if (!getToken()) throw new Error('Сессия истекла. Войдите снова.')
     if (!user?.partnerProfileId) throw new Error('Профиль партнёра не найден')
+    const access = getPartnerAccess(user || {})
+    if (!access.shopProducts) {
+      throw new Error('Добавление товаров доступно после одобрения магазина')
+    }
     const name = String(p.name || '').trim()
     if (!name) throw new Error('Укажите название товара')
     const price = Number(p.price)
@@ -494,7 +517,7 @@ export function PartnerProvider({ children }) {
     updateOrderStatus: (orderId, status) => advanceOrder(orderId, status),
     isDemoMode: isDemoMode(),
     refreshMarket: () => {},
-    topupBalance, addProduct, refreshAll, updateExecutorLocation, notify,
+    topupBalance, addProduct, refreshAll, refreshStores, updateExecutorLocation, notify,
     clearToast: () => setToast(null),
   }
 

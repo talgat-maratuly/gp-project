@@ -28,6 +28,12 @@ export const api = {
       return r
     }),
 
+  forgotPassword: (body) => post('/auth/forgot-password', body, { auth: false }),
+
+  verifyResetOtp: (body) => post('/auth/verify-reset-otp', body, { auth: false }),
+
+  resetPassword: (body) => post('/auth/reset-password', body, { auth: false }),
+
   logout: () => {
     clearToken()
     clearRefreshToken()
@@ -95,6 +101,9 @@ export const api = {
     if (status) params.set('status', status)
     if (opts.scope) params.set('scope', opts.scope)
     if (opts.partnerRole) params.set('partnerRole', opts.partnerRole)
+    if (opts.regionId) params.set('regionId', opts.regionId)
+    if (opts.city) params.set('city', opts.city)
+    if (opts.q) params.set('q', opts.q)
     const q = params.toString() ? `?${params.toString()}` : ''
     return get(`/admin/moderation/partners${q}`)
   },
@@ -186,10 +195,24 @@ export const api = {
   adminUpdateOrderStatus: (orderId, body) =>
     patch(`/admin/orders/${orderId}/status`, body),
 
-  adminMarketProducts: () => get('/admin/market/products'),
+  adminMarketProducts: (opts = {}) => {
+    const params = new URLSearchParams()
+    if (opts.regionId) params.set('regionId', opts.regionId)
+    if (opts.storeId) params.set('storeId', opts.storeId)
+    if (opts.q) params.set('q', opts.q)
+    if (opts.isActive !== undefined) params.set('isActive', String(opts.isActive))
+    const q = params.toString() ? `?${params.toString()}` : ''
+    return get(`/admin/market/products${q}`)
+  },
+
+  adminCreateMarketProduct: (body) => post('/admin/market/products', body),
 
   adminModerateMarketProduct: (productId, body) =>
     patch(`/admin/market/products/${productId}`, body),
+
+  listPartnerStores: () => get('/partner/stores'),
+
+  createPartnerStore: (body) => post('/partner/stores', body),
 
   adminOfferings: (status, opts = {}) => {
     const params = new URLSearchParams()

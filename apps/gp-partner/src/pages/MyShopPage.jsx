@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Plus, Store } from 'lucide-react'
 import { MARKET_CATEGORIES, PRODUCT_UNITS } from '@gp/shared/constants'
+import { api } from '@gp/shared/api'
 import { formatPrice } from '@gp/shared/utils'
 import { useLanguage } from '../i18n'
 import { usePartner } from '../context/PartnerContext'
@@ -17,7 +18,7 @@ const PATH_TAB = {
 export default function MyShopPage() {
   const { t } = useLanguage()
   const { pathname } = useLocation()
-  const { isDemoMode, notify, refreshMarket } = usePartner()
+  const { isDemoMode, notify, refreshMarket, user, refreshStores } = usePartner()
   const [shop, setShop] = useState(null)
   const [products, setProducts] = useState([])
   const [orders, setOrders] = useState([])
@@ -34,6 +35,12 @@ export default function MyShopPage() {
   const [productForm, setProductForm] = useState({
     name: '', categoryId: 'annuals', price: '', quantity: '10', unit: 'шт', description: '',
   })
+  const [apiShopName, setApiShopName] = useState('')
+  const [apiSaving, setApiSaving] = useState(false)
+
+  useEffect(() => {
+    if (!isDemoMode) refreshStores?.()
+  }, [isDemoMode, refreshStores])
 
   const load = async () => {
     if (!isDemoMode) return
@@ -99,11 +106,50 @@ export default function MyShopPage() {
     await load()
   }
 
+  const registerApiStore = async () => {
+    if (!apiShopName.trim()) return
+    setApiSaving(true)
+    try {
+      await api.createPartnerStore({ name: apiShopName.trim() })
+      setApiShopName('')
+      await refreshStores?.()
+      notify(t('market_shop_created'))
+    } catch (err) {
+      notify(err?.message || t('error'), 'error')
+    } finally {
+      setApiSaving(false)
+    }
+  }
+
   if (!isDemoMode) {
+    const storeState = user?.storeUiState
     return (
-      <div className="partner-card p-6 text-center partner-muted">
-        <p>{t('market_api_only')}</p>
-        <Link to="/catalog/add" className="text-emerald-600 font-semibold mt-2 inline-block">{t('nav_add_product')}</Link>
+      <div className="partner-card p-6 text-center partner-muted space-y-3">
+        {storeState === 'NOT_REGISTERED' && (
+          <>
+            <p>{t('market_no_shop')}</p>
+            <input
+              className="gp-input-kaspi w-full text-left"
+              placeholder={t('market_shop_name')}
+              value={apiShopName}
+              onChange={(e) => setApiShopName(e.target.value)}
+            />
+            <button
+              type="button"
+              disabled={apiSaving}
+              className="w-full py-3 rounded-xl partner-gradient font-bold text-white disabled:opacity-50"
+              onClick={registerApiStore}
+            >
+              {apiSaving ? '…' : t('store_register')}
+            </button>
+          </>
+        )}
+        {storeState === 'UNDER_REVIEW' && <p>{t('store_under_review')}</p>}
+        {storeState === 'REJECTED' && <p>{t('store_rejected')}</p>}
+        {storeState === 'APPROVED' && (
+          <Link to="/catalog/add" className="text-emerald-600 font-semibold inline-block">{t('nav_add_product')}</Link>
+        )}
+        {!storeState && <p>{t('market_api_only')}</p>}
       </div>
     )
   }

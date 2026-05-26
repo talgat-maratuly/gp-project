@@ -13,7 +13,18 @@ import AccessDenied from './AccessDenied'
 export function PartnerTypeRoute({ shopOnly = false, serviceOnly = false }) {
   const { user } = usePartner()
   const { pathname } = useLocation()
-  const access = getPartnerAccess(user || {}, { isDemoMode: isDemoMode() })
+  const access = getPartnerAccess(user || {}, {
+    isDemoMode: isDemoMode(),
+    storeUiState: user?.storeUiState,
+  })
+
+  if (pathname.startsWith('/catalog/add') && access.shop && !access.shopProducts) {
+    return (
+      <AccessDenied
+        message="Добавление товаров доступно после регистрации и одобрения магазина администратором GP."
+      />
+    )
+  }
 
   if (shopOnly && !access.shop) {
     return (

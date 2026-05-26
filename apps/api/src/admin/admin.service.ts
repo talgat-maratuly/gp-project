@@ -175,13 +175,69 @@ export class AdminService {
     return updated;
   }
 
-  listMarketProducts() {
+  listMarketProducts(opts?: { regionId?: string; storeId?: string; q?: string; isActive?: boolean }) {
+    const search = opts?.q?.trim();
     return this.prisma.marketProduct.findMany({
+      where: {
+        ...(opts?.regionId ? { regionId: opts.regionId } : {}),
+        ...(opts?.storeId ? { storeId: opts.storeId } : {}),
+        ...(opts?.isActive !== undefined ? { isActive: opts.isActive } : {}),
+        ...(search
+          ? {
+              OR: [
+                { name: { contains: search, mode: 'insensitive' } },
+                { description: { contains: search, mode: 'insensitive' } },
+              ],
+            }
+          : {}),
+      },
       include: {
         store: { select: { id: true, name: true, status: true, regionId: true } },
         stock: true,
       },
       orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async createMarketProduct(body: {
+    storeId: string;
+    name: string;
+    description?: string;
+    categoryId: string;
+    price: number;
+    quantity: number;
+    images?: string[];
+    isActive?: boolean;
+  }) {
+    const store = await this.prisma.store.findUnique({ where: { id: body.storeId } });
+    if (!store) throw new NotFoundException('Магазин не найден');
+
+    return this.prisma.$transaction(async (tx) => {
+      const product = await tx.marketProduct.create({
+        data: {
+          storeId: store.id,
+          regionId: store.regionId,
+          name: body.name.trim(),
+          description: body.description?.trim() || '',
+          categoryId: body.categoryId,
+          price: body.price,
+          images: body.images ?? [],
+          isActive: body.isActive ?? true,
+        },
+      });
+      await tx.stock.create({
+        data: {
+          productId: product.id,
+          storeId: store.id,
+          regionId: store.regionId,
+          quantity: body.quantity,
+          reservedQuantity: 0,
+        },
+      });
+      return tx.marketProduct.findUnique({
+        where: { id: product.id },
+        include: { store: true, stock: true },
+      });
     });
   }
 

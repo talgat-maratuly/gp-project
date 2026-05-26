@@ -11,6 +11,7 @@
     "./permissions": "./src/permissions.js",
     "./api-contracts": "./src/api-contracts.js",
     "./ecosystem-types": "./src/ecosystem-types.js",
-    "./validation": "./src/validation.js"
+    "./validation": "./src/validation.js",
+    "./storeUi": "./src/storeUi.js"
   }
 }

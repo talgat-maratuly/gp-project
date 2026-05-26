@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { BUSINESS_FORMS } from '@gp/shared/constants'
 import { useService } from '../../context/ServiceContext'
 import { useLanguage } from '../../i18n'
@@ -202,6 +202,12 @@ export default function ClientAuthPage() {
               autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
             />
           </label>
+
+          {mode === 'login' && (
+            <Link to="/forgot-password" className="text-sm text-[var(--gp-text-muted)] hover:text-[var(--gp-text)]">
+              {t('auth_forgot_link')}
+            </Link>
+          )}
 
           {error && <p className="text-red-600 text-sm">{error}</p>}
 

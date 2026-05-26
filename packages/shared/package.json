@@ -28,7 +28,8 @@
     "./testMode": "./src/testMode/index.js",
     "./ecosystem": "./src/ecosystem/index.js",
     "./i18n": "./src/i18n/index.js",
-    "./components/LanguageSwitcher": "./src/components/LanguageSwitcher.jsx"
+    "./components/LanguageSwitcher": "./src/components/LanguageSwitcher.jsx",
+    "./auth/passwordRecovery": "./src/auth/passwordRecovery.jsx"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",

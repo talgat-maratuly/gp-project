@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Shield } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../i18n/LanguageContext'
@@ -38,6 +38,7 @@ export default function LoginPage() {
         <form onSubmit={submit} className="space-y-4">
           <label className="block"><span className="text-xs text-slate-400 mb-1 block">{t('username')}</span><input className="admin-input" value={username} onChange={(e) => setUsername(e.target.value)} /></label>
           <label className="block"><span className="text-xs text-slate-400 mb-1 block">{t('password')}</span><input type="password" className="admin-input" value={password} onChange={(e) => setPassword(e.target.value)} /></label>
+          <Link to="/forgot-password" className="text-xs text-sky-400 hover:underline">{t('auth_forgot_link')}</Link>
           {error && <p className="text-red-400 text-sm">{error}</p>}
           <button type="submit" className="w-full py-3 rounded-xl bg-sky-600 hover:bg-sky-500 font-bold text-sm">{t('login')}</button>
         </form>

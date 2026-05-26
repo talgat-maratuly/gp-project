@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { StoreStatus, User } from '@prisma/client';
 import { RegionAccessService } from '../common/region-access.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -47,6 +47,9 @@ export class PartnerMarketService {
 
     if (store.regionId !== regionId) {
       throw new BadRequestException('Магазин не в вашем регионе');
+    }
+    if (store.status !== StoreStatus.APPROVED && store.status !== StoreStatus.ACTIVE) {
+      throw new ForbiddenException('Добавление товаров доступно после одобрения магазина');
     }
 
     return this.prisma.$transaction(async (tx) => {

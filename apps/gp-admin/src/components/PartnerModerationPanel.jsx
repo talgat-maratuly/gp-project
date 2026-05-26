@@ -11,6 +11,7 @@ import { useAccess } from '../context/AccessContext'
 import { ACTIONS } from '../lib/permissions'
 import { useLanguage } from '../i18n/LanguageContext'
 import { useAdminModerationLoad } from '../hooks/useAdminModerationLoad'
+import AdminListFilters from './AdminListFilters'
 
 const TAB_IDS = ['PENDING_REVIEW', 'NEEDS_REVISION', 'APPROVED', 'REJECTED', 'SUSPENDED']
 
@@ -26,13 +27,18 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
   const [selected, setSelected] = useState(null)
   const [rejectReason, setRejectReason] = useState('')
   const [revisionComment, setRevisionComment] = useState('')
+  const [filters, setFilters] = useState({})
+  const [acting, setActing] = useState(false)
 
   const selectedIdRef = useRef(null)
   selectedIdRef.current = selected?.id
 
+  const listOpts = useMemo(() => ({ ...(scope ? { scope } : {}), ...filters }), [scope, filters])
+
   const { list, loading, error, setError, load } = useAdminModerationLoad({
     tab,
     scope,
+    listOpts,
     fetchList: api.adminModerationPartners,
     demoBlockedMessage: t('moderationApiOnly'),
     onLoaded: (rows) => {
@@ -59,7 +65,7 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
 
   const act = async (fn) => {
     if (!selected) return
-    setLoading(true)
+    setActing(true)
     try {
       const row = await fn(selected.id)
       setSelected(row)
@@ -67,7 +73,7 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
     } catch (e) {
       setError(e?.message || t('actionError'))
     } finally {
-      setLoading(false)
+      setActing(false)
     }
   }
 
@@ -85,7 +91,7 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
   }, [selected])
 
   const actOffering = async (offeringId, status, moderationNote) => {
-    setLoading(true)
+    setActing(true)
     setError('')
     try {
       await api.adminUpdateOfferingStatus(offeringId, {
@@ -97,7 +103,7 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
     } catch (e) {
       setError(e?.message || t('actionError'))
     } finally {
-      setLoading(false)
+      setActing(false)
     }
   }
 
@@ -112,7 +118,10 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
         <p className="text-sm text-slate-400">{subtitle}</p>
       </div>
 
+      <AdminListFilters value={filters} onChange={setFilters} />
+
       {error && <p className="text-sm text-red-400">{error}</p>}
+      {(loading || acting) && <p className="text-sm text-slate-500">{t('loading')}</p>}
 
       <div className="flex flex-wrap gap-2">
         {TAB_IDS.map((id) => (

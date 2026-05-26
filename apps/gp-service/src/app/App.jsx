@@ -21,11 +21,14 @@ import FurnitureProjectWizard from '../features/furniture/FurnitureProjectWizard
 import FurnitureProjectDetails from '../features/furniture/FurnitureProjectDetails'
 import ClientAuthPage from '../features/auth/ClientAuthPage'
 import QrPublicPage from '../features/qr/QrPublicPage'
+import { ForgotPasswordScreen, ResetPasswordScreen } from '@gp/shared/auth/passwordRecovery'
 
 export default function App() {
   return (
     <Routes>
       <Route path="/qr/:qrCode" element={<QrPublicPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordScreen loginPath="/login" resetPath="/reset-password" />} />
+      <Route path="/reset-password" element={<ResetPasswordScreen loginPath="/login" />} />
       <Route element={<AppShell />}>
         <Route index element={<HomePage />} />
         <Route path="shop" element={<CatalogPage />} />

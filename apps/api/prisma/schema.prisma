@@ -167,6 +167,7 @@ model User {
   partnerProfile PartnerProfile?
   refreshTokens  AuthRefreshToken[]
   devices        UserDevice[]
+  passwordResets PasswordResetChallenge[]
   ownedStores    Store[]          @relation("StoreOwner")
   marketOrders   MarketOrder[]
   approvedPartners PartnerProfile[] @relation("PartnerApprovedBy")
@@ -682,6 +683,28 @@ model QRServiceOrder {
 enum OtpChannel {
   sms
   whatsapp
+}
+
+enum PasswordResetChannel {
+  EMAIL
+  PHONE
+}
+
+model PasswordResetChallenge {
+  id             String               @id @default(uuid())
+  channel        PasswordResetChannel
+  email          String?
+  phone          String?
+  userId         String?
+  user           User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  otpHash        String?
+  resetTokenHash String?              @unique
+  expiresAt      DateTime
+  usedAt         DateTime?
+  createdAt      DateTime             @default(now())
+
+  @@index([email, createdAt])
+  @@index([phone, createdAt])
 }
 
 model OtpChallenge {

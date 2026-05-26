@@ -53,13 +53,36 @@ export class PartnerModerationAdminService {
 
   list(
     admin: User,
-    opts?: { status?: PartnerStatus; scope?: 'specialist' | 'shop'; partnerRole?: PartnerRole },
+    opts?: {
+      status?: PartnerStatus;
+      scope?: 'specialist' | 'shop';
+      partnerRole?: PartnerRole;
+      regionId?: string;
+      q?: string;
+      city?: string;
+    },
   ) {
+    const search = opts?.q?.trim();
     return this.prisma.partnerProfile.findMany({
       where: {
         ...this.regionFilter(admin),
         ...this.roleScopeWhere(opts?.scope, opts?.partnerRole),
         ...(opts?.status ? { status: opts.status } : {}),
+        ...(opts?.regionId ? { regionId: opts.regionId } : {}),
+        ...(opts?.city
+          ? { city: { contains: opts.city.trim(), mode: 'insensitive' as const } }
+          : {}),
+        ...(search
+          ? {
+              OR: [
+                { companyName: { contains: search, mode: 'insensitive' } },
+                { company: { contains: search, mode: 'insensitive' } },
+                { fullName: { contains: search, mode: 'insensitive' } },
+                { user: { email: { contains: search, mode: 'insensitive' } } },
+                { user: { phone: { contains: search } } },
+              ],
+            }
+          : {}),
       },
       include: {
         user: { select: { id: true, email: true, name: true, phone: true } },

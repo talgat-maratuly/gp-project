@@ -8,12 +8,16 @@ import { isDemoMode } from '@gp/shared/demo'
 export function useAdminModerationLoad({
   tab,
   scope,
+  listOpts: listOptsProp,
   fetchList,
   enabled = true,
   demoBlockedMessage = '',
   onLoaded,
 }) {
-  const listOpts = useMemo(() => (scope ? { scope } : {}), [scope])
+  const listOpts = useMemo(
+    () => ({ ...(scope ? { scope } : {}), ...(listOptsProp || {}) }),
+    [scope, listOptsProp],
+  )
   const [list, setList] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')

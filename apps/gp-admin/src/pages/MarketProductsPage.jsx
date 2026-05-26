@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { MARKET_CATEGORIES } from '@gp/shared/constants'
 import { useAccess } from '../context/AccessContext'
 import { useStore } from '../context/StoreContext'
@@ -14,7 +15,12 @@ export default function MarketProductsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">{t('market_products')}</h1>
+      <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
+        <h1 className="text-2xl font-bold">{t('market_products')}</h1>
+        <Link to="/market/products/new" className="text-sm font-bold text-sky-400 px-3 py-2 rounded-lg border border-sky-500/30">
+          + {t('save')}
+        </Link>
+      </div>
       <select className="mb-4 bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-sm" value={cat} onChange={(e) => setCat(e.target.value)}>
         <option value="all">{t('all')}</option>
         {MARKET_CATEGORIES.map((c) => (

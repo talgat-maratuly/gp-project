@@ -8,7 +8,15 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { AccountType, PartnerRole, PartnerStatus, PartnerType, Role } from '@prisma/client';
+import { createHash, randomBytes } from 'crypto';
+import {
+  AccountType,
+  PartnerRole,
+  PartnerStatus,
+  PartnerType,
+  PasswordResetChannel,
+  Role,
+} from '@prisma/client';
 import {
   normalizePartnerDocuments,
   validatePartnerRegistration,
@@ -17,7 +25,15 @@ import { PrismaService } from '../prisma/prisma.service';
 import { RegisterClientDto } from './dto/register-client.dto';
 import { RegisterPartnerDto } from './dto/register-partner.dto';
 import { LoginDto } from './dto/login.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { VerifyResetOtpDto } from './dto/verify-reset-otp.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { PartnersService } from '../partners/partners.service';
+import { generateOtpCode, hashOtp, normalizePhone } from './mobile-auth.util';
+
+const RESET_OTP_TTL_MS = 10 * 60 * 1000;
+const RESET_TOKEN_TTL_MS = 15 * 60 * 1000;
+const RESET_COOLDOWN_MS = 60 * 1000;
 
 @Injectable()
 export class AuthService {
@@ -216,5 +232,147 @@ export class AuthService {
     if (!user) return null;
     const { passwordHash: _, ...safe } = user;
     return safe;
+  }
+
+  private hashResetToken(token: string) {
+    return createHash('sha256').update(token).digest('hex');
+  }
+
+  private newResetToken() {
+    return randomBytes(32).toString('base64url');
+  }
+
+  private async resolveUserForReset(dto: { email?: string; phone?: string }) {
+    const email = dto.email?.trim().toLowerCase();
+    let phone: string | undefined;
+    if (dto.phone?.trim()) {
+      try {
+        phone = normalizePhone(dto.phone);
+      } catch {
+        throw new BadRequestException('Некорректный номер телефона');
+      }
+    }
+    if (!email && !phone) {
+      throw new BadRequestException('Укажите email или телефон');
+    }
+    const user = email
+      ? await this.prisma.user.findUnique({ where: { email } })
+      : await this.prisma.user.findFirst({ where: { phone } });
+    return { user, email, phone };
+  }
+
+  /** Всегда ok — не раскрываем наличие аккаунта */
+  async forgotPassword(dto: ForgotPasswordDto) {
+    const { user, email, phone } = await this.resolveUserForReset(dto);
+    if (!user) {
+      return { ok: true, message: 'Если аккаунт найден, код отправлен' };
+    }
+
+    const channel = email ? PasswordResetChannel.EMAIL : PasswordResetChannel.PHONE;
+    const lookup = email ? { email } : { phone: phone! };
+    const recent = await this.prisma.passwordResetChallenge.findFirst({
+      where: { ...lookup, createdAt: { gt: new Date(Date.now() - RESET_COOLDOWN_MS) }, usedAt: null },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (recent) {
+      throw new BadRequestException('Подождите минуту перед повторной отправкой');
+    }
+
+    const otp = generateOtpCode();
+    const resetToken = this.newResetToken();
+    await this.prisma.passwordResetChallenge.create({
+      data: {
+        channel,
+        email: email || null,
+        phone: phone || null,
+        userId: user.id,
+        otpHash: hashOtp(otp),
+        resetTokenHash: this.hashResetToken(resetToken),
+        expiresAt: new Date(Date.now() + RESET_OTP_TTL_MS),
+      },
+    });
+
+    const devPayload = { email, phone, otp, resetToken };
+    if (process.env.NODE_ENV !== 'production') {
+      this.logger.log(`password-reset dev ${JSON.stringify(devPayload)}`);
+    } else {
+      const webhook = process.env.PASSWORD_RESET_WEBHOOK_URL || process.env.OTP_WEBHOOK_URL;
+      if (webhook) {
+        await fetch(webhook, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, phone, otp, channel }),
+        }).catch(() => {});
+      }
+    }
+
+    return {
+      ok: true,
+      channel: channel.toLowerCase(),
+      expiresInSec: RESET_OTP_TTL_MS / 1000,
+      message: 'Если аккаунт найден, код отправлен',
+      ...(process.env.NODE_ENV !== 'production' ? { devCode: otp, devResetToken: resetToken } : {}),
+    };
+  }
+
+  async verifyResetOtp(dto: VerifyResetOtpDto) {
+    const { user, email, phone } = await this.resolveUserForReset(dto);
+    if (!user) throw new BadRequestException('Неверный код');
+
+    const challenge = await this.prisma.passwordResetChallenge.findFirst({
+      where: {
+        userId: user.id,
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+        ...(email ? { email } : { phone }),
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!challenge?.otpHash || challenge.otpHash !== hashOtp(dto.otp.trim())) {
+      throw new BadRequestException('Неверный или просроченный код');
+    }
+
+    const resetToken = this.newResetToken();
+    await this.prisma.passwordResetChallenge.update({
+      where: { id: challenge.id },
+      data: {
+        resetTokenHash: this.hashResetToken(resetToken),
+        expiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MS),
+      },
+    });
+
+    return {
+      ok: true,
+      resetToken,
+      ...(process.env.NODE_ENV !== 'production' ? { devResetToken: resetToken } : {}),
+    };
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const tokenHash = this.hashResetToken(dto.resetToken.trim());
+    const challenge = await this.prisma.passwordResetChallenge.findFirst({
+      where: {
+        resetTokenHash: tokenHash,
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+    });
+    if (!challenge?.userId) {
+      throw new BadRequestException('Ссылка или код восстановления недействительны');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: challenge.userId },
+        data: { passwordHash },
+      }),
+      this.prisma.passwordResetChallenge.update({
+        where: { id: challenge.id },
+        data: { usedAt: new Date() },
+      }),
+    ]);
+
+    return { ok: true, message: 'Пароль обновлён' };
   }
 }

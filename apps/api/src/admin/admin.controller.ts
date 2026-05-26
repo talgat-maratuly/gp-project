@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Role, User } from '@prisma/client';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -7,6 +7,7 @@ import { UpdateOfferingStatusDto } from './dto/update-offering-status.dto';
 import { AdminAssignOrderDto } from './dto/admin-assign-order.dto';
 import { AdminUpdateOrderStatusDto } from './dto/admin-update-order-status.dto';
 import { ModerateMarketProductDto } from './dto/moderate-market-product.dto';
+import { CreateAdminMarketProductDto } from './dto/create-admin-market-product.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -55,8 +56,24 @@ export class AdminController {
   }
 
   @Get('market/products')
-  listMarketProducts() {
-    return this.admin.listMarketProducts();
+  @ApiQuery({ name: 'regionId', required: false })
+  @ApiQuery({ name: 'storeId', required: false })
+  @ApiQuery({ name: 'q', required: false })
+  @ApiQuery({ name: 'isActive', required: false })
+  listMarketProducts(
+    @Query('regionId') regionId?: string,
+    @Query('storeId') storeId?: string,
+    @Query('q') q?: string,
+    @Query('isActive') isActive?: string,
+  ) {
+    const active =
+      isActive === 'true' ? true : isActive === 'false' ? false : undefined;
+    return this.admin.listMarketProducts({ regionId, storeId, q, isActive: active });
+  }
+
+  @Post('market/products')
+  createMarketProduct(@Body() dto: CreateAdminMarketProductDto) {
+    return this.admin.createMarketProduct(dto);
   }
 
   @Patch('market/products/:productId')

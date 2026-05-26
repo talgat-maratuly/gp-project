@@ -2,6 +2,8 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../i18n/LanguageContext'
 import LoginPage from '../pages/LoginPage'
+import MarketProductCreatePage from '../pages/MarketProductCreatePage'
+import { ForgotPasswordScreen, ResetPasswordScreen } from '@gp/shared/auth/passwordRecovery'
 import Shell from '../layout/Shell'
 import DashboardPage from '../pages/DashboardPage'
 import FranchisesPage from '../pages/FranchisesPage'
@@ -41,6 +43,8 @@ export default function App() {
     return (
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordScreen loginPath="/login" resetPath="/reset-password" className="min-h-screen flex items-center" />} />
+        <Route path="/reset-password" element={<ResetPasswordScreen loginPath="/login" className="min-h-screen flex items-center" />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     )
@@ -70,6 +74,7 @@ export default function App() {
         <Route path="market" element={<MarketDashboardPage />} />
         <Route path="market/shops" element={<MarketShopsPage />} />
         <Route path="market/products" element={<MarketProductsPage />} />
+        <Route path="market/products/new" element={<MarketProductCreatePage />} />
         <Route path="market/products/moderation" element={<MarketProductsModerationPage />} />
         <Route path="market/orders" element={<MarketOrdersPage />} />
         <Route path="market/delivery" element={<MarketDeliveryPage />} />

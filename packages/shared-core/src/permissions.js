@@ -22,15 +22,19 @@ export function canAccessServiceModule(partnerRole, partnerStatus) {
   return false
 }
 
-export function getPartnerAccess(user = {}, { isDemoMode = false } = {}) {
+export function getPartnerAccess(user = {}, { isDemoMode = false, storeUiState = null } = {}) {
   const partnerType =
     user.partnerType || (isDemoMode && !user.partnerRole ? 'LAWN_MOWING' : null)
   const role = user.partnerRole || (partnerType === 'SHOP' ? PARTNER_ROLES.SHOP : PARTNER_ROLES.SPECIALIST)
   const status = user.partnerStatus
+  const roleShop = canAccessShopModule(role, status)
+  const shopProducts = roleShop && storeUiState === 'APPROVED'
   return {
     role,
     partnerType,
-    shop: canAccessShopModule(role, status),
+    shop: roleShop,
+    shopProducts,
+    storeUiState,
     service: canAccessServiceModule(role, status),
     canReceiveOrders: isPartnerActiveForOrders(status),
   }
