@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { api } from '@gp/shared/api'
+import { api, getToken } from '@gp/shared/api'
 import { PARTNER_TYPES, PARTNER_ROLE_LABELS } from '@gp/shared/constants'
 import { partnerStatusLabel } from '@gp/shared-core/statuses'
 import { isDemoMode } from '@gp/shared/demo'
@@ -27,8 +27,10 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
 
   const listOpts = useMemo(() => (scope ? { scope } : {}), [scope])
 
+  const selectedId = selected?.id
+
   const load = useCallback(async () => {
-    if (isDemoMode()) {
+    if (isDemoMode() && !getToken()) {
       setList([])
       setError(t('moderationApiOnly'))
       return
@@ -38,8 +40,8 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
     try {
       const rows = await api.adminModerationPartners(tab, listOpts)
       setList(rows)
-      if (selected) {
-        const fresh = rows.find((r) => r.id === selected.id)
+      if (selectedId) {
+        const fresh = rows.find((r) => r.id === selectedId)
         if (fresh) setSelected(fresh)
       }
     } catch (e) {
@@ -47,7 +49,7 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
     } finally {
       setLoading(false)
     }
-  }, [tab, listOpts, selected, t])
+  }, [tab, listOpts, selectedId, t])
 
   useEffect(() => {
     load()

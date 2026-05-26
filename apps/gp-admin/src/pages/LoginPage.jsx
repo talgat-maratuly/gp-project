@@ -43,9 +43,10 @@ export default function LoginPage() {
         </form>
         <div className="mt-6 p-3 rounded-xl bg-white/5 text-xs text-slate-500 space-y-1">
           <p className="font-semibold text-slate-400">API</p>
-          <p>admin@gp.kz · password123</p>
+          <p>admin@gp.kz · password123 (SUPER_ADMIN)</p>
+          <p>uralsk_admin@gp.kz · password123 (регион)</p>
           <p className="font-semibold text-slate-400 mt-2">{t('demoAccounts')}</p>
-          <p>VITE_GP_DEMO=true: superadmin · uralsk_admin (1234)</p>
+          <p>VITE_GP_DEMO=true: superadmin · uralsk_admin (1234) немесе API email жоғарыда</p>
         </div>
       </div>
     </div>

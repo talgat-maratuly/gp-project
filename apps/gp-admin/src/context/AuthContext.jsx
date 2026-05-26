@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 import { api, clearToken, getToken } from '@gp/shared/api'
 import { isDemoMode } from '@gp/shared/demo'
 import { DEMO_USERS } from '../data/seedData'
+import { mapMeToAdminSession } from '../lib/adminSession'
 
 const AUTH_KEY = 'gp-admin-session'
 
@@ -22,6 +23,27 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     if (isDemoMode()) {
+      if (getToken()) {
+        api
+          .me()
+          .then((me) => {
+            const session = mapMeToAdminSession(me)
+            if (session) {
+              localStorage.setItem(AUTH_KEY, JSON.stringify(session))
+              setUser(session)
+              return
+            }
+            clearToken()
+            setUser(loadSession())
+          })
+          .catch(() => {
+            clearToken()
+            setUser(loadSession())
+          })
+          .finally(() => setReady(true))
+        return
+      }
+      setUser(loadSession())
       setReady(true)
       return
     }
@@ -32,16 +54,11 @@ export function AuthProvider({ children }) {
     api
       .me()
       .then((me) => {
-        if (me.role !== 'ADMIN') {
+        const session = mapMeToAdminSession(me)
+        if (!session) {
           clearToken()
           setUser(null)
           return
-        }
-        const session = {
-          username: me.email,
-          role: 'SUPER_ADMIN',
-          name: me.name || 'GP Admin',
-          franchiseId: null,
         }
         localStorage.setItem(AUTH_KEY, JSON.stringify(session))
         setUser(session)
@@ -54,7 +71,25 @@ export function AuthProvider({ children }) {
   }, [])
 
   const login = useCallback(async (username, password) => {
+    const email = username.includes('@') ? username.trim().toLowerCase() : `${username.trim().toLowerCase()}@gp.kz`
+
     if (isDemoMode()) {
+      const tryApiAdmin = email.endsWith('@gp.kz') || email.endsWith('@gp.local')
+      if (tryApiAdmin) {
+        try {
+          await api.login(email, password)
+          const me = await api.me()
+          const session = mapMeToAdminSession(me)
+          if (session) {
+            localStorage.setItem(AUTH_KEY, JSON.stringify(session))
+            setUser(session)
+            return session
+          }
+          clearToken()
+        } catch {
+          /* demo fallback */
+        }
+      }
       const u = DEMO_USERS.find(
         (x) => x.username === username.trim().toLowerCase() && x.password === password,
       )
@@ -69,19 +104,12 @@ export function AuthProvider({ children }) {
       setUser(session)
       return session
     }
-
-    const email = username.includes('@') ? username.trim() : `${username.trim()}@gp.kz`
     await api.login(email, password)
     const me = await api.me()
-    if (me.role !== 'ADMIN') {
+    const session = mapMeToAdminSession(me)
+    if (!session) {
       clearToken()
       throw new Error('login_error')
-    }
-    const session = {
-      username: me.email,
-      role: 'SUPER_ADMIN',
-      name: me.name || 'GP Admin',
-      franchiseId: null,
     }
     localStorage.setItem(AUTH_KEY, JSON.stringify(session))
     setUser(session)
@@ -90,7 +118,7 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(() => {
     localStorage.removeItem(AUTH_KEY)
-    if (!isDemoMode()) clearToken()
+    clearToken()
     setUser(null)
   }, [])
 

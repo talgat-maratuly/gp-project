@@ -67,7 +67,7 @@ export function getPartnerBottomNav(user, { isDemoMode = false } = {}) {
 
 export function getAllowedPathPrefixes(user, opts = {}) {
   const { shop, service, partnerType } = getPartnerAccess(user || {}, opts)
-  const common = ['/apply', '/profile']
+  const common = ['/apply', '/apply/specialist', '/profile']
 
   const prefixes = ['/']
 

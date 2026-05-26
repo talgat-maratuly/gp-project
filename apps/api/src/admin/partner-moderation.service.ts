@@ -4,6 +4,7 @@ import {
   PartnerOfferingStatus,
   PartnerRole,
   PartnerStatus,
+  PartnerType,
   Role,
   User,
 } from '@prisma/client';
@@ -26,10 +27,26 @@ export class PartnerModerationAdminService {
   private roleScopeWhere(scope?: 'specialist' | 'shop', partnerRole?: PartnerRole) {
     if (partnerRole) return { partnerRole };
     if (scope === 'specialist') {
-      return { partnerRole: { in: [PartnerRole.SPECIALIST, PartnerRole.MIXED_PARTNER] } };
+      return {
+        OR: [
+          { partnerRole: { in: [PartnerRole.SPECIALIST, PartnerRole.MIXED_PARTNER] } },
+          {
+            partnerRole: null,
+            OR: [
+              { partnerType: { not: PartnerType.SHOP } },
+              { partnerType: null },
+            ],
+          },
+        ],
+      };
     }
     if (scope === 'shop') {
-      return { partnerRole: { in: [PartnerRole.SHOP, PartnerRole.MIXED_PARTNER] } };
+      return {
+        OR: [
+          { partnerRole: { in: [PartnerRole.SHOP, PartnerRole.MIXED_PARTNER] } },
+          { partnerType: PartnerType.SHOP },
+        ],
+      };
     }
     return {};
   }
