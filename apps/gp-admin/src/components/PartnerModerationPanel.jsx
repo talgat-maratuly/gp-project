@@ -15,7 +15,10 @@ import AdminListFilters from './AdminListFilters'
 
 const TAB_IDS = ['PENDING_REVIEW', 'NEEDS_REVISION', 'APPROVED', 'REJECTED', 'SUSPENDED']
 
-const typeLabel = (id) => PARTNER_TYPES.find((t) => t.id === id)?.labelKey || id
+function resolveTypeLabel(id, t) {
+  const key = PARTNER_TYPES.find((x) => x.id === id)?.labelKey
+  return key ? t(key) : id || '—'
+}
 
 /**
  * @param {{ scope?: 'specialist' | 'shop', title: string, subtitle: string }} props
@@ -158,7 +161,7 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
                 <tr key={p.id} className={selected?.id === p.id ? 'bg-slate-800/60' : ''}>
                   <td className="font-medium">{p.companyName || p.company}</td>
                   <td>{PARTNER_ROLE_LABELS[p.partnerRole] || p.partnerRole || '—'}</td>
-                  <td>{typeLabel(p.partnerType)}</td>
+                  <td>{resolveTypeLabel(p.partnerType, t)}</td>
                   <td>{p.region?.name || p.city}</td>
                   <td>{p.user?.phone}</td>
                   <td>
@@ -187,16 +190,18 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
               <span className="text-xs bg-slate-800 px-2 py-1 rounded">
                 {PARTNER_ROLE_LABELS[selected.partnerRole] || selected.partnerRole}
                 {' · '}
-                {typeLabel(selected.partnerType)}
+                {resolveTypeLabel(selected.partnerType, t)}
               </span>
             </div>
             <dl className="text-sm grid grid-cols-2 gap-2">
               <dt className="text-slate-500">{t('fullName')}</dt><dd>{selected.fullName || selected.user?.name}</dd>
-              <dt className="text-slate-500">Email</dt><dd>{selected.user?.email}</dd>
+              <dt className="text-slate-500">{t('emailLabel')}</dt><dd>{selected.user?.email}</dd>
               <dt className="text-slate-500">{t('phone')}</dt><dd>{selected.user?.phone}</dd>
               <dt className="text-slate-500">{t('address')}</dt><dd>{selected.address || '—'}</dd>
               <dt className="text-slate-500">{t('registeredAt')}</dt>
-              <dd>{new Date(selected.createdAt).toLocaleString('ru-RU')}</dd>
+              <dd className="text-slate-400" title={t('systemFieldReadonly')}>
+                {new Date(selected.createdAt).toLocaleString('ru-RU')}
+              </dd>
             </dl>
             {selected.description && (
               <p className="text-sm text-slate-300"><span className="text-slate-500">{t('description')}: </span>{selected.description}</p>
@@ -222,7 +227,7 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
             )}
             {selected.moderationAudit?.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-slate-500 mb-1">Audit</p>
+                <p className="text-xs font-semibold text-slate-500 mb-1">{t('auditLog')}</p>
                 <ul className="text-xs space-y-1 text-slate-400">
                   {selected.moderationAudit.map((a) => (
                     <li key={a.id}>
@@ -251,17 +256,17 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
                       <div className="flex gap-2">
                         <button
                           type="button"
-                          disabled={loading}
-                          className="flex-1 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold"
+                          disabled={loading || acting}
+                          className="flex-1 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold disabled:opacity-50"
                           onClick={() => actOffering(o.id, SERVICE_STATUS_SPEC.active)}
                         >
                           {t('approve')}
                         </button>
                         <button
                           type="button"
-                          disabled={loading}
-                          className="flex-1 py-1.5 rounded-lg bg-red-600 text-white text-xs font-semibold"
-                          onClick={() => actOffering(o.id, SERVICE_STATUS_SPEC.rejected, 'Бас тартылды')}
+                          disabled={loading || acting}
+                          className="flex-1 py-1.5 rounded-lg bg-red-600 text-white text-xs font-semibold disabled:opacity-50"
+                          onClick={() => actOffering(o.id, SERVICE_STATUS_SPEC.rejected, t('rejectDefaultNote'))}
                         >
                           {t('reject')}
                         </button>
@@ -274,7 +279,7 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
 
             {tab === 'PENDING_REVIEW' && (
               <div className="space-y-2 pt-2 border-t border-slate-700">
-                <button type="button" disabled={loading} onClick={() => act(api.adminApprovePartner)} className="w-full py-2 rounded-lg bg-emerald-600 font-semibold text-sm">
+                <button type="button" disabled={loading || acting} onClick={() => act(api.adminApprovePartner)} className="w-full py-2 rounded-lg bg-emerald-600 font-semibold text-sm disabled:opacity-50">
                   {t('approve')}
                 </button>
                 <textarea
@@ -285,7 +290,7 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
                 />
                 <button
                   type="button"
-                  disabled={loading || revisionComment.trim().length < 3}
+                  disabled={loading || acting || revisionComment.trim().length < 3}
                   onClick={() => act((id) => api.adminRevisionPartner(id, revisionComment.trim()))}
                   className="w-full py-2 rounded-lg bg-amber-600 font-semibold text-sm"
                 >
@@ -299,7 +304,7 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
                 />
                 <button
                   type="button"
-                  disabled={loading || rejectReason.trim().length < 3}
+                  disabled={loading || acting || rejectReason.trim().length < 3}
                   onClick={() => act((id) => api.adminRejectPartner(id, rejectReason.trim()))}
                   className="w-full py-2 rounded-lg bg-red-600 font-semibold text-sm"
                 >
@@ -308,12 +313,12 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
               </div>
             )}
             {tab === 'APPROVED' && (
-              <button type="button" disabled={loading} onClick={() => act(api.adminSuspendPartner)} className="w-full py-2 rounded-lg bg-red-700 font-semibold text-sm mt-2">
+              <button type="button" disabled={loading || acting} onClick={() => act(api.adminSuspendPartner)} className="w-full py-2 rounded-lg bg-red-700 font-semibold text-sm mt-2 disabled:opacity-50">
                 {t('block')}
               </button>
             )}
             {(tab === 'SUSPENDED' || tab === 'REJECTED') && (
-              <button type="button" disabled={loading} onClick={() => act(api.adminRestorePartner)} className="w-full py-2 rounded-lg bg-sky-600 font-semibold text-sm mt-2">
+              <button type="button" disabled={loading || acting} onClick={() => act(api.adminRestorePartner)} className="w-full py-2 rounded-lg bg-sky-600 font-semibold text-sm mt-2 disabled:opacity-50">
                 {t('restore')}
               </button>
             )}

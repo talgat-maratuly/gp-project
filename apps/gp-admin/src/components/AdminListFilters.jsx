@@ -60,7 +60,7 @@ export default function AdminListFilters({ value, onChange, showCity = true, sho
         {t('filter_search')}
         <input
           className="admin-input mt-1 w-full"
-          placeholder="…"
+          placeholder={t('filter_search')}
           value={value.q || ''}
           onChange={(e) => set({ q: e.target.value || undefined })}
         />

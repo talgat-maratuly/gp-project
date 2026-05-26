@@ -7,6 +7,7 @@ import { useLanguage } from '../i18n/LanguageContext'
 import { ACTIONS } from '../lib/permissions'
 import Badge from '../components/ui/Badge'
 import Modal from '../components/ui/Modal'
+import AdminEmptyState from '../components/ui/AdminEmptyState'
 import FormActions from '../components/FormActions'
 import { formatMoney } from '../lib/format'
 
@@ -39,7 +40,7 @@ export default function PartnersPage() {
   return (
     <div className="space-y-4">
       {can(ACTIONS.PARTNER_CRUD) && (
-        <button type="button" onClick={() => { setModal('new'); setForm({ name: '', company: '', phone: '', city: scoped.orders[0]?.city || 'Уральск', serviceIds: [], active: true, rating: 5 }) }} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-600 text-sm font-semibold">
+        <button type="button" onClick={() => { setModal('new'); setForm({ name: '', company: '', phone: '', city: scoped.orders[0]?.city || '', serviceIds: [], active: true, rating: 5 }) }} className="admin-btn-primary">
           <Plus className="w-4 h-4" /> {t('addPartner')}
         </button>
       )}
@@ -58,7 +59,9 @@ export default function PartnersPage() {
             </tr>
           </thead>
           <tbody>
-            {scoped.partners.map((p) => (
+            {!scoped.partners.length ? (
+              <tr><td colSpan={8}><AdminEmptyState /></td></tr>
+            ) : scoped.partners.map((p) => (
               <tr key={p.id}>
                 <td className="font-medium">{p.company || p.name}</td>
                 <td>{p.phone}</td>

@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../i18n/LanguageContext'
 import { ACTIONS } from '../lib/permissions'
 import Modal from '../components/ui/Modal'
+import AdminEmptyState from '../components/ui/AdminEmptyState'
 import FormActions from '../components/FormActions'
 import { formatMoney } from '../lib/format'
 import { CLIENT_TYPES } from '../data/seedData'
@@ -39,7 +40,7 @@ export default function ClientsPage() {
   return (
     <div className="space-y-4">
       {can(ACTIONS.CLIENT_CRUD) && (
-        <button type="button" onClick={openNew} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-600 text-sm font-semibold">
+        <button type="button" onClick={openNew} className="admin-btn-primary">
           <Plus className="w-4 h-4" /> {t('addClient')}
         </button>
       )}
@@ -58,7 +59,9 @@ export default function ClientsPage() {
             </tr>
           </thead>
           <tbody>
-            {scoped.clients.map((c) => (
+            {!scoped.clients.length ? (
+              <tr><td colSpan={8}><AdminEmptyState /></td></tr>
+            ) : scoped.clients.map((c) => (
               <tr key={c.id}>
                 <td className="font-medium">{c.name}{c.freeFifthOrder ? ' 🎁' : ''}</td>
                 <td>{c.phone}</td>
@@ -106,7 +109,7 @@ export default function ClientsPage() {
           {clientHistory.map((o) => (
             <li key={o.id} className="px-3 py-2 rounded-lg bg-white/5">{o.id} · {o.serviceName} · {formatMoney(o.amount)} · {o.status}</li>
           ))}
-          {!clientHistory.length && <li className="text-slate-500">{t('dash')}</li>}
+          {!clientHistory.length && <AdminEmptyState />}
         </ul>
       </Modal>
     </div>

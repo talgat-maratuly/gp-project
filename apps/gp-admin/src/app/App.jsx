@@ -20,9 +20,7 @@ import SettingsPage from '../pages/SettingsPage'
 import MarketDashboardPage from '../pages/MarketDashboardPage'
 import MarketShopsPage from '../pages/MarketShopsPage'
 import MarketProductsPage from '../pages/MarketProductsPage'
-import MarketProductsModerationPage from '../pages/MarketProductsModerationPage'
 import OfferingModerationPage from '../pages/OfferingModerationPage'
-import SpecialistOfferingsModerationPage from '../pages/SpecialistOfferingsModerationPage'
 import MarketOrdersPage from '../pages/MarketOrdersPage'
 import MarketDeliveryPage from '../pages/MarketDeliveryPage'
 import ServiceProjectsAdminPage from '../pages/ServiceProjectsAdminPage'
@@ -60,7 +58,7 @@ export default function App() {
         <Route path="partners" element={<PartnersPage />} />
         <Route path="partners/moderation" element={<PartnerModerationPage />} />
         <Route path="specialists/moderation" element={<SpecialistModerationPage />} />
-        <Route path="specialists/offerings" element={<SpecialistOfferingsModerationPage />} />
+        <Route path="specialists/offerings" element={<Navigate to="/specialists/moderation?view=offerings" replace />} />
         <Route path="services/moderation" element={<OfferingModerationPage />} />
         <Route path="services" element={<ServicesPage />} />
         <Route path="services/hunter-irrigation" element={<ServiceProjectsAdminPage type="hunter_irrigation" />} />
@@ -75,7 +73,7 @@ export default function App() {
         <Route path="market/shops" element={<MarketShopsPage />} />
         <Route path="market/products" element={<MarketProductsPage />} />
         <Route path="market/products/new" element={<MarketProductCreatePage />} />
-        <Route path="market/products/moderation" element={<MarketProductsModerationPage />} />
+        <Route path="market/products/moderation" element={<Navigate to="/market/products?tab=moderation" replace />} />
         <Route path="market/orders" element={<MarketOrdersPage />} />
         <Route path="market/delivery" element={<MarketDeliveryPage />} />
         <Route path="settings" element={<SettingsPage />} />

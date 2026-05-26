@@ -1,10 +1,10 @@
 import { useLanguage } from '../i18n/LanguageContext'
 
-export default function FormActions({ onSave, onCancel, saveLabel }) {
+export default function FormActions({ onSave, onCancel, saveLabel, disabled = false }) {
   const { t } = useLanguage()
   return (
     <div className="flex gap-2 pt-4">
-      <button type="button" onClick={onSave} className="flex-1 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 font-semibold text-sm">
+      <button type="button" onClick={onSave} disabled={disabled} className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-sky-600 hover:bg-sky-500 font-semibold text-sm disabled:opacity-50">
         {saveLabel || t('save')}
       </button>
       {onCancel && (

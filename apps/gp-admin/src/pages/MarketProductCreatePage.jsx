@@ -48,7 +48,7 @@ export default function MarketProductCreatePage() {
         quantity: Number(form.quantity),
         isActive: form.isActive,
       })
-      setSuccess('Товар создан')
+      setSuccess(t('save'))
       setTimeout(() => navigate('/market/products', { replace: true }), 800)
     } catch (err) {
       setError(err?.message || t('error'))
@@ -59,11 +59,11 @@ export default function MarketProductCreatePage() {
 
   return (
     <div className="max-w-lg">
-      <h1 className="text-2xl font-bold mb-2">{t('market_products')} — создать</h1>
-      <Link to="/market/products" className="text-sm text-sky-400 mb-4 inline-block">← {t('back')}</Link>
+      <h1 className="text-2xl font-bold mb-2">{t('market_product_create')}</h1>
+      <Link to="/market/products" className="text-sm text-sky-400 mb-4 inline-block">← {t('cancel')}</Link>
       <form onSubmit={submit} className="admin-card space-y-3">
         <label className="block text-xs text-slate-400">
-          Магазин
+          {t('market_shops')}
           <select
             className="admin-input mt-1"
             value={form.storeId}
@@ -76,16 +76,16 @@ export default function MarketProductCreatePage() {
             ))}
           </select>
         </label>
-        <input className="admin-input" placeholder="Название" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-        <textarea className="admin-input min-h-[80px]" placeholder="Описание" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+        <input className="admin-input" placeholder={t('name')} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+        <textarea className="admin-input min-h-[80px]" placeholder={t('description')} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
         <select className="admin-input" value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })}>
           {MARKET_CATEGORIES.map((c) => (
             <option key={c.id} value={c.id}>{t(c.labelKey)}</option>
           ))}
         </select>
         <div className="flex gap-2">
-          <input className="admin-input" type="number" min="0" placeholder="Цена" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required />
-          <input className="admin-input w-28" type="number" min="0" placeholder="Остаток" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} required />
+          <input className="admin-input" type="number" min="0" placeholder={t('amount')} value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required />
+          <input className="admin-input w-28" type="number" min="0" placeholder={t('market_stock')} value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} required />
         </div>
         {error && <p className="text-red-400 text-sm">{error}</p>}
         {success && <p className="text-emerald-400 text-sm">{success}</p>}

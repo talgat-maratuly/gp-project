@@ -21,8 +21,11 @@ import {
   FlaskConical,
   QrCode,
   UserCog,
+  UserCheck,
+  ClipboardCheck,
 } from 'lucide-react'
 import { navForRole } from '../lib/permissions'
+import { navLinkEnd } from '../lib/navLinkEnd'
 import { useLanguage } from '../i18n/LanguageContext'
 
 const ICONS = {
@@ -46,6 +49,8 @@ const ICONS = {
   FlaskConical,
   QrCode,
   UserCog,
+  UserCheck,
+  ClipboardCheck,
 }
 
 export default function Sidebar({ role, open, onClose }) {
@@ -83,7 +88,7 @@ export default function Sidebar({ role, open, onClose }) {
               <NavLink
                 key={item.path}
                 to={item.path}
-                end={item.path === '/'}
+                end={navLinkEnd(item.path)}
                 onClick={onClose}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${

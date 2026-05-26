@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Outlet, useLocation, Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { canAccess, PAGE_TITLE_KEYS } from '../lib/permissions'
+import { canAccess } from '../lib/permissions'
+import { resolvePageTitleKey } from '../lib/pageTitle'
 import { useLanguage } from '../i18n/LanguageContext'
 import Sidebar from './Sidebar'
 import Header from './Header'
@@ -16,7 +17,7 @@ export default function Shell() {
     return <Navigate to="/" replace />
   }
 
-  const titleKey = PAGE_TITLE_KEYS[location.pathname]
+  const titleKey = resolvePageTitleKey(location.pathname)
   const title = titleKey ? t(titleKey) : t('appName')
 
   return (
