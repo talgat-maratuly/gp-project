@@ -24,16 +24,43 @@ export class AdminService {
     private regionAccess: RegionAccessService,
   ) {}
 
+  /** Сервисный партнёр (маман), не чистый магазин */
   private specialistPartnerWhere() {
     return {
       OR: [
         { partnerRole: { in: [PartnerRole.SPECIALIST, PartnerRole.MIXED_PARTNER] } },
+        {
+          partnerType: {
+            in: [
+              PartnerType.SPECIALIST,
+              PartnerType.SEPTIC_SERVICE,
+              PartnerType.LAWN_MOWING,
+              PartnerType.IRRIGATION_SERVICE,
+              PartnerType.CLEANING_SERVICE,
+              PartnerType.DELIVERY,
+              PartnerType.OTHER,
+            ],
+          },
+        },
         {
           partnerRole: null,
           OR: [{ partnerType: { not: PartnerType.SHOP } }, { partnerType: null }],
         },
       ],
     };
+  }
+
+  private offeringPartnerWhere(
+    admin: User,
+    opts?: { scope?: 'specialist'; approvedPartnerOnly?: boolean },
+  ) {
+    const parts: Array<Record<string, unknown>> = [];
+    const regionId = this.regionAccess.regionWhere(admin).regionId;
+    if (regionId) parts.push({ regionId });
+    if (opts?.approvedPartnerOnly) parts.push({ status: PartnerStatus.APPROVED });
+    if (opts?.scope === 'specialist') parts.push(this.specialistPartnerWhere());
+    if (!parts.length) return {};
+    return parts.length === 1 ? parts[0] : { AND: parts };
   }
 
   dashboard() {
@@ -178,14 +205,18 @@ export class AdminService {
     admin: User,
     opts?: { status?: string; scope?: 'specialist' },
   ) {
-    const regionId = this.regionAccess.regionWhere(admin).regionId;
+    const status = opts?.status as PartnerOfferingStatus | undefined;
+    const approvedPartnerOnly =
+      status === PartnerOfferingStatus.PENDING_MODERATION;
+    const partnerWhere = this.offeringPartnerWhere(admin, {
+      scope: opts?.scope,
+      approvedPartnerOnly,
+    });
+
     return this.prisma.partnerServiceOffering.findMany({
       where: {
-        ...(opts?.status ? { status: opts.status as PartnerOfferingStatus } : {}),
-        partner: {
-          ...(regionId ? { regionId } : {}),
-          ...(opts?.scope === 'specialist' ? this.specialistPartnerWhere() : {}),
-        },
+        ...(status ? { status } : {}),
+        ...(Object.keys(partnerWhere).length ? { partner: partnerWhere } : {}),
       },
       include: {
         partner: {

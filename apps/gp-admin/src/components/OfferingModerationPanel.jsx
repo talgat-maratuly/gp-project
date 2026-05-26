@@ -85,6 +85,12 @@ export default function OfferingModerationPanel({ scope, title, subtitle, backTo
       </div>
       {error && <p className="text-sm text-red-400">{error}</p>}
 
+      {tab === 'PENDING_MODERATION' && (
+        <p className="text-xs text-amber-200/90 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+          {t('offerings_pending_hint')}
+        </p>
+      )}
+
       <div className="flex flex-wrap gap-2">
         {TAB_IDS.map((id) => (
           <button

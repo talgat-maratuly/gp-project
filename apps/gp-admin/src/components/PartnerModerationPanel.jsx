@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api, getToken } from '@gp/shared/api'
-import { PARTNER_TYPES, PARTNER_ROLE_LABELS } from '@gp/shared/constants'
-import { partnerStatusLabel } from '@gp/shared-core/statuses'
+import {
+  PARTNER_TYPES,
+  PARTNER_ROLE_LABELS,
+  getPartnerOfferingStatusLabel,
+  getPartnerSubserviceLabel,
+} from '@gp/shared/constants'
+import { partnerStatusLabel, SERVICE_STATUS_SPEC } from '@gp/shared-core/statuses'
 import { isDemoMode } from '@gp/shared/demo'
 import { useAccess } from '../context/AccessContext'
 import { ACTIONS } from '../lib/permissions'
@@ -86,6 +91,29 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
     const e = Array.isArray(selected.equipmentPhotos) ? selected.equipmentPhotos : []
     return [...v, ...e]
   }, [selected])
+
+  const pendingOfferings = useMemo(() => {
+    const rows = selected?.serviceOfferings
+    if (!Array.isArray(rows)) return []
+    return rows.filter((o) => o.status === 'PENDING_MODERATION')
+  }, [selected])
+
+  const actOffering = async (offeringId, status, moderationNote) => {
+    setLoading(true)
+    setError('')
+    try {
+      await api.adminUpdateOfferingStatus(offeringId, {
+        status,
+        ...(moderationNote ? { moderationNote } : {}),
+      })
+      if (selected?.id) await openDetail(selected.id)
+      await load()
+    } catch (e) {
+      setError(e?.message || t('actionError'))
+    } finally {
+      setLoading(false)
+    }
+  }
 
   if (!can(ACTIONS.PARTNER_MODERATE)) {
     return <p className="text-slate-500">{t('noAccess')}</p>
@@ -206,6 +234,43 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
                       {a.action} — {a.admin?.name || '—'} — {new Date(a.createdAt).toLocaleString('ru-RU')}
                       {a.reason && ` (${a.reason})`}
                       {a.comment && ` (${a.comment})`}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {pendingOfferings.length > 0 && (
+              <div className="pt-2 border-t border-amber-500/30 space-y-2">
+                <p className="text-xs font-bold text-amber-300 uppercase tracking-wide">
+                  {t('specialist_offerings_moderation')} ({pendingOfferings.length})
+                </p>
+                <p className="text-[11px] text-slate-500">{t('specialist_offerings_moderation_desc')}</p>
+                <ul className="space-y-2">
+                  {pendingOfferings.map((o) => (
+                    <li key={o.id} className="rounded-lg bg-slate-950/80 border border-amber-500/20 p-2 space-y-2">
+                      <div>
+                        <p className="text-sm font-medium text-white">{getPartnerSubserviceLabel(o.subserviceId)}</p>
+                        <p className="text-[10px] text-slate-500">{getPartnerOfferingStatusLabel(o.status)}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          disabled={loading}
+                          className="flex-1 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold"
+                          onClick={() => actOffering(o.id, SERVICE_STATUS_SPEC.active)}
+                        >
+                          {t('approve')}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={loading}
+                          className="flex-1 py-1.5 rounded-lg bg-red-600 text-white text-xs font-semibold"
+                          onClick={() => actOffering(o.id, SERVICE_STATUS_SPEC.rejected, 'Бас тартылды')}
+                        >
+                          {t('reject')}
+                        </button>
+                      </div>
                     </li>
                   ))}
                 </ul>
