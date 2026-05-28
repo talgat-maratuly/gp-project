@@ -28,6 +28,8 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
   const { can } = useAccess()
   const [tab, setTab] = useState('PENDING_REVIEW')
   const [selected, setSelected] = useState(null)
+  const [isDetailOpen, setIsDetailOpen] = useState(false)
+  const [rejectModalOpen, setRejectModalOpen] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
   const [revisionComment, setRevisionComment] = useState('')
   const [filters, setFilters] = useState({})
@@ -59,6 +61,7 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
     try {
       const row = await api.adminModerationPartner(id)
       setSelected(row)
+      setIsDetailOpen(true)
       setRejectReason('')
       setRevisionComment(row.revisionComment || '')
     } catch (e) {
@@ -141,8 +144,7 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
         ))}
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-4">
-        <div className="admin-table-wrap overflow-x-auto max-h-[70vh]">
+      <div className="admin-table-wrap overflow-x-auto max-h-[70vh]">
           <table className="admin-table min-w-full">
             <thead>
               <tr>
@@ -165,9 +167,37 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
                   <td>{p.region?.name || p.city}</td>
                   <td>{p.user?.phone}</td>
                   <td>
-                    <button type="button" className="text-sky-400 text-sm" onClick={() => openDetail(p.id)}>
-                      {t('card')}
-                    </button>
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <button type="button" className="text-sky-400 text-sm" onClick={() => openDetail(p.id)}>
+                        {t('card')}
+                      </button>
+                      {tab === 'PENDING_REVIEW' && (
+                        <>
+                          <button
+                            type="button"
+                            disabled={loading || acting}
+                            className="text-emerald-400 text-sm disabled:opacity-50"
+                            onClick={async () => {
+                              await openDetail(p.id)
+                              await act(api.adminApprovePartner)
+                            }}
+                          >
+                            {t('approve')}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={loading || acting}
+                            className="text-red-400 text-sm disabled:opacity-50"
+                            onClick={async () => {
+                              await openDetail(p.id)
+                              setRejectModalOpen(true)
+                            }}
+                          >
+                            {t('reject')}
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -176,10 +206,11 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
               )}
             </tbody>
           </table>
-        </div>
+      </div>
 
-        {selected && (
-          <div className="rounded-xl border border-slate-700 bg-slate-900/80 p-4 space-y-3 max-h-[70vh] overflow-y-auto">
+      {selected && isDetailOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+          <div className="w-full max-w-3xl rounded-xl border border-slate-700 bg-slate-900 p-4 space-y-3 max-h-[85vh] overflow-y-auto">
             <div className="flex justify-between items-start gap-2">
               <div>
                 <h2 className="font-bold text-lg">{selected.companyName || selected.company}</h2>
@@ -187,12 +218,13 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
                   {partnerStatusLabel(selected.status)} · {selected.region?.name || selected.city}
                 </p>
               </div>
-              <span className="text-xs bg-slate-800 px-2 py-1 rounded">
-                {PARTNER_ROLE_LABELS[selected.partnerRole] || selected.partnerRole}
-                {' · '}
-                {resolveTypeLabel(selected.partnerType, t)}
-              </span>
+              <button type="button" onClick={() => setIsDetailOpen(false)} className="text-slate-300">✕</button>
             </div>
+            <span className="text-xs bg-slate-800 px-2 py-1 rounded inline-block">
+              {PARTNER_ROLE_LABELS[selected.partnerRole] || selected.partnerRole}
+              {' · '}
+              {resolveTypeLabel(selected.partnerType, t)}
+            </span>
             <dl className="text-sm grid grid-cols-2 gap-2">
               <dt className="text-slate-500">{t('fullName')}</dt><dd>{selected.fullName || selected.user?.name}</dd>
               <dt className="text-slate-500">{t('emailLabel')}</dt><dd>{selected.user?.email}</dd>
@@ -239,7 +271,6 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
                 </ul>
               </div>
             )}
-
             {pendingOfferings.length > 0 && (
               <div className="pt-2 border-t border-amber-500/30 space-y-2">
                 <p className="text-xs font-bold text-amber-300 uppercase tracking-wide">
@@ -276,12 +307,21 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
                 </ul>
               </div>
             )}
-
-            {tab === 'PENDING_REVIEW' && (
+            {selected.status === 'PENDING_REVIEW' && (
               <div className="space-y-2 pt-2 border-t border-slate-700">
-                <button type="button" disabled={loading || acting} onClick={() => act(api.adminApprovePartner)} className="w-full py-2 rounded-lg bg-emerald-600 font-semibold text-sm disabled:opacity-50">
-                  {t('approve')}
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" disabled={loading || acting} onClick={() => act(api.adminApprovePartner)} className="px-4 py-2 rounded-lg bg-emerald-600 font-semibold text-sm disabled:opacity-50">
+                    {t('approve')}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={loading || acting}
+                    onClick={() => setRejectModalOpen(true)}
+                    className="px-4 py-2 rounded-lg bg-red-600 font-semibold text-sm disabled:opacity-50"
+                  >
+                    {t('reject')}
+                  </button>
+                </div>
                 <textarea
                   className="w-full rounded-lg bg-slate-950 border border-slate-700 p-2 text-sm"
                   placeholder={t('revisionPlaceholder')}
@@ -296,35 +336,57 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
                 >
                   {t('sendForRevision')}
                 </button>
-                <textarea
-                  className="w-full rounded-lg bg-slate-950 border border-slate-700 p-2 text-sm"
-                  placeholder={t('rejectPlaceholder')}
-                  value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                />
-                <button
-                  type="button"
-                  disabled={loading || acting || rejectReason.trim().length < 3}
-                  onClick={() => act((id) => api.adminRejectPartner(id, rejectReason.trim()))}
-                  className="w-full py-2 rounded-lg bg-red-600 font-semibold text-sm"
-                >
-                  {t('reject')}
-                </button>
               </div>
             )}
-            {tab === 'APPROVED' && (
+            {selected.status === 'APPROVED' && (
               <button type="button" disabled={loading || acting} onClick={() => act(api.adminSuspendPartner)} className="w-full py-2 rounded-lg bg-red-700 font-semibold text-sm mt-2 disabled:opacity-50">
                 {t('block')}
               </button>
             )}
-            {(tab === 'SUSPENDED' || tab === 'REJECTED') && (
+            {(selected.status === 'SUSPENDED' || selected.status === 'REJECTED') && (
               <button type="button" disabled={loading || acting} onClick={() => act(api.adminRestorePartner)} className="w-full py-2 rounded-lg bg-sky-600 font-semibold text-sm mt-2 disabled:opacity-50">
                 {t('restore')}
               </button>
             )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {selected && rejectModalOpen && (
+        <div className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4">
+          <div className="w-full max-w-lg rounded-xl border border-slate-700 bg-slate-900 p-4 space-y-3">
+            <h3 className="text-lg font-semibold text-white">{t('reject')}</h3>
+            <p className="text-sm text-slate-400">{selected.companyName || selected.company}</p>
+            <textarea
+              className="w-full rounded-lg bg-slate-950 border border-slate-700 p-2 text-sm"
+              placeholder={t('rejectPlaceholder')}
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setRejectModalOpen(false)}
+                className="px-4 py-2 rounded-lg bg-slate-700 text-sm"
+              >
+                {t('cancel')}
+              </button>
+              <button
+                type="button"
+                disabled={loading || acting || rejectReason.trim().length < 3}
+                onClick={async () => {
+                  await act((id) => api.adminRejectPartner(id, rejectReason.trim()))
+                  setRejectModalOpen(false)
+                  setIsDetailOpen(false)
+                }}
+                className="px-4 py-2 rounded-lg bg-red-600 text-sm disabled:opacity-50"
+              >
+                {t('reject')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
