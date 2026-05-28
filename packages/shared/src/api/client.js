@@ -10,6 +10,16 @@ const mapOrdersForApp = (list) => {
 export { API_URL, getApiRootUrl as apiUrl }
 
 export const api = {
+  sendOtp: (phone, channel = 'sms') =>
+    post('/auth/mobile/otp/send', { phone, channel }, { auth: false }),
+
+  verifyOtp: (body) =>
+    post('/auth/mobile/otp/verify', body, { auth: false }).then((r) => {
+      setToken(r.accessToken)
+      if (r.refreshToken) setRefreshToken(r.refreshToken)
+      return r
+    }),
+
   registerClient: (body) =>
     post('/auth/register/client', body, { auth: false }).then((r) => {
       setToken(r.accessToken)
@@ -56,6 +66,28 @@ export const api = {
     if (!Array.isArray(list)) return []
     return mapOrdersForApp(list)
   },
+
+  getPartnerOrders: async (params = {}) => {
+    const q = new URLSearchParams(params).toString()
+    const list = await get(`/partner/orders${q ? `?${q}` : ''}`)
+    if (!Array.isArray(list)) return []
+    return list.map((o) => mapOrder(o, { forClient: false }))
+  },
+
+  getPartnerNewOrders: async () => {
+    const list = await get('/partner/orders/new')
+    if (!Array.isArray(list)) return []
+    return list.map((o) => mapOrder(o, { forClient: false }))
+  },
+
+  acceptPartnerOrder: (id) =>
+    patch(`/partner/orders/${id}/accept`, {}).then((o) => mapOrder(o, { forClient: false })),
+
+  rejectPartnerOrder: (id) =>
+    patch(`/partner/orders/${id}/reject`, {}).then((o) => mapOrder(o, { forClient: false })),
+
+  updatePartnerOrderStatus: (id, body) =>
+    patch(`/partner/orders/${id}/status`, body).then((o) => mapOrder(o, { forClient: false })),
 
   getOrder: (id) =>
     get(`/orders/${id}`).then((o) =>
@@ -107,6 +139,8 @@ export const api = {
     const q = params.toString() ? `?${params.toString()}` : ''
     return get(`/admin/moderation/partners${q}`)
   },
+
+  adminModerationPending: () => get('/admin/moderation/pending'),
 
   adminModerationPartner: (id) => get(`/admin/moderation/partners/${id}`),
 

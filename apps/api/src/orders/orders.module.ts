@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { OrdersController } from './orders.controller';
+import { PartnerOrdersController } from './partner-orders.controller';
 import { OrdersService } from './orders.service';
 import { PartnersModule } from '../partners/partners.module';
 import { PartnerBalanceModule } from '../partner-balance/partner-balance.module';
@@ -9,7 +10,7 @@ import { FurnitureExecutorModule } from '../furniture-executor/furniture-executo
 
 @Module({
   imports: [PartnersModule, PartnerBalanceModule, NotificationsModule, GeoModule, FurnitureExecutorModule],
-  controllers: [OrdersController],
+  controllers: [OrdersController, PartnerOrdersController],
   providers: [OrdersService],
   exports: [OrdersService],
 })

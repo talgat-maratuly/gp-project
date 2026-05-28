@@ -44,7 +44,10 @@ export default function ProfilePage() {
         <Input label="Телефон" type="tel" value={profile.phone} onChange={set('phone')} />
         <Input label="Email" type="email" value={profile.email} onChange={set('email')} />
         <Input label="Город" value={profile.city} onChange={set('city')} />
-        <Button type="submit" className="w-full">Сохранить локально</Button>
+        <Button type="submit" className="w-full">Сақтау (черновик)</Button>
+        <p className="text-xs text-slate-500">
+          Деректер тек осы құрылғыда сақталады және серверге жіберілмейді.
+        </p>
       </form>
       <div className="gp-card p-5 mt-4 text-sm text-slate-500 space-y-1">
         <p>{GP_CONTACTS.phone}</p>

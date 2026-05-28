@@ -244,6 +244,14 @@ export class OrdersService {
     });
   }
 
+  async findPartnerOrders(userId: string) {
+    return this.findForUser(userId, Role.PARTNER);
+  }
+
+  async findPartnerNewOrders(userId: string) {
+    return this.findForUser(userId, Role.PARTNER, { status: OrderStatus.NEW });
+  }
+
   async findOne(id: string, role?: Role) {
     const order = await this.prisma.order.findUnique({
       where: { id },
@@ -377,6 +385,18 @@ export class OrdersService {
     }
 
     throw new ForbiddenException();
+  }
+
+  async acceptPartnerOrder(userId: string, orderId: string) {
+    return this.updateStatus(userId, Role.PARTNER, orderId, { status: OrderStatus.ACCEPTED });
+  }
+
+  async rejectPartnerOrder(userId: string, orderId: string) {
+    return this.updateStatus(userId, Role.PARTNER, orderId, { status: OrderStatus.CANCELLED });
+  }
+
+  async updatePartnerOrderStatus(userId: string, orderId: string, dto: UpdateOrderStatusDto) {
+    return this.updateStatus(userId, Role.PARTNER, orderId, dto);
   }
 
   async confirmByClient(userId: string, orderId: string) {

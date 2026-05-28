@@ -77,3 +77,27 @@ export class StoreModerationController {
     return this.moderation.approveStore(admin, id);
   }
 }
+
+@ApiTags('admin-moderation-legacy')
+@ApiBearerAuth()
+@Controller('admin/moderation')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.REGION_ADMIN)
+export class PartnerModerationLegacyController {
+  constructor(private moderation: PartnerModerationAdminService) {}
+
+  @Get('pending')
+  pending(@CurrentUser() admin: User) {
+    return this.moderation.list(admin, { status: PartnerStatus.PENDING_REVIEW });
+  }
+
+  @Patch(':id/approve')
+  approve(@CurrentUser() admin: User, @Param('id') id: string) {
+    return this.moderation.approve(admin, id);
+  }
+
+  @Patch(':id/reject')
+  reject(@CurrentUser() admin: User, @Param('id') id: string, @Body() dto: ModerationRejectDto) {
+    return this.moderation.reject(admin, id, dto.reason);
+  }
+}

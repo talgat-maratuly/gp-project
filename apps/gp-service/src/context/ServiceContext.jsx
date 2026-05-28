@@ -282,6 +282,26 @@ export function ServiceProvider({ children }) {
     }
   }, [syncAuth, notify, applyTestSession])
 
+  const sendOtp = useCallback(async (phone, channel = 'sms') => {
+    if (!phone?.trim()) throw new Error('Телефон нөмірін енгізіңіз')
+    return api.sendOtp(phone.trim(), channel)
+  }, [])
+
+  const verifyOtp = useCallback(async (payload) => {
+    const session = await api.verifyOtp(payload)
+    const me = await api.me()
+    if (me.role === 'CLIENT' && me.clientProfile) {
+      applyTestSession(me)
+    }
+    return { session, me }
+  }, [applyTestSession])
+
+  const submitPartnerApplication = useCallback(async (payload) => {
+    const result = await api.partnerApply(payload)
+    notify('Өтінім жіберілді. Аккаунт тексеруде.')
+    return result
+  }, [notify])
+
   const logout = useCallback(() => {
     if (isDemoMode()) {
       demoApi.demoLogout()
@@ -497,6 +517,7 @@ export function ServiceProvider({ children }) {
     toggleFavorite, isFavorite, placeShopOrder, placeServiceOrder,
     setCheckoutDraft, setProfile, setObjects, submitPartnerLead, notify,
     login, register, logout, refreshOrders,
+    sendOtp, verifyOtp, submitPartnerApplication,
     isDemoMode: isDemoMode(),
     isTestMode: isTestModeActive(),
     demoFranchises: isDemoMode() ? demoApi.demoFranchises() : [],

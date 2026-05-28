@@ -4,7 +4,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { AccountType, OtpChannel, Role } from '@prisma/client';
+import { AccountType, OtpChannel, PartnerRole, PartnerStatus, PartnerType, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { MobileOtpSendDto } from './dto/mobile-otp-send.dto';
@@ -185,9 +185,12 @@ export class MobileAuthService {
     });
     if (!ok) throw new UnauthorizedException('Неверный код');
 
+    const desiredRole = dto.desiredRole === Role.PARTNER ? Role.PARTNER : Role.CLIENT;
+    const desiredAccountType = dto.accountType || AccountType.INDIVIDUAL;
+
     let user = await this.prisma.user.findFirst({
       where: { phone },
-      include: { clientProfile: true },
+      include: { clientProfile: true, partnerProfile: true },
     });
     let isNewUser = false;
 
@@ -212,12 +215,34 @@ export class MobileAuthService {
           passwordHash,
           name: dto.name?.trim() || 'Клиент GP',
           phone,
-          role: Role.CLIENT,
+          role: desiredRole,
           regionId,
-          clientProfile: { create: { accountType: AccountType.INDIVIDUAL, city } },
+          ...(desiredRole === Role.CLIENT
+            ? {
+                clientProfile: { create: { accountType: AccountType.INDIVIDUAL, city } },
+              }
+            : {
+                partnerProfile: {
+                  create: {
+                    regionId,
+                    status: PartnerStatus.DRAFT,
+                    accountType: desiredAccountType,
+                    partnerRole: PartnerRole.SPECIALIST,
+                    partnerType: PartnerType.OTHER,
+                    fullName: dto.name?.trim() || 'Серіктес',
+                    companyName: dto.name?.trim() || 'Серіктес',
+                    company: dto.name?.trim() || 'Серіктес',
+                    city,
+                    directions: [],
+                    balance: 10000,
+                  },
+                },
+              }),
         },
-        include: { clientProfile: true },
+        include: { clientProfile: true, partnerProfile: true },
       });
+    } else if (user.role !== desiredRole) {
+      throw new UnauthorizedException('Бұл телефон басқа рөлге тіркелген');
     }
 
     await this.upsertDevice(user.id, dto);
@@ -241,6 +266,8 @@ export class MobileAuthService {
         phone: user.phone,
         role: user.role,
       },
+      needsApplication: user.role === Role.PARTNER && user.partnerProfile?.status !== PartnerStatus.APPROVED,
+      partnerStatus: user.partnerProfile?.status || null,
     };
   }
 

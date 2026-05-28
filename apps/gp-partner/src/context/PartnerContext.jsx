@@ -164,7 +164,7 @@ export function PartnerProvider({ children }) {
     }
     if (!getToken()) return
     try {
-      const list = await api.getOrders()
+      const list = await api.getPartnerOrders()
       setOrders(list)
     } catch (e) {
       notify(e.message || 'Не удалось загрузить заказы')
@@ -413,7 +413,7 @@ export function PartnerProvider({ children }) {
       notify('Заявка принята')
       return
     }
-    await api.updateOrderStatus(orderId, { status: ORDER_STATUS_TO_API.accepted })
+    await api.acceptPartnerOrder(orderId)
     setActiveOrderId(orderId)
     await refreshAll()
     notify('Заявка принята')
@@ -433,7 +433,7 @@ export function PartnerProvider({ children }) {
       body.executorLat = location.lat
       body.executorLng = location.lng
     }
-    await api.updateOrderStatus(orderId, body)
+    await api.updatePartnerOrderStatus(orderId, body)
     if (location && activeOrderId === orderId) {
       await api.updateGeoLocation({ lat: location.lat, lng: location.lng, orderId })
     }
@@ -442,7 +442,7 @@ export function PartnerProvider({ children }) {
   }, [refreshAll, refreshOrders, notify, activeOrderId])
 
   const cancelOrder = useCallback(async (orderId) => {
-    await api.updateOrderStatus(orderId, { status: ORDER_STATUS_TO_API.cancelled })
+    await api.rejectPartnerOrder(orderId)
     if (activeOrderId === orderId) setActiveOrderId(null)
     await refreshAll()
     notify('Заявка отменена')
