@@ -15,10 +15,10 @@ export default function Modal({ open, onClose, title, children, wide }) {
       <div
         role="dialog"
         aria-modal="true"
-        className={`relative z-10 w-full ${wide ? 'max-w-2xl' : 'max-w-lg'} max-h-[90vh] overflow-y-auto admin-card rounded-t-2xl sm:rounded-2xl m-0 sm:m-4 pointer-events-auto`}
+        className={`relative z-10 w-full ${wide ? 'max-w-2xl' : 'max-w-lg'} max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl m-0 sm:m-4 pointer-events-auto border border-slate-700 bg-slate-900 p-5 shadow-2xl`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between gap-3 mb-4 sticky top-0 bg-slate-900/95 py-2 -mt-1 z-10">
+        <div className="flex items-center justify-between gap-3 mb-4 sticky top-0 bg-slate-900 py-2 -mt-1 z-10">
           <h2 className="text-lg font-bold">{title}</h2>
           <button type="button" onClick={onClose} className="p-2 rounded-lg hover:bg-white/10">
             <X className="w-5 h-5" />

@@ -96,9 +96,9 @@ export default function ServicesPage() {
 
       <Modal open={!!svcModal} onClose={() => setSvcModal(null)} title={svcModal === 'new' ? t('addService') : t('edit')}>
         <div className="space-y-3 text-sm">
-          <label className="block"><span className="text-xs text-slate-500">{t('name')}</span><input className="admin-input mt-1" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></label>
-          <label className="block"><span className="text-xs text-slate-500">{t('basePrice')}</span><input type="number" className="admin-input mt-1" value={form.basePrice} onChange={(e) => setForm({ ...form, basePrice: +e.target.value })} /></label>
-          <label className="block"><span className="text-xs text-slate-500">{t('gpCommission')}</span><input type="number" className="admin-input mt-1" value={form.gpCommission} onChange={(e) => setForm({ ...form, gpCommission: +e.target.value })} /></label>
+          <label className="block"><span className="text-xs text-slate-300 font-medium">{t('name')}</span><input className="admin-input mt-1" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></label>
+          <label className="block"><span className="text-xs text-slate-300 font-medium">{t('basePrice')}</span><input type="number" className="admin-input mt-1" value={form.basePrice} onChange={(e) => setForm({ ...form, basePrice: +e.target.value })} /></label>
+          <label className="block"><span className="text-xs text-slate-300 font-medium">{t('gpCommission')}</span><input type="number" className="admin-input mt-1" value={form.gpCommission} onChange={(e) => setForm({ ...form, gpCommission: +e.target.value })} /></label>
           <label className="flex items-center gap-2"><input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} />{t('serviceActive')}</label>
           <FormActions onSave={saveService} onCancel={() => setSvcModal(null)} />
         </div>
@@ -106,9 +106,9 @@ export default function ServicesPage() {
 
       <Modal open={!!subModal} onClose={() => setSubModal(null)} title={t('subservice')}>
         <div className="space-y-3 text-sm">
-          <label className="block"><span className="text-xs text-slate-500">{t('subserviceName')}</span><input className="admin-input mt-1" value={subForm.name} onChange={(e) => setSubForm({ ...subForm, name: e.target.value })} /></label>
-          <label className="block"><span className="text-xs text-slate-500">{t('price')}</span><input type="number" className="admin-input mt-1" value={subForm.price} onChange={(e) => setSubForm({ ...subForm, price: +e.target.value })} /></label>
-          <label className="block"><span className="text-xs text-slate-500">{t('gpCommission')}</span><input type="number" className="admin-input mt-1" value={subForm.gpCommission} onChange={(e) => setSubForm({ ...subForm, gpCommission: +e.target.value })} /></label>
+          <label className="block"><span className="text-xs text-slate-300 font-medium">{t('subserviceName')}</span><input className="admin-input mt-1" value={subForm.name} onChange={(e) => setSubForm({ ...subForm, name: e.target.value })} /></label>
+          <label className="block"><span className="text-xs text-slate-300 font-medium">{t('price')}</span><input type="number" className="admin-input mt-1" value={subForm.price} onChange={(e) => setSubForm({ ...subForm, price: +e.target.value })} /></label>
+          <label className="block"><span className="text-xs text-slate-300 font-medium">{t('gpCommission')}</span><input type="number" className="admin-input mt-1" value={subForm.gpCommission} onChange={(e) => setSubForm({ ...subForm, gpCommission: +e.target.value })} /></label>
           <FormActions onSave={saveSub} onCancel={() => setSubModal(null)} />
         </div>
       </Modal>

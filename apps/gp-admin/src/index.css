@@ -59,11 +59,20 @@
     @apply rounded-2xl border border-white/10 bg-slate-900/80 p-5;
   }
   .admin-input {
-    @apply w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2.5 text-sm focus:border-sky-500/50 focus:outline-none;
-    color: var(--gp-text, #f1f5f9);
-    &::placeholder {
-      color: var(--gp-text-muted, #64748b);
-    }
+    @apply w-full rounded-xl border border-slate-600/70 bg-slate-950 px-3 py-2.5 text-sm focus:border-sky-500/70 focus:outline-none;
+    color: #e2e8f0 !important;
+    -webkit-text-fill-color: #e2e8f0;
+    caret-color: #e2e8f0;
+    background-color: #020617 !important;
+  }
+  .admin-input::placeholder {
+    color: #94a3b8 !important;
+    opacity: 1;
+  }
+  .admin-input:disabled {
+    color: #94a3b8 !important;
+    -webkit-text-fill-color: #94a3b8;
+    background-color: #111827 !important;
   }
   .admin-table {
     @apply w-full text-left text-sm;
