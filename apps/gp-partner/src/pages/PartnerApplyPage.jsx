@@ -150,7 +150,7 @@ export default function PartnerApplyPage({ specialistOnly = false }) {
         <div key={g.id}>
           <p className="gp-form-hint">{g.title}</p>
           <div className="flex flex-wrap gap-2">
-            {g.subservices.map((s) => (
+            {(g.subs || []).map((s) => (
               <button
                 key={s.id}
                 type="button"
@@ -164,7 +164,7 @@ export default function PartnerApplyPage({ specialistOnly = false }) {
                   selectedSubIds.has(s.id) ? 'bg-emerald-600 text-white' : 'bg-white text-black border border-gray-300'
                 }`}
               >
-                {s.name}
+                {s.label}
               </button>
             ))}
           </div>

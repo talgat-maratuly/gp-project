@@ -50,7 +50,7 @@ async function loadPartnerSession() {
   if (!getToken()) return null
   if (isTestModeActive() && getToken().startsWith('gp_test_')) {
     const me = getTestMe()
-    return me?.role === 'PARTNER' ? mapTestPartnerToSession(me) : null
+    return me?.partnerProfile ? mapTestPartnerToSession(me) : null
   }
   const me = await api.me()
   let profile = me.partnerProfile

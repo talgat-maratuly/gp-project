@@ -13,7 +13,7 @@ export default function PartnerShell() {
   const { t } = useLanguage()
 
   const access = getPartnerAccess(user || {}, { isDemoMode: isDemoMode() })
-  const nav = getPartnerBottomNav(user, { isDemoMode: isDemoMode() })
+  const nav = getPartnerBottomNav(user, { isDemoMode: isDemoMode() }) || []
 
   if (!authReady) {
     return (
