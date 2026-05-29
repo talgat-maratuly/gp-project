@@ -45,6 +45,11 @@ export class ModeratorSpecialistRequestsController {
     @Param('id') id: string,
     @Body() dto: RejectSpecialistRequestDto,
   ) {
-    return this.specialistRequests.reject(actor, id, dto.rejectionReason);
+    return this.specialistRequests.reject(
+      actor,
+      id,
+      dto.rejectionReason,
+      dto.rejectionReasonCode,
+    );
   }
 }

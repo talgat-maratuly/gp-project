@@ -22,6 +22,7 @@ import { HealthModule } from './health/health.module';
 import { RbacModule } from './rbac/rbac.module';
 import { UserStatusModule } from './user-status/user-status.module';
 import { SpecialistRequestsModule } from './specialist-requests/specialist-requests.module';
+import { SpecialistOnboardingModule } from './specialist-onboarding/specialist-onboarding.module';
 
 @Module({
   controllers: [HealthController],
@@ -41,6 +42,7 @@ import { SpecialistRequestsModule } from './specialist-requests/specialist-reque
     RbacModule,
     UserStatusModule,
     SpecialistRequestsModule,
+    SpecialistOnboardingModule,
     AuthModule,
     RegionsModule,
     PartnersModule,

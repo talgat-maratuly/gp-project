@@ -16,6 +16,7 @@
     "./portal-roles": "./src/portal-roles.js",
     "./user-statuses": "./src/user-statuses.js",
     "./specialist-moderation": "./src/specialist-moderation.js",
-    "./account-status": "./src/account-status.js"
+    "./account-status": "./src/account-status.js",
+    "./specialist-onboarding": "./src/specialist-onboarding-catalog.js"
   }
 }

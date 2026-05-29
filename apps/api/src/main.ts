@@ -18,6 +18,11 @@ const DEFAULT_CORS_ORIGINS = [
   'https://partner.gp-service.kz',
   'https://admin.gp-service.kz',
   'https://market.gp-service.kz',
+  // DuckDNS staging / VPS
+  'https://admingp.duckdns.org',
+  'https://servicegp.duckdns.org',
+  'https://partnergp.duckdns.org',
+  'https://apigp.duckdns.org',
 ];
 
 function resolveCorsOrigins(config: ConfigService): string[] | boolean {

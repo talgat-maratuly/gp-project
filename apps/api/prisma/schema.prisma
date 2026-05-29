@@ -85,6 +85,14 @@ enum RequestStatus {
   REJECTED
 }
 
+enum SpecialistRejectionReasonCode {
+  DOCUMENTS_UNCLEAR
+  MISSING_PHOTOS
+  INCORRECT_INFORMATION
+  VEHICLE_NOT_SUITABLE
+  OTHER
+}
+
 /// Platform access — барлық User
 enum AccountStatus {
   ACTIVE
@@ -216,7 +224,7 @@ model User {
   marketOrders   MarketOrder[]
   approvedPartners PartnerProfile[] @relation("PartnerApprovedBy")
   moderationActions PartnerModerationAuditLog[] @relation("ModerationAdmin")
-  specialistRequest SpecialistRequest?
+  specialistRequests SpecialistRequest[]
   moderatedSpecialistRequests SpecialistRequest[] @relation("SpecialistRequestModerator")
   accountStatusLogs AccountStatusLog[] @relation("AccountStatusSubject")
   accountStatusChanges AccountStatusLog[] @relation("AccountStatusChangedBy")
@@ -352,7 +360,7 @@ model PartnerProfile {
   trips        Trip[]
   serviceProjects ServiceProject[] @relation("AssignedPartnerProjects")
   furnitureExecutorOrders FurnitureExecutorOrder[] @relation("FurnitureExecutorPartner")
-  specialistRequest SpecialistRequest?
+  specialistRequests SpecialistRequest[]
 
   @@index([regionId])
   @@index([status])
@@ -360,33 +368,51 @@ model PartnerProfile {
   @@index([partnerRole])
 }
 
-/// Specialist moderation request (Request Status — PartnerProfile workflow-дан бөлек жазба)
+/// Specialist moderation request — бір user → бірнеше өтінім (бір негізгі қызмет / өтінім)
 model SpecialistRequest {
   id               String        @id @default(uuid())
-  userId           String        @unique
+  userId           String
   user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  partnerProfileId String        @unique
+  partnerProfileId String
   partnerProfile   PartnerProfile @relation(fields: [partnerProfileId], references: [id], onDelete: Cascade)
 
   regionId         String
   region           Region        @relation(fields: [regionId], references: [id])
   city             String?
   district         String?
+  /// Бір өтінім = бір негізгі қызмет (OrderCategory)
+  primaryCategory  OrderCategory
+  subserviceIds    String[]      @default([])
   primarySubserviceId String?
-  primaryCategory  OrderCategory?
 
   status           RequestStatus
+
+  profilePhotoUrl    String?
+  idCardFrontUrl     String?
+  idCardBackUrl      String?
+  vehicleData        Json?
+  equipmentPhotoUrls String[]    @default([])
+  workExperience     String?
+  termsAcceptedAt    DateTime?
+  personalDataAcceptedAt DateTime?
 
   moderatorId      String?
   moderator        User?         @relation("SpecialistRequestModerator", fields: [moderatorId], references: [id])
   approvedAt       DateTime?
   rejectionReason  String?
+  rejectionReasonCode SpecialistRejectionReasonCode?
   rejectedAt       DateTime?
   resubmittedAt    DateTime?
+
+  offerings        PartnerServiceOffering[]
 
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
+  @@index([userId])
+  @@index([userId, status])
+  @@index([userId, primaryCategory])
+  @@index([partnerProfileId])
   @@index([regionId])
   @@index([status])
   @@index([createdAt])
@@ -428,6 +454,8 @@ model PartnerServiceOffering {
   id            String                @id @default(uuid())
   partnerId     String
   partner       PartnerProfile        @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  specialistRequestId String?
+  specialistRequest   SpecialistRequest? @relation(fields: [specialistRequestId], references: [id], onDelete: Cascade)
   /** Идентификатор подуслуги как в каталоге (например grass-mowing) или gp-shop для магазина */
   subserviceId  String
   status        PartnerOfferingStatus @default(PENDING_MODERATION)
@@ -437,6 +465,7 @@ model PartnerServiceOffering {
 
   @@unique([partnerId, subserviceId])
   @@index([partnerId])
+  @@index([specialistRequestId])
   @@index([status])
 }
 

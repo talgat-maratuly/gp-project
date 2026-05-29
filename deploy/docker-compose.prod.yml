@@ -34,7 +34,7 @@ services:
       PORT: 4000
       DATABASE_URL: postgresql://${POSTGRES_USER:-gp}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-gp_service}?schema=public
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
-      CORS_ORIGINS: ${CORS_ORIGINS:-https://gp-service.kz,https://partner.gp-service.kz,https://admin.gp-service.kz,https://market.gp-service.kz}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://gp-service.kz,https://partner.gp-service.kz,https://admin.gp-service.kz,https://market.gp-service.kz,https://admingp.duckdns.org,https://servicegp.duckdns.org,https://partnergp.duckdns.org}
     ports:
       - '4000:4000'
     networks:

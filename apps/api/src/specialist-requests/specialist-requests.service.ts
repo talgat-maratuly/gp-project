@@ -17,16 +17,12 @@ import {
   WorkStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { PartnerModerationService } from '../partners/partner-moderation.service';
 import { PartnerApplyDto } from '../partners/dto/partner-apply.dto';
 import { RbacService } from '../rbac/rbac.service';
 import { AccountStatusService } from '../user-status/account-status.service';
 import { SpecialistModeratorAccessService } from './specialist-moderator-access.service';
 import { SpecialistRequestNotificationsService } from './specialist-request-notifications.service';
-import {
-  assertCanResubmit,
-  assertRequestStatusTransition,
-} from './specialist-request.transitions';
+import { assertRequestStatusTransition } from './specialist-request.transitions';
 import { ModeratorSpecialistRequestsQueryDto } from './dto/moderator-list-query.dto';
 import { SUBSERVICE_TO_DIRECTION } from '../common/partner-offerings.util';
 
@@ -50,7 +46,6 @@ const specialistInclude = {
 export class SpecialistRequestsService {
   constructor(
     private prisma: PrismaService,
-    private partnerModeration: PartnerModerationService,
     private moderatorAccess: SpecialistModeratorAccessService,
     private notifications: SpecialistRequestNotificationsService,
     private rbac: RbacService,
@@ -59,6 +54,9 @@ export class SpecialistRequestsService {
 
   private mapToApi(request: Prisma.SpecialistRequestGetPayload<{ include: typeof specialistInclude }>) {
     const profile = request.partnerProfile;
+    const requestOfferings = profile.serviceOfferings.filter(
+      (o) => o.specialistRequestId === request.id || !o.specialistRequestId,
+    );
     return {
       id: request.id,
       userId: request.userId,
@@ -67,30 +65,41 @@ export class SpecialistRequestsService {
       city: request.city,
       district: request.district,
       categoryId: request.primaryCategory,
+      primaryCategory: request.primaryCategory,
+      subserviceIds: request.subserviceIds,
       subCategoryId: request.primarySubserviceId,
       status: request.status,
       moderatorId: request.moderatorId,
       approvedAt: request.approvedAt,
       rejectionReason: request.rejectionReason,
+      rejectionReasonCode: request.rejectionReasonCode,
       rejectedAt: request.rejectedAt,
       resubmittedAt: request.resubmittedAt,
+      profilePhotoUrl: request.profilePhotoUrl,
+      idCardFrontUrl: request.idCardFrontUrl,
+      idCardBackUrl: request.idCardBackUrl,
+      vehicleData: request.vehicleData,
+      equipmentPhotoUrls: request.equipmentPhotoUrls,
+      workExperience: request.workExperience,
       createdAt: request.createdAt,
       updatedAt: request.updatedAt,
       specialistName: profile.fullName ?? profile.companyName ?? request.user.name,
       phoneNumber: request.user.phone,
       partnerStatus: profile.status,
-      offerings: profile.serviceOfferings,
+      offerings: requestOfferings,
       region: request.region,
-      uiMessage: this.uiMessageForStatus(request.status),
+      uiMessage: this.uiMessageForStatus(request.status, request.rejectionReason),
+      canEdit: request.status === RequestStatus.REJECTED,
+      canResubmit: request.status === RequestStatus.REJECTED,
     };
   }
 
-  private uiMessageForStatus(status: RequestStatus): string | null {
+  private uiMessageForStatus(status: RequestStatus, rejectionReason?: string | null): string | null {
     if (status === RequestStatus.PENDING) {
       return 'Your application is under moderation.\nPlease wait for review results.';
     }
     if (status === RequestStatus.REJECTED) {
-      return 'Application Status: Rejected';
+      return `Application Status: Rejected\n\nReason:\n${rejectionReason ?? ''}`;
     }
     return null;
   }
@@ -103,119 +112,51 @@ export class SpecialistRequestsService {
   }
 
   async getMyRequest(userId: string) {
-    const request = await this.prisma.specialistRequest.findUnique({
+    const items = await this.prisma.specialistRequest.findMany({
       where: { userId },
       include: specialistInclude,
+      orderBy: { createdAt: 'desc' },
     });
-    if (!request) {
+    if (!items.length) {
       const profile = await this.prisma.partnerProfile.findUnique({
         where: { userId },
         include: { user: true, region: true, serviceOfferings: true },
       });
       if (!profile) throw new NotFoundException('Специалист өтінімі жоқ');
       return {
-        status: profile.requestStatus,
-        partnerStatus: profile.status,
-        rejectionReason: profile.rejectionReason,
-        uiMessage: profile.requestStatus
-          ? this.uiMessageForStatus(profile.requestStatus)
-          : 'Өтінім әлі жіберілмеген',
-        canEdit: profile.requestStatus === RequestStatus.REJECTED,
-        canResubmit: profile.requestStatus === RequestStatus.REJECTED,
-        profile,
+        applications: [],
+        legacy: {
+          status: profile.requestStatus,
+          partnerStatus: profile.status,
+          rejectionReason: profile.rejectionReason,
+          uiMessage: profile.requestStatus
+            ? this.uiMessageForStatus(profile.requestStatus, profile.rejectionReason)
+            : 'Өтінім әлі жіберілмеген',
+          canEdit: profile.requestStatus === RequestStatus.REJECTED,
+          canResubmit: profile.requestStatus === RequestStatus.REJECTED,
+          profile,
+        },
       };
     }
-    const mapped = this.mapToApi(request);
+    const applications = items.map((r) => this.mapToApi(r));
+    const hasApproved = items.some((r) => r.status === RequestStatus.APPROVED);
     return {
-      ...mapped,
-      canEdit: request.status === RequestStatus.REJECTED,
-      canResubmit: request.status === RequestStatus.REJECTED,
-      editButtonLabel: 'Edit Application',
+      applications,
+      hasApprovedApplication: hasApproved,
+      latest: applications[0],
     };
   }
 
-  async submit(userId: string, dto: PartnerApplyDto & { district?: string }, isResubmit = false) {
-    const existing = await this.prisma.specialistRequest.findUnique({ where: { userId } });
-    if (existing?.status === RequestStatus.APPROVED) {
-      throw new BadRequestException('Бекітілген өтінімді өзгертуге болмайды');
-    }
-    if (existing?.status === RequestStatus.PENDING && !isResubmit) {
-      throw new BadRequestException('Бір уақытта тек бір PENDING өтінім болуы мүмкін');
-    }
-    if (isResubmit) {
-      if (existing) {
-        assertCanResubmit(existing.status);
-      } else {
-        const profile = await this.prisma.partnerProfile.findUnique({ where: { userId } });
-        const rejected =
-          profile?.requestStatus === RequestStatus.REJECTED ||
-          profile?.status === PartnerStatus.REJECTED;
-        if (!rejected) {
-          throw new BadRequestException('Қайта жіберу үшін өтінім REJECTED болуы керек');
-        }
-      }
-    }
-
-    const profile = await this.partnerModeration.apply(userId, dto);
-    const primarySub =
-      dto.subserviceIds?.[0] ??
-      profile.serviceOfferings?.[0]?.subserviceId ??
-      undefined;
-
-    const data = {
-      regionId: profile.regionId!,
-      city: profile.city,
-      district: dto.district?.trim() || null,
-      primarySubserviceId: primarySub ?? null,
-      primaryCategory: this.categoryFromSubservice(primarySub),
-      status: RequestStatus.PENDING,
-      rejectionReason: null,
-      rejectedAt: null,
-      moderatorId: null,
-      approvedAt: null,
-      resubmittedAt: isResubmit ? new Date() : undefined,
-    };
-
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        portalRoles: {
-          set: [PortalRole.CLIENT],
-        },
-      },
-    });
-
-    const request = existing
-      ? await this.prisma.specialistRequest.update({
-          where: { id: existing.id },
-          data,
-          include: specialistInclude,
-        })
-      : await this.prisma.specialistRequest.create({
-          data: {
-            userId,
-            partnerProfileId: profile.id,
-            ...data,
-          },
-          include: specialistInclude,
-        });
-
-    await this.prisma.partnerProfile.update({
-      where: { id: profile.id },
-      data: {
-        requestStatus: RequestStatus.PENDING,
-        status: PartnerStatus.PENDING_REVIEW,
-        workStatus: WorkStatus.OFFLINE,
-        isOnline: false,
-      },
-    });
-
-    await this.notifications.notifySubmitted(userId, request.regionId, isResubmit);
-    return this.mapToApi(request);
+  async submit(_userId: string, _dto: PartnerApplyDto & { district?: string }) {
+    throw new BadRequestException(
+      'Use POST /api/specialist/applications (one application per main service).',
+    );
   }
 
-  async resubmit(userId: string, dto: PartnerApplyDto & { district?: string }) {
-    return this.submit(userId, dto, true);
+  async resubmit(_userId: string, _dto: PartnerApplyDto & { district?: string }) {
+    throw new BadRequestException(
+      'Use POST /api/specialist/applications with resubmitRequestId for rejected applications.',
+    );
   }
 
   async listForModerator(actor: User, query: ModeratorSpecialistRequestsQueryDto) {
@@ -315,6 +256,7 @@ export class SpecialistRequestsService {
           moderatorId: actor.id,
           approvedAt: new Date(),
           rejectionReason: null,
+          rejectionReasonCode: null,
           rejectedAt: null,
         },
       });
@@ -330,7 +272,7 @@ export class SpecialistRequestsService {
         },
       });
       await tx.partnerServiceOffering.updateMany({
-        where: { partnerId: request.partnerProfileId },
+        where: { specialistRequestId: requestId },
         data: { status: PartnerOfferingStatus.ACTIVE },
       });
       await tx.partnerModerationAuditLog.create({
@@ -352,7 +294,12 @@ export class SpecialistRequestsService {
     return this.getForModerator(actor, requestId);
   }
 
-  async reject(actor: User, requestId: string, rejectionReason: string) {
+  async reject(
+    actor: User,
+    requestId: string,
+    rejectionReason: string,
+    rejectionReasonCode?: import('@prisma/client').SpecialistRejectionReasonCode,
+  ) {
     this.moderatorAccess.assertCanModerate(actor);
     const request = await this.prisma.specialistRequest.findUnique({
       where: { id: requestId },
@@ -363,6 +310,14 @@ export class SpecialistRequestsService {
 
     const reason = rejectionReason.trim();
 
+    const otherApproved = await this.prisma.specialistRequest.count({
+      where: {
+        userId: request.userId,
+        status: RequestStatus.APPROVED,
+        id: { not: requestId },
+      },
+    });
+
     await this.prisma.$transaction(async (tx) => {
       await tx.specialistRequest.update({
         where: { id: requestId },
@@ -370,20 +325,33 @@ export class SpecialistRequestsService {
           status: RequestStatus.REJECTED,
           moderatorId: actor.id,
           rejectionReason: reason,
+          rejectionReasonCode: rejectionReasonCode ?? undefined,
           rejectedAt: new Date(),
         },
       });
-      await tx.partnerProfile.update({
-        where: { id: request.partnerProfileId },
-        data: {
-          status: PartnerStatus.REJECTED,
-          requestStatus: RequestStatus.REJECTED,
-          rejectionReason: reason,
-          rejectedAt: new Date(),
-          workStatus: WorkStatus.OFFLINE,
-          isOnline: false,
-        },
+      await tx.partnerServiceOffering.updateMany({
+        where: { specialistRequestId: requestId },
+        data: { status: PartnerOfferingStatus.REJECTED, moderationNote: reason },
       });
+      if (!otherApproved) {
+        await tx.partnerProfile.update({
+          where: { id: request.partnerProfileId },
+          data: {
+            status: PartnerStatus.REJECTED,
+            requestStatus: RequestStatus.REJECTED,
+            rejectionReason: reason,
+            rejectedAt: new Date(),
+            workStatus: WorkStatus.OFFLINE,
+            isOnline: false,
+          },
+        });
+        await tx.user.update({
+          where: { id: request.userId },
+          data: {
+            portalRoles: { set: [PortalRole.CLIENT] },
+          },
+        });
+      }
       await tx.partnerModerationAuditLog.create({
         data: {
           partnerId: request.partnerProfileId,
@@ -392,24 +360,25 @@ export class SpecialistRequestsService {
           reason,
         },
       });
-
-      await tx.user.update({
-        where: { id: request.userId },
-        data: {
-          portalRoles: { set: [PortalRole.CLIENT] },
-        },
-      });
     });
 
     await this.notifications.notifyRejected(request.userId, reason);
     return this.getForModerator(actor, requestId);
   }
 
-  assertSpecialistCanViewOrders(userId: string, requestStatus: RequestStatus | null | undefined) {
-    if (requestStatus !== RequestStatus.APPROVED) {
+  async assertSpecialistCanViewOrders(userId: string) {
+    const approved = await this.prisma.specialistRequest.count({
+      where: { userId, status: RequestStatus.APPROVED },
+    });
+    if (approved < 1) {
+      const pending = await this.prisma.specialistRequest.findFirst({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        select: { status: true },
+      });
       throw new ForbiddenException({
         message: 'Your application is under moderation.\nPlease wait for review results.',
-        requestStatus: requestStatus ?? RequestStatus.PENDING,
+        requestStatus: pending?.status ?? RequestStatus.PENDING,
       });
     }
   }
