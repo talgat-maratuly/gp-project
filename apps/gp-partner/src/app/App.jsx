@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import PartnerShell from '../components/PartnerShell'
 import { PartnerTypeRoute } from '../components/PartnerTypeRoute'
 import AuthPage from '../pages/AuthPage'
+import PartnerLoginPage from '../pages/PartnerLoginPage'
 import { ForgotPasswordScreen, ResetPasswordScreen } from '@gp/shared/auth/passwordRecovery'
 import DashboardPage from '../pages/DashboardPage'
 import OrdersPage from '../pages/OrdersPage'
@@ -26,8 +27,8 @@ export default function App() {
   return (
     <Routes>
       <Route path="/auth" element={<Navigate to="/login" replace />} />
-      <Route path="/register" element={<AuthPage initialMode="register" />} />
-      <Route path="/login" element={<AuthPage initialMode="login" />} />
+      <Route path="/register" element={<AuthPage />} />
+      <Route path="/login" element={<PartnerLoginPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordScreen loginPath="/login" resetPath="/reset-password" />} />
       <Route path="/reset-password" element={<ResetPasswordScreen loginPath="/login" />} />
       <Route path="/cabinet" element={<PartnerCabinetPage />}>

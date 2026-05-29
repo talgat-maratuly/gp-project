@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Check, ChevronLeft, ChevronRight } from 'lucide-react'
 import {
   PARTNER_REGISTRATION_GROUPS,
@@ -12,7 +12,6 @@ import {
   getServiceWebUrl,
 } from '@gp/shared/constants'
 import { API_URL } from '@gp/shared/api'
-import { WhatsappOtpLogin } from '@gp/shared/auth/whatsappOtpLogin'
 import { usePartner } from '../context/PartnerContext'
 
 const SERVICE_GROUPS = [
@@ -38,12 +37,10 @@ function StepDots({ step }) {
   )
 }
 
-export default function AuthPage({ initialMode = 'register' }) {
+/** Тіркелу (3 қадам). Кіру — жеке `/login` (PartnerLoginPage). */
+export default function AuthPage() {
   const navigate = useNavigate()
-  const location = useLocation()
-  const { register, login, loginViaWhatsappOtp, logout, loading, user, authReady } = usePartner()
-  const [mode, setMode] = useState(initialMode)
-  const [loginMethod, setLoginMethod] = useState('whatsapp')
+  const { register, loading, user, authReady } = usePartner()
   const [regStep, setRegStep] = useState(1)
   const [selectedMainIds, setSelectedMainIds] = useState(() => new Set(['lawn']))
   const [selectedSubIds, setSelectedSubIds] = useState(() => new Set())
@@ -67,19 +64,8 @@ export default function AuthPage({ initialMode = 'register' }) {
   const [passwordStarted, setPasswordStarted] = useState(false)
 
   useEffect(() => {
-    if (location.pathname === '/login') setMode('login')
-    else if (location.pathname === '/register') setMode('register')
-    else setMode(initialMode)
-  }, [initialMode, location.pathname])
-
-  useEffect(() => {
-    if (!authReady || !user) return
-    // /login — кіру экранында қалу (басқа нөмір / logout)
-    if (location.pathname === '/login') return
-    if (location.pathname === '/register' || location.pathname === '/auth') {
-      navigate('/', { replace: true })
-    }
-  }, [authReady, user, navigate, location.pathname])
+    if (authReady && user) navigate('/', { replace: true })
+  }, [authReady, user, navigate])
 
   useEffect(() => {
     if (import.meta.env.DEV) console.log('[GP Partner] API_URL =', API_URL)
@@ -231,27 +217,8 @@ export default function AuthPage({ initialMode = 'register' }) {
     }
   }
 
-  const handleLogin = async (e) => {
-    e.preventDefault()
-    setError('')
-    const pwdErr = validatePassword()
-    if (pwdErr) {
-      setError(pwdErr)
-      return
-    }
-    try {
-      await login(form.email, form.password)
-    } catch (err) {
-      setError(err?.message || 'Ошибка входа')
-    }
-  }
-
   const onFormSubmit = (e) => {
     e.preventDefault()
-    if (mode === 'login') {
-      if (loginMethod === 'password') handleLogin(e)
-      return
-    }
     if (regStep === 3) finishRegister()
   }
 
@@ -267,17 +234,15 @@ export default function AuthPage({ initialMode = 'register' }) {
     <div className="min-h-screen px-4 py-6 max-w-md mx-auto gp-app-bg">
       <div className="mb-6 gp-animate-in">
         <h1 className="text-2xl font-extrabold gp-text-gradient">GP Partner</h1>
-        <p className="text-[var(--gp-text-muted)] text-sm mt-1">
-          {mode === 'register' ? 'Регистрация специалиста' : 'Вход в аккаунт'}
-        </p>
-        {import.meta.env.DEV && mode === 'register' && (
+        <p className="text-[var(--gp-text-muted)] text-sm mt-1">Регистрация специалиста</p>
+        {import.meta.env.DEV && (
           <p className="text-[11px] text-emerald-600/90 mt-2">
             MVP: email, телефон и пароль можно оставить пустыми — подставятся тестовые значения. Регион не обязателен.
           </p>
         )}
       </div>
 
-      {import.meta.env.DEV && mode === 'register' && (
+      {import.meta.env.DEV && (
         <div className="flex flex-wrap gap-2 mb-4">
           <button type="button" disabled={loading} onClick={() => quickTestRegister('specialist')} className="text-xs px-3 py-2 rounded-xl bg-white/10 border border-white/20">
             Тест: specialist
@@ -291,106 +256,18 @@ export default function AuthPage({ initialMode = 'register' }) {
         </div>
       )}
 
-      <div className="flex bg-[var(--gp-surface)] rounded-2xl p-1 mb-5 border border-[var(--gp-border)] shadow-sm">
-        {['register', 'login'].map((m) => (
-          <button
-            key={m}
-            type="button"
-            onClick={() => {
-              setMode(m)
-              setError('')
-              resetRegister()
-              navigate(m === 'login' ? '/login' : '/register', { replace: true })
-            }}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition ${
-              mode === m ? 'gp-gradient-kaspi text-white shadow-md' : 'text-[var(--gp-text-muted)]'
-            }`}
-          >
-            {m === 'register' ? 'Регистрация' : 'Вход'}
-          </button>
-        ))}
-      </div>
+      <p className="text-center text-sm text-[var(--gp-text-muted)] mb-4">
+        Аккаунтыңыз бар ма?{' '}
+        <Link to="/login" className="text-emerald-500 font-semibold hover:underline">
+          Кіру
+        </Link>
+      </p>
 
-      {mode === 'register' && <StepDots step={regStep} />}
+      <StepDots step={regStep} />
 
-      {mode === 'login' && user && (
-        <div className="gp-card-kaspi p-4 mb-4 space-y-3 border border-emerald-500/30">
-          <p className="text-sm text-[var(--gp-text)]">
-            Сіз кірдіңіз: <strong>{user.phone || user.email}</strong>
-            {user.partnerStatus && user.partnerStatus !== 'APPROVED' && (
-              <span className="block text-xs text-[var(--gp-text-muted)] mt-1">
-                Статус: {user.partnerStatus} — басты беттен өтінімді толықтыра аласыз (бұл тіркелу формасы емес).
-              </span>
-            )}
-          </p>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => navigate('/', { replace: true })}
-              className="flex-1 py-2.5 rounded-xl gp-gradient-kaspi text-white text-sm font-bold"
-            >
-              Кабинетке өту
-            </button>
-            <button
-              type="button"
-              onClick={() => logout()}
-              className="flex-1 py-2.5 rounded-xl border border-[var(--gp-border)] text-sm font-semibold"
-            >
-              Шығу
-            </button>
-          </div>
-        </div>
-      )}
-
-      {mode === 'login' && loginMethod === 'whatsapp' && !user && (
-        <div className="gp-card-kaspi p-5 space-y-4">
-          <div className="flex gap-2 mb-1">
-            {[
-              ['whatsapp', 'WhatsApp OTP'],
-              ['password', 'Email / пароль'],
-            ].map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => { setLoginMethod(id); setError('') }}
-                className={`flex-1 py-2 rounded-xl text-xs font-bold border ${
-                  loginMethod === id
-                    ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10'
-                    : 'border-white/10 text-slate-500'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <WhatsappOtpLogin
-            deviceId="gp-partner-web"
-            deviceName="GP Partner Web"
-            loginAs="partner"
-            inputClassName="gp-input-kaspi"
-            buttonClassName="w-full py-3.5 rounded-2xl gp-gradient-kaspi text-white font-bold text-sm shadow-md disabled:opacity-50"
-            onVerified={async () => {
-              try {
-                await loginViaWhatsappOtp()
-                navigate('/', { replace: true })
-              } catch (err) {
-                setError(err.message || 'Кіру қатесі')
-                throw err
-              }
-            }}
-          />
-          {error && (
-            <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2" role="alert">
-              {error}
-            </p>
-          )}
-        </div>
-      )}
-
-      {(mode !== 'login' || loginMethod !== 'whatsapp') && (
       <form onSubmit={onFormSubmit} noValidate className="gp-card-kaspi p-5 space-y-4">
         {/* ——— Регистрация: шаг 1 — услуги ——— */}
-        {mode === 'register' && regStep === 1 && (
+        {regStep === 1 && (
           <div className="space-y-4">
             <div>
               <p className="text-sm font-semibold text-white">Какие услуги вы оказываете?</p>
@@ -457,7 +334,7 @@ export default function AuthPage({ initialMode = 'register' }) {
         )}
 
         {/* ——— Регистрация: шаг 2 — контакты ——— */}
-        {mode === 'register' && regStep === 2 && (
+        {regStep === 2 && (
           <div className="gp-form-stack">
             <div>
               <p className="text-sm font-semibold text-[var(--gp-text)]">Ваши контакты</p>
@@ -518,7 +395,7 @@ export default function AuthPage({ initialMode = 'register' }) {
         )}
 
         {/* ——— Регистрация: шаг 3 — компания и подтверждение ——— */}
-        {mode === 'register' && regStep === 3 && (
+        {regStep === 3 && (
           <div className="space-y-4">
             <div>
               <p className="text-sm font-bold">Тип регистрации</p>
@@ -677,50 +554,6 @@ export default function AuthPage({ initialMode = 'register' }) {
           </div>
         )}
 
-        {/* ——— Вход (email / пароль) ——— */}
-        {mode === 'login' && loginMethod === 'password' && (
-          <div className="gp-form-stack">
-            <div className="flex gap-2 mb-1">
-              {[
-                ['whatsapp', 'WhatsApp OTP'],
-                ['password', 'Email / пароль'],
-              ].map(([id, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => { setLoginMethod(id); setError('') }}
-                  className={`flex-1 py-2 rounded-xl text-xs font-bold border ${
-                    loginMethod === id
-                      ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10'
-                      : 'border-white/10 text-slate-500'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            <input
-              type="text"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="gp-input-kaspi"
-              placeholder="uralsk_partner или partner@gp.kz"
-              autoComplete="username"
-              required
-            />
-            <input
-              type="password"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              className="gp-input-kaspi"
-              placeholder="Пароль"
-              autoComplete="current-password"
-            />
-            <p className="text-[11px] text-slate-500">API: partner@gp.kz / password123 · Demo: uralsk_partner / 1234</p>
-            <Link to="/forgot-password" className="text-xs text-emerald-400 hover:underline">Забыли пароль?</Link>
-          </div>
-        )}
-
         {error && (
           <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2" role="alert">
             {error}
@@ -728,7 +561,7 @@ export default function AuthPage({ initialMode = 'register' }) {
         )}
 
         <div className="flex gap-2 pt-1">
-          {mode === 'register' && regStep > 1 && (
+          {regStep > 1 && (
             <button
               type="button"
               onClick={() => { setError(''); setRegStep((s) => s - 1) }}
@@ -737,7 +570,7 @@ export default function AuthPage({ initialMode = 'register' }) {
               <ChevronLeft className="w-4 h-4" /> Назад
             </button>
           )}
-          {mode === 'register' && regStep === 1 && (
+          {regStep === 1 && (
             <button
               type="button"
               onClick={goNextFromStep1}
@@ -746,7 +579,7 @@ export default function AuthPage({ initialMode = 'register' }) {
               Далее <ChevronRight className="w-4 h-4" />
             </button>
           )}
-          {mode === 'register' && regStep === 2 && (
+          {regStep === 2 && (
             <button
               type="button"
               onClick={goNextFromStep2}
@@ -755,17 +588,13 @@ export default function AuthPage({ initialMode = 'register' }) {
               Далее <ChevronRight className="w-4 h-4" />
             </button>
           )}
-          {(mode === 'login' && loginMethod === 'password') || (mode === 'register' && regStep === 3) ? (
+          {regStep === 3 ? (
             <button
               type="submit"
               disabled={loading}
               className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl gp-gradient-kaspi text-white font-bold text-sm shadow-md disabled:opacity-50"
             >
-              {loading ? (
-                '…'
-              ) : mode === 'login' ? (
-                'Войти'
-              ) : (
+              {loading ? '…' : (
                 <>
                   <Check className="w-4 h-4" /> Зарегистрироваться
                 </>
@@ -774,13 +603,10 @@ export default function AuthPage({ initialMode = 'register' }) {
           ) : null}
         </div>
       </form>
-      )}
 
-      {mode === 'register' && (
-        <p className="text-center text-[11px] text-slate-600 mt-4">
-          Шаг {regStep} из {REG_STEPS}
-        </p>
-      )}
+      <p className="text-center text-[11px] text-slate-600 mt-4">
+        Шаг {regStep} из {REG_STEPS}
+      </p>
 
       <p className="text-center text-xs text-slate-600 mt-6">
         <a href={getServiceWebUrl()} className="text-emerald-500 hover:underline">GP Service</a> — для клиентов
