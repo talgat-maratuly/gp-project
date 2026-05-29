@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { PARTNER_ROLES } from '@gp/shared/constants'
 import {
   PARTNER_REGISTRATION_GROUPS,
@@ -25,6 +25,8 @@ const FIELD_LABELS = {
 
 export default function PartnerApplyPage({ specialistOnly = false }) {
   const navigate = useNavigate()
+  const location = useLocation()
+  const fromWhatsappLogin = Boolean(location.state?.fromWhatsappLogin)
   const { user, syncPartner, notify, loading } = usePartner()
   const groups = specialistOnly ? SPECIALIST_GROUPS : ALL_GROUPS
   const [regions, setRegions] = useState([])
@@ -101,6 +103,11 @@ export default function PartnerApplyPage({ specialistOnly = false }) {
       <h1 className="text-xl font-bold text-[var(--gp-text)]">
         {specialistOnly ? 'Маман ретінде тіркелу' : 'Заявка партнёра GP'}
       </h1>
+      {fromWhatsappLogin && (
+        <p className="text-sm text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-3 py-2">
+          Сіз кірдіңіз. Бұл толық тіркелу емес — маман өтінімін толтырып, модерацияға жіберіңіз.
+        </p>
+      )}
       {specialistOnly && (
         <p className="text-sm text-[var(--gp-text-muted)]">
           Өтінім GP Admin арқылы қабылданғаннан кейін ғана қызметтер мен тапсырыстарға қол жеткізесіз.

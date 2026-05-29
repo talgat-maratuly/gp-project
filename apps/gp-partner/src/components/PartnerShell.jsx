@@ -22,7 +22,7 @@ export default function PartnerShell() {
       </div>
     )
   }
-  if (!user) return <Navigate to="/auth" replace />
+  if (!user) return <Navigate to="/login" replace />
 
   const showOnlineToggle = access.service
 

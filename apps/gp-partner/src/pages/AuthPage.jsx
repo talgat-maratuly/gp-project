@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Check, ChevronLeft, ChevronRight } from 'lucide-react'
 import {
   PARTNER_REGISTRATION_GROUPS,
@@ -40,6 +40,7 @@ function StepDots({ step }) {
 
 export default function AuthPage({ initialMode = 'register' }) {
   const navigate = useNavigate()
+  const location = useLocation()
   const { register, login, loginViaWhatsappOtp, loading, user, authReady } = usePartner()
   const [mode, setMode] = useState(initialMode)
   const [loginMethod, setLoginMethod] = useState('whatsapp')
@@ -66,12 +67,16 @@ export default function AuthPage({ initialMode = 'register' }) {
   const [passwordStarted, setPasswordStarted] = useState(false)
 
   useEffect(() => {
-    setMode(initialMode)
-  }, [initialMode])
+    if (location.pathname === '/login') setMode('login')
+    else if (location.pathname === '/register') setMode('register')
+    else setMode(initialMode)
+  }, [initialMode, location.pathname])
 
   useEffect(() => {
-    if (authReady && user) navigate('/', { replace: true })
-  }, [authReady, user, navigate])
+    if (!authReady || !user) return
+    const onAuthScreen = ['/login', '/register', '/auth'].includes(location.pathname)
+    if (onAuthScreen) navigate('/', { replace: true })
+  }, [authReady, user, navigate, location.pathname])
 
   useEffect(() => {
     if (import.meta.env.DEV) console.log('[GP Partner] API_URL =', API_URL)
@@ -137,7 +142,7 @@ export default function AuthPage({ initialMode = 'register' }) {
       setError(err)
       return
     }
-    const allowed = new Set(visibleGroups.flatMap((g) => g.subs.map((s) => s.id)))
+    const allowed = new Set(visibleGroups.flatMap((g) => (g.subs || []).map((s) => s.id)))
     setSelectedSubIds((prev) => new Set([...prev].filter((id) => allowed.has(id))))
     setPasswordStarted(false)
     setRegStep(2)
@@ -288,7 +293,12 @@ export default function AuthPage({ initialMode = 'register' }) {
           <button
             key={m}
             type="button"
-            onClick={() => { setMode(m); setError(''); resetRegister() }}
+            onClick={() => {
+              setMode(m)
+              setError('')
+              resetRegister()
+              navigate(m === 'login' ? '/login' : '/register', { replace: true })
+            }}
             className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition ${
               mode === m ? 'gp-gradient-kaspi text-white shadow-md' : 'text-[var(--gp-text-muted)]'
             }`}
@@ -327,10 +337,17 @@ export default function AuthPage({ initialMode = 'register' }) {
             loginAs="partner"
             inputClassName="gp-input-kaspi"
             buttonClassName="w-full py-3.5 rounded-2xl gp-gradient-kaspi text-white font-bold text-sm shadow-md disabled:opacity-50"
-            onVerified={async () => {
+            onVerified={async (otpSession) => {
               try {
                 await loginViaWhatsappOtp()
-                navigate('/', { replace: true })
+                if (otpSession?.needsApplication) {
+                  navigate('/apply/specialist', {
+                    replace: true,
+                    state: { fromWhatsappLogin: true },
+                  })
+                } else {
+                  navigate('/', { replace: true })
+                }
               } catch (err) {
                 setError(err.message || 'Кіру қатесі')
                 throw err
@@ -389,7 +406,7 @@ export default function AuthPage({ initialMode = 'register' }) {
                     <div key={g.id} className="rounded-xl border border-white/5 bg-[#0a0f1a]/50 p-3">
                       <p className="text-xs font-medium text-emerald-400/90 mb-2">{g.title}</p>
                       <div className="space-y-1">
-                        {g.subs.map((s) => (
+                        {(g.subs || []).map((s) => (
                           <label
                             key={s.id}
                             className={`flex items-center gap-2 py-1.5 px-2 rounded-lg cursor-pointer text-sm ${

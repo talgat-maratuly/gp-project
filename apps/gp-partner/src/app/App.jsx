@@ -25,7 +25,7 @@ import ServicesPage from '../pages/ServicesPage'
 export default function App() {
   return (
     <Routes>
-      <Route path="/auth" element={<AuthPage initialMode="register" />} />
+      <Route path="/auth" element={<Navigate to="/login" replace />} />
       <Route path="/register" element={<AuthPage initialMode="register" />} />
       <Route path="/login" element={<AuthPage initialMode="login" />} />
       <Route path="/forgot-password" element={<ForgotPasswordScreen loginPath="/login" resetPath="/reset-password" />} />
@@ -79,7 +79,7 @@ export default function App() {
         <Route path="payouts" element={<Navigate to="/balance" replace />} />
         <Route path="analytics" element={<Navigate to="/profile" replace />} />
       </Route>
-      <Route path="*" element={<Navigate to="/auth" replace />} />
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   )
 }

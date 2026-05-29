@@ -146,7 +146,7 @@ export default function ServicesPage() {
                 <div key={g.id} className="rounded-xl border border-[var(--gp-border)] p-3">
                   <p className="text-xs font-semibold text-emerald-600 mb-2">{g.title}</p>
                   <div className="space-y-1.5">
-                    {g.subs.map((s) => {
+                    {(g.subs || []).map((s) => {
                       const blocked = blockedAddIds.has(s.id)
                       const checked = picked.has(s.id)
                       return (
