@@ -7,9 +7,17 @@ import { PartnerBalanceModule } from '../partner-balance/partner-balance.module'
 import { NotificationsModule } from '../notifications/notifications.module';
 import { GeoModule } from '../geo/geo.module';
 import { FurnitureExecutorModule } from '../furniture-executor/furniture-executor.module';
+import { SpecialistRequestsModule } from '../specialist-requests/specialist-requests.module';
 
 @Module({
-  imports: [PartnersModule, PartnerBalanceModule, NotificationsModule, GeoModule, FurnitureExecutorModule],
+  imports: [
+    PartnersModule,
+    PartnerBalanceModule,
+    NotificationsModule,
+    GeoModule,
+    FurnitureExecutorModule,
+    SpecialistRequestsModule,
+  ],
   controllers: [OrdersController, PartnerOrdersController],
   providers: [OrdersService],
   exports: [OrdersService],

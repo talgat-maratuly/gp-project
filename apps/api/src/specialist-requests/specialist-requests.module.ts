@@ -1,4 +1,5 @@
 import { Module, forwardRef } from '@nestjs/common';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { PartnersModule } from '../partners/partners.module';
 import { SpecialistRequestsService } from './specialist-requests.service';
 import { SpecialistModeratorAccessService } from './specialist-moderator-access.service';
@@ -11,7 +12,7 @@ import { ModeratorSpecialistRequestsController } from './moderator-specialist-re
 import { SpecialistRequestApprovedGuard } from './guards/specialist-request-approved.guard';
 
 @Module({
-  imports: [forwardRef(() => PartnersModule)],
+  imports: [NotificationsModule, forwardRef(() => PartnersModule)],
   controllers: [
     SpecialistRequestsController,
     SpecialistMyRequestsAliasController,
