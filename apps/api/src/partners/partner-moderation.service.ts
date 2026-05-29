@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { AccountType, PartnerRole, PartnerType } from '@prisma/client';
+import { AccountType, PartnerRole, PartnerType, RequestStatus } from '@prisma/client';
 import { GP_SHOP_SUBSERVICE_ID } from '../common/partner-offerings.util';
 import { normalizePartnerDocuments, validatePartnerRegistration } from '../common/account-type.util';
 import { resolveSubserviceIdsForPartnerType } from '../common/partner-type.util';
@@ -146,6 +146,7 @@ export class PartnerModerationService {
           partnerType: dto.partnerType,
           partnerRole: this.resolvePartnerRole(dto),
           status: PartnerStatusValue.PENDING_REVIEW,
+          requestStatus: RequestStatus.PENDING,
           accountType: dto.accountType,
           companyName,
           company: companyName,

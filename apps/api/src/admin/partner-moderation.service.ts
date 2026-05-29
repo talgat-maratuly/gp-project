@@ -12,6 +12,7 @@ import { RegionAccessService } from '../common/region-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PartnersService } from '../partners/partners.service';
 import { RbacService } from '../rbac/rbac.service';
+import { RequestStatus, WorkStatus } from '@prisma/client';
 
 @Injectable()
 export class PartnerModerationAdminService {
@@ -154,6 +155,7 @@ export class PartnerModerationAdminService {
         where: { id: partnerId },
         data: {
           status: PartnerStatus.APPROVED,
+          requestStatus: RequestStatus.APPROVED,
           approvedByAdminId: admin.id,
           approvedAt: new Date(),
           rejectionReason: null,
@@ -184,6 +186,9 @@ export class PartnerModerationAdminService {
         where: { id: partnerId },
         data: {
           status: PartnerStatus.REJECTED,
+          requestStatus: RequestStatus.REJECTED,
+          workStatus: WorkStatus.OFFLINE,
+          isOnline: false,
           rejectionReason: reason.trim(),
           rejectedAt: new Date(),
         },
@@ -206,6 +211,7 @@ export class PartnerModerationAdminService {
         where: { id: partnerId },
         data: {
           status: PartnerStatus.NEEDS_REVISION,
+          requestStatus: RequestStatus.PENDING,
           revisionComment: comment.trim(),
         },
       });
@@ -223,6 +229,8 @@ export class PartnerModerationAdminService {
         where: { id: partnerId },
         data: {
           status: PartnerStatus.SUSPENDED,
+          requestStatus: RequestStatus.APPROVED,
+          workStatus: WorkStatus.OFFLINE,
           suspendedAt: new Date(),
           isOnline: false,
         },

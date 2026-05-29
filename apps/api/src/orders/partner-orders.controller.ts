@@ -6,6 +6,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { PartnerApprovedGuard } from '../partners/guards/partner-approved.guard';
+import { SpecialistOnlineGuard } from '../user-status/guards/specialist-online.guard';
 import { OrdersService } from './orders.service';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 
@@ -28,6 +29,7 @@ export class PartnerOrdersController {
   }
 
   @Patch(':id/accept')
+  @UseGuards(SpecialistOnlineGuard)
   accept(@CurrentUser() user: { id: string }, @Param('id') id: string) {
     return this.orders.acceptPartnerOrder(user.id, id);
   }

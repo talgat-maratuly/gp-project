@@ -38,6 +38,7 @@ import { ORDER_STATUS_UI } from '../common/order-status-ui.util';
 import { FurnitureExecutorService } from '../furniture-executor/furniture-executor.service';
 import { RbacService } from '../rbac/rbac.service';
 import { RbacRegionService } from '../rbac/rbac-region.service';
+import { UserStatusService } from '../user-status/user-status.service';
 import { randomBytes } from 'crypto';
 import * as bcrypt from 'bcrypt';
 
@@ -67,6 +68,7 @@ export class OrdersService {
     private gateway: GeoGateway,
     private rbac: RbacService,
     private rbacRegion: RbacRegionService,
+    private userStatus: UserStatusService,
   ) {}
 
   async createOrder(userId: string, dto: CreateOrderDto) {
@@ -75,6 +77,7 @@ export class OrdersService {
       include: { clientProfile: true, partnerProfile: true },
     });
     if (!actor) throw new NotFoundException('Пайдаланушы табылмады');
+    this.userStatus.assertCanUsePlatform(actor);
     this.rbac.assertCanCreateOrder(actor);
 
     if (dto.onBehalfClientPhone) {

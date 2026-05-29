@@ -20,6 +20,7 @@ import { FurnitureExecutorModule } from './furniture-executor/furniture-executor
 import { HealthController } from './health.controller';
 import { HealthModule } from './health/health.module';
 import { RbacModule } from './rbac/rbac.module';
+import { UserStatusModule } from './user-status/user-status.module';
 
 @Module({
   controllers: [HealthController],
@@ -37,6 +38,7 @@ import { RbacModule } from './rbac/rbac.module';
     PrismaModule,
     CommonModule,
     RbacModule,
+    UserStatusModule,
     AuthModule,
     RegionsModule,
     PartnersModule,

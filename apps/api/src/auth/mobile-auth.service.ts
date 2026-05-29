@@ -7,6 +7,7 @@ import { JwtService } from '@nestjs/jwt';
 import { AccountType, OtpChannel, PartnerRole, PartnerStatus, PartnerType, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
+import { UserStatusService } from '../user-status/user-status.service';
 import { MobileOtpSendDto } from './dto/mobile-otp-send.dto';
 import { MobileOtpVerifyDto } from './dto/mobile-otp-verify.dto';
 import { MobileRefreshDto } from './dto/mobile-refresh.dto';
@@ -31,6 +32,7 @@ export class MobileAuthService {
   constructor(
     private prisma: PrismaService,
     private jwt: JwtService,
+    private userStatus: UserStatusService,
   ) {}
 
   private accessExpiresSec(): number {
@@ -245,6 +247,8 @@ export class MobileAuthService {
       throw new UnauthorizedException('Бұл телефон басқа рөлге тіркелген');
     }
 
+    this.userStatus.assertAccountActive(user);
+
     await this.upsertDevice(user.id, dto);
     const { refreshToken, expiresAt } = await this.issueSession(
       user.id,
@@ -268,6 +272,7 @@ export class MobileAuthService {
       },
       needsApplication: user.role === Role.PARTNER && user.partnerProfile?.status !== PartnerStatus.APPROVED,
       partnerStatus: user.partnerProfile?.status || null,
+      statuses: this.userStatus.snapshot(user, user.partnerProfile ?? null),
     };
   }
 

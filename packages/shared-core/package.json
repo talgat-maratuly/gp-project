@@ -13,6 +13,7 @@
     "./ecosystem-types": "./src/ecosystem-types.js",
     "./validation": "./src/validation.js",
     "./storeUi": "./src/storeUi.js",
-    "./portal-roles": "./src/portal-roles.js"
+    "./portal-roles": "./src/portal-roles.js",
+    "./user-statuses": "./src/user-statuses.js"
   }
 }

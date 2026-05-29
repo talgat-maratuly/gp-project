@@ -2,6 +2,9 @@ import { BadRequestException, ForbiddenException, forwardRef, Inject, Injectable
 import { PrismaService } from '../prisma/prisma.service';
 import { isKnownSubserviceId, SUBSERVICE_TO_DIRECTION } from '../common/partner-offerings.util';
 import { FurnitureExecutorService } from '../furniture-executor/furniture-executor.service';
+import { UserStatusService } from '../user-status/user-status.service';
+import { WorkStatus } from '@prisma/client';
+import { workStatusToLegacyOnline } from '../user-status/work-status.util';
 
 const PartnerOfferingStatusValue = {
   ACTIVE: 'ACTIVE',
@@ -16,6 +19,7 @@ export class PartnersService {
     private prisma: PrismaService,
     @Inject(forwardRef(() => FurnitureExecutorService))
     private furnitureExecutor: FurnitureExecutorService,
+    private userStatus: UserStatusService,
   ) {}
 
   /**
@@ -56,16 +60,46 @@ export class PartnersService {
     data: {
       company?: string;
       isOnline?: boolean;
+      workStatus?: WorkStatus;
       lat?: number;
       lng?: number;
     },
   ) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('Пользователь не найден');
     const profile = await this.prisma.partnerProfile.findUnique({ where: { userId } });
     if (!profile) throw new NotFoundException('Профиль партнёра не найден');
+
+    const nextWork = this.userStatus.resolveWorkStatusFromBody(data);
+    const patch: {
+      company?: string;
+      lat?: number;
+      lng?: number;
+      workStatus?: WorkStatus;
+      isOnline?: boolean;
+    } = {
+      company: data.company,
+      lat: data.lat,
+      lng: data.lng,
+    };
+
+    if (nextWork != null) {
+      this.userStatus.assertValidWorkStatusTransition(profile.workStatus, nextWork, profile, user);
+      if (nextWork === WorkStatus.ONLINE) {
+        this.userStatus.assertCanGoOnline(user, profile);
+      }
+      patch.workStatus = nextWork;
+      patch.isOnline = workStatusToLegacyOnline(nextWork);
+    }
+
     return this.prisma.partnerProfile.update({
       where: { id: profile.id },
-      data,
+      data: patch,
     });
+  }
+
+  async updateWorkStatus(userId: string, workStatus: WorkStatus) {
+    return this.userStatus.setWorkStatus(userId, workStatus);
   }
 
   async ensurePartnerProfile(userId: string) {

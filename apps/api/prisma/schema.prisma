@@ -78,6 +78,27 @@ enum PartnerStatus {
   SUSPENDED
 }
 
+/// Specialist moderation request (PartnerProfile) — PartnerStatus-тан бөлек
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/// Platform access — барлық User
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+/// Specialist availability — тек PartnerProfile
+enum WorkStatus {
+  ONLINE
+  OFFLINE
+  /// Кейіні: BUSY
+}
+
 enum PartnerModerationAction {
   APPROVE
   REJECT
@@ -174,6 +195,9 @@ model User {
   region       Region?  @relation(fields: [regionId], references: [id])
   franchiseId  String?
   franchise    Franchise? @relation(fields: [franchiseId], references: [id])
+  accountStatus AccountStatus @default(ACTIVE)
+  accountStatusReason String?
+  accountStatusChangedAt DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -231,6 +255,10 @@ model PartnerProfile {
   partnerType  PartnerType?
   partnerRole  PartnerRole?
   status       PartnerStatus      @default(DRAFT)
+  /// Specialist moderation (Request Status) — status-тан тәуелсіз
+  requestStatus RequestStatus?
+  /// Specialist availability (Work Status)
+  workStatus   WorkStatus         @default(OFFLINE)
   accountType  AccountType        @default(INDIVIDUAL)
   companyName  String?
   company      String?

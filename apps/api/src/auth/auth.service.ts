@@ -31,6 +31,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { PartnersService } from '../partners/partners.service';
 import { RbacService, UserWithProfiles } from '../rbac/rbac.service';
 import { PortalRole } from '@prisma/client';
+import { UserStatusService } from '../user-status/user-status.service';
 import { generateOtpCode, hashOtp, normalizePhone } from './mobile-auth.util';
 
 const RESET_OTP_TTL_MS = 10 * 60 * 1000;
@@ -46,6 +47,7 @@ export class AuthService {
     private jwt: JwtService,
     private partners: PartnersService,
     private rbac: RbacService,
+    private userStatus: UserStatusService,
   ) {}
 
   private async signToken(user: UserWithProfiles) {
@@ -58,6 +60,7 @@ export class AuthService {
         roles,
         regionId: user.regionId ?? null,
         franchiseId: user.franchiseId ?? null,
+        accountStatus: user.accountStatus,
       }),
       user: {
         id: user.id,
@@ -66,6 +69,7 @@ export class AuthService {
         roles,
         regionId: user.regionId ?? null,
         franchiseId: user.franchiseId ?? null,
+        accountStatus: user.accountStatus,
       },
     };
   }
@@ -225,6 +229,7 @@ export class AuthService {
     if (!user) throw new UnauthorizedException('Неверный email или пароль');
     const ok = await bcrypt.compare(dto.password, user.passwordHash);
     if (!ok) throw new UnauthorizedException('Неверный email или пароль');
+    this.userStatus.assertAccountActive(user);
     this.logger.log(`login ok email=${user.email} role=${user.role}`);
     return this.signToken(user);
   }
@@ -243,6 +248,7 @@ export class AuthService {
     return {
       ...safe,
       roles: this.rbac.resolvePortalRoles(user),
+      statuses: this.userStatus.snapshot(user, user.partnerProfile ?? null),
     };
   }
 
