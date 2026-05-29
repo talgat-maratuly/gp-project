@@ -78,7 +78,7 @@ jobs:
           repo="${repo,,}"
           echo "image_prefix=ghcr.io/${owner}/${repo}" >> "$GITHUB_OUTPUT"
 
-      # Optional: avoids Docker Hub rate limits for node/postgres base images in Dockerfiles
+      # Optional: Docker Hub rate limits for node:* base images in Dockerfiles
       - name: Log in to Docker Hub
         if: ${{ secrets.DOCKERHUB_USERNAME != '' }}
         uses: docker/login-action@v3
@@ -86,11 +86,11 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # buildx-stable-1 on Docker Hub is flaky from some runners — use GHCR buildkit image
+      # Runner-де docker buildx бар; жеке buildkit контейнерін registry-ден тартпаймыз
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
-          driver-opts: image=ghcr.io/moby/buildkit:v0.21.0
+          driver: docker
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -112,8 +112,6 @@ jobs:
             GP_APP=${{ matrix.gp_app }}
             VITE_API_URL=${{ env.PUBLIC_API_URL }}
             VITE_APP_NAME=${{ matrix.gp_app }}
-          cache-from: type=gha,scope=${{ matrix.image_name }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.image_name }}
 
   deploy:
     name: Deploy to server

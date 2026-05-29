@@ -99,7 +99,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
-          driver-opts: image=ghcr.io/moby/buildkit:v0.21.0
+          driver: docker
       - name: Build ${{ matrix.image }}
         uses: docker/build-push-action@v6
         with:
