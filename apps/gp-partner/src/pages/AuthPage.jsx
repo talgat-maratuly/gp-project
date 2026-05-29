@@ -300,6 +300,52 @@ export default function AuthPage({ initialMode = 'register' }) {
 
       {mode === 'register' && <StepDots step={regStep} />}
 
+      {mode === 'login' && loginMethod === 'whatsapp' && (
+        <div className="gp-card-kaspi p-5 space-y-4">
+          <div className="flex gap-2 mb-1">
+            {[
+              ['whatsapp', 'WhatsApp OTP'],
+              ['password', 'Email / пароль'],
+            ].map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => { setLoginMethod(id); setError('') }}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold border ${
+                  loginMethod === id
+                    ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10'
+                    : 'border-white/10 text-slate-500'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <WhatsappOtpLogin
+            deviceId="gp-partner-web"
+            deviceName="GP Partner Web"
+            loginAs="partner"
+            inputClassName="gp-input-kaspi"
+            buttonClassName="w-full py-3.5 rounded-2xl gp-gradient-kaspi text-white font-bold text-sm shadow-md disabled:opacity-50"
+            onVerified={async () => {
+              try {
+                await loginViaWhatsappOtp()
+                navigate('/', { replace: true })
+              } catch (err) {
+                setError(err.message || 'Кіру қатесі')
+                throw err
+              }
+            }}
+          />
+          {error && (
+            <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2" role="alert">
+              {error}
+            </p>
+          )}
+        </div>
+      )}
+
+      {(mode !== 'login' || loginMethod !== 'whatsapp') && (
       <form onSubmit={onFormSubmit} noValidate className="gp-card-kaspi p-5 space-y-4">
         {/* ——— Регистрация: шаг 1 — услуги ——— */}
         {mode === 'register' && regStep === 1 && (
@@ -589,8 +635,8 @@ export default function AuthPage({ initialMode = 'register' }) {
           </div>
         )}
 
-        {/* ——— Вход ——— */}
-        {mode === 'login' && (
+        {/* ——— Вход (email / пароль) ——— */}
+        {mode === 'login' && loginMethod === 'password' && (
           <div className="gp-form-stack">
             <div className="flex gap-2 mb-1">
               {[
@@ -611,46 +657,25 @@ export default function AuthPage({ initialMode = 'register' }) {
                 </button>
               ))}
             </div>
-            {loginMethod === 'whatsapp' ? (
-              <WhatsappOtpLogin
-                deviceId="gp-partner-web"
-                deviceName="GP Partner Web"
-                loginAs="partner"
-                inputClassName="gp-input-kaspi"
-                buttonClassName="w-full py-3.5 rounded-2xl gp-gradient-kaspi text-white font-bold text-sm shadow-md disabled:opacity-50"
-                onVerified={async () => {
-                  try {
-                    await loginViaWhatsappOtp()
-                    navigate('/', { replace: true })
-                  } catch (err) {
-                    setError(err.message || 'Кіру қатесі')
-                    throw err
-                  }
-                }}
-              />
-            ) : (
-              <>
-                <input
-                  type="text"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="gp-input-kaspi"
-                  placeholder="uralsk_partner или partner@gp.kz"
-                  autoComplete="username"
-                  required
-                />
-                <input
-                  type="password"
-                  value={form.password}
-                  onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  className="gp-input-kaspi"
-                  placeholder="Пароль"
-                  autoComplete="current-password"
-                />
-                <p className="text-[11px] text-slate-500">API: partner@gp.kz / password123 · Demo: uralsk_partner / 1234</p>
-                <Link to="/forgot-password" className="text-xs text-emerald-400 hover:underline">Забыли пароль?</Link>
-              </>
-            )}
+            <input
+              type="text"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              className="gp-input-kaspi"
+              placeholder="uralsk_partner или partner@gp.kz"
+              autoComplete="username"
+              required
+            />
+            <input
+              type="password"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              className="gp-input-kaspi"
+              placeholder="Пароль"
+              autoComplete="current-password"
+            />
+            <p className="text-[11px] text-slate-500">API: partner@gp.kz / password123 · Demo: uralsk_partner / 1234</p>
+            <Link to="/forgot-password" className="text-xs text-emerald-400 hover:underline">Забыли пароль?</Link>
           </div>
         )}
 
@@ -707,6 +732,7 @@ export default function AuthPage({ initialMode = 'register' }) {
           ) : null}
         </div>
       </form>
+      )}
 
       {mode === 'register' && (
         <p className="text-center text-[11px] text-slate-600 mt-4">

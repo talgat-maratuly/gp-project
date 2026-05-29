@@ -24,6 +24,7 @@ export function WhatsappOtpLogin({
 
   const sendCode = async (e) => {
     e.preventDefault()
+    e.stopPropagation()
     setError('')
     if (!phone.trim()) {
       setError('Телефон нөмірін енгізіңіз')
@@ -43,6 +44,7 @@ export function WhatsappOtpLogin({
 
   const verifyCode = async (e) => {
     e.preventDefault()
+    e.stopPropagation()
     setError('')
     if (!otp.trim()) {
       setError('OTP кодын енгізіңіз')
