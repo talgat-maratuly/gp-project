@@ -110,7 +110,7 @@ enum AccountStatusChangeType {
 enum WorkStatus {
   ONLINE
   OFFLINE
-  /// Кейіні: BUSY
+  BUSY
 }
 
 enum PartnerModerationAction {
@@ -597,6 +597,8 @@ model Order {
   category          OrderCategory
   status            OrderStatus   @default(NEW)
   septicStage       SepticStage?
+  city              String?
+  regionId          String?
   serviceName       String?
   serviceId         String?
   address           String?
@@ -651,6 +653,8 @@ model Order {
   @@index([category])
   @@index([createdAt])
   @@index([recreatedFromId])
+  @@index([status, assignedPartnerId])
+  @@index([regionId])
 }
 
 /// Неизменяемый журнал событий заказа (аудит, споры, аналитика)

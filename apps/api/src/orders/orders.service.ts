@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -20,6 +21,8 @@ import { PartnerBalanceService } from '../partner-balance/partner-balance.servic
 import { NotificationsService } from '../notifications/notifications.service';
 import { OrderLifecycleService } from './order-lifecycle.service';
 import { OrderEventLogService } from './order-event-log.service';
+import { SpecialistEligibilityService } from './specialist-eligibility.service';
+import { GeoGateway } from '../geo/geo.gateway';
 import {
   calcOrderCommission,
   calcServiceTotal,
@@ -58,6 +61,8 @@ export class OrdersService {
     private notifications: NotificationsService,
     private lifecycle: OrderLifecycleService,
     private events: OrderEventLogService,
+    private eligibility: SpecialistEligibilityService,
+    private gateway: GeoGateway,
     private furnitureExecutor: FurnitureExecutorService,
     private rbac: RbacService,
     private rbacRegion: RbacRegionService,
@@ -153,7 +158,7 @@ export class OrdersService {
   }
 
   private async createOrderForClientProfile(
-    user: { id: string; name: string | null; phone: string | null },
+    user: { id: string; name: string | null; phone: string | null; regionId?: string | null },
     clientId: string,
     dto: CreateOrderDto,
   ) {
@@ -181,6 +186,8 @@ export class OrdersService {
         address: dto.address,
         clientName: user.name,
         clientPhone: user.phone,
+        city: client.city ?? dto.onBehalfCity ?? null,
+        regionId: dto.regionId ?? user.regionId ?? null,
         clientLat: dto.clientLat ?? 51.233,
         clientLng: dto.clientLng ?? 51.367,
         total,
@@ -238,7 +245,38 @@ export class OrdersService {
     });
     await this.notifications.notifyOrderStatusChange(order.id, OrderStatus.NEW);
     this.lifecycle.broadcast(order.id, OrderStatus.NEW);
+    await this.dispatchToPool(order);
     return order;
+  }
+
+  /** Realtime + push matching-специалистам при появлении заказа в общем пуле. */
+  private async dispatchToPool(order: {
+    id: string;
+    status: OrderStatus;
+    assignedPartnerId: string | null;
+    category: OrderCategory;
+    serviceId: string | null;
+    serviceName: string | null;
+    city: string | null;
+    regionId: string | null;
+  }) {
+    if (order.assignedPartnerId || order.status !== OrderStatus.NEW) return;
+    this.gateway.emitFeedNew({
+      orderId: order.id,
+      category: order.category,
+      city: order.city,
+    });
+    const specialists = await this.eligibility.findMatchingSpecialists(order);
+    await Promise.all(
+      specialists.map((s) =>
+        this.notifications.notifyUser(
+          s.userId,
+          'Новая заявка',
+          order.serviceName || 'Доступен новый заказ',
+          order.id,
+        ),
+      ),
+    );
   }
 
   private orderInclude() {
@@ -582,5 +620,94 @@ export class OrdersService {
   /** Журнал событий заказа (аудит). */
   async getOrderEvents(orderId: string) {
     return this.events.listForOrder(orderId);
+  }
+
+  /**
+   * Лента доступных заказов для специалиста.
+   * Только NEW + matching (услуга/подуслуга/город/регион). OFFLINE/BUSY → пустая лента.
+   * Сортировка: ближайшее запланированное время, затем новые.
+   */
+  async getSpecialistFeed(userId: string) {
+    const ctx = await this.eligibility.loadContext(userId);
+    this.eligibility.assertEligibleToBrowse(ctx);
+    if (!this.eligibility.isOnline(ctx)) return [];
+
+    const candidates = await this.prisma.order.findMany({
+      where: this.eligibility.feedWhere(ctx),
+      include: this.orderInclude(),
+      orderBy: [{ scheduledDate: 'asc' }, { createdAt: 'desc' }],
+    });
+    const matched = candidates.filter((o) => this.eligibility.orderMatches(ctx, o));
+    return sanitizeOrdersForRole(matched, Role.PARTNER);
+  }
+
+  /**
+   * Приём заказа специалистом из общего пула.
+   * Race-protection: атомарный UPDATE с условием status=NEW и (не назначен | назначен мне).
+   * Только первый успевший специалист получает заказ.
+   */
+  async acceptFromPool(userId: string, orderId: string) {
+    const ctx = await this.eligibility.loadContext(userId);
+    this.eligibility.assertEligibleToBrowse(ctx);
+    this.eligibility.assertOnline(ctx);
+
+    const order = await this.findOne(orderId);
+    if (!this.eligibility.orderMatches(ctx, order)) {
+      throw new ForbiddenException('Заказ не соответствует вашим услугам, городу или региону');
+    }
+
+    const all = await this.prisma.order.findMany({
+      select: {
+        assignedPartnerId: true,
+        preferredDate: true,
+        preferredTime: true,
+        flexibleTime: true,
+        status: true,
+      },
+    });
+    if (isOrderSlotBlockedForPartner(order, getPartnerBusySlots(ctx.profile.id, all))) {
+      throw new BadRequestException('У вас уже есть заказ на это время');
+    }
+
+    const claim = await this.prisma.order.updateMany({
+      where: {
+        id: orderId,
+        status: OrderStatus.NEW,
+        OR: [{ assignedPartnerId: null }, { assignedPartnerId: ctx.profile.id }],
+      },
+      data: {
+        status: OrderStatus.ACCEPTED,
+        assignedPartnerId: ctx.profile.id,
+        acceptedAt: new Date(),
+        executorLat: ctx.profile.lat ?? undefined,
+        executorLng: ctx.profile.lng ?? undefined,
+      },
+    });
+    if (claim.count === 0) {
+      throw new ConflictException('Заказ уже принят другим специалистом');
+    }
+
+    if (order.category === OrderCategory.SEPTIC) {
+      await this.prisma.trip.upsert({
+        where: { orderId },
+        create: { orderId, partnerId: ctx.profile.id },
+        update: {},
+      });
+    }
+
+    await this.events.record({
+      orderId,
+      userId,
+      role: OrderActorRole.spec,
+      action: 'ORDER_ACCEPTED',
+      fromStatus: OrderStatus.NEW,
+      toStatus: OrderStatus.ACCEPTED,
+    });
+    await this.notifications.notifyOrderStatusChange(orderId, OrderStatus.ACCEPTED);
+    this.lifecycle.broadcast(orderId, OrderStatus.ACCEPTED);
+    this.gateway.emitFeedTaken(orderId);
+
+    const updated = await this.findOne(orderId);
+    return sanitizeOrderForRole(updated, Role.PARTNER);
   }
 }

@@ -71,6 +71,8 @@ export const API_CONTRACT = {
     'cancelOrder',
     'recreateOrder',
     'getOrderEvents',
+    'getSpecialistFeed',
+    'acceptOrderFromPool',
   ],
   admin: [
     'adminModerationPartners',
@@ -118,6 +120,8 @@ export const BACKEND_ROUTES = [
   'PATCH /api/orders/:id/cancel',
   'POST /api/orders/:id/recreate',
   'GET /api/orders/:id/events',
+  'GET /api/specialist/orders/feed',
+  'PATCH /api/orders/:id/accept',
   'GET /api/admin/moderation/partners',
   'PATCH /api/admin/orders/:id/assign',
   'PATCH /api/admin/orders/:id/status',

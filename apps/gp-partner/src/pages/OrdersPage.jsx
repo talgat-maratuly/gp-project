@@ -30,7 +30,7 @@ function openNavigation(order) {
   window.open(url, '_blank', 'noopener')
 }
 
-function OrderCard({ order, user, onAccept, onAdvance, onCancel, onSelect, selected }) {
+function OrderCard({ order, user, onAccept, onAdvance, onCancel, onSelect, selected, feedMode = false }) {
   const action = getPartnerOrderAction(order.status, order.category)
   const isMine = (order.assignedPartnerId || order.partnerId) === user?.partnerProfileId
   const lawnLabel = LAWN_WORK_TYPES.find((t) => t.id === order.lawnWorkType)?.label
@@ -69,7 +69,7 @@ function OrderCard({ order, user, onAccept, onAdvance, onCancel, onSelect, selec
         <p className="text-2xl font-extrabold gp-text-gradient mt-3">{formatPrice(order.total)}</p>
 
         <div className="flex flex-col gap-2 mt-4">
-          {order.status === 'new' && isMine && (
+          {order.status === 'new' && (isMine || feedMode) && (
             <button type="button" onClick={() => onAccept(order.id)} className="w-full py-4 rounded-2xl gp-btn-primary font-bold text-sm">
               Принять заказ
             </button>
@@ -106,10 +106,11 @@ function OrderCard({ order, user, onAccept, onAdvance, onCancel, onSelect, selec
 
 export default function OrdersPage() {
   const {
-    user, newOrders, activeOrders, activeOrder, acceptOrder, advanceOrder, cancelOrder,
+    user, newOrders, activeOrders, activeOrder, feed, feedLoading,
+    acceptOrder, acceptFromFeed, advanceOrder, cancelOrder, setOnline,
     setActiveOrderId, updateExecutorLocation,
   } = usePartner()
-  const [tab, setTab] = useState('new')
+  const [tab, setTab] = useState('feed')
   const [dirFilter, setDirFilter] = useState('all')
   const [tracking, setTracking] = useState(null)
   const [geofences, setGeofences] = useState(URALSK_DISPOSAL_ZONES)
@@ -132,9 +133,11 @@ export default function OrdersPage() {
 
   const mapTracking = tracking || (activeOrder ? buildMockTracking(activeOrder, geofences) : null)
 
-  const pool = tab === 'new' ? newOrders : activeOrders
+  const poolByTab = { feed, new: newOrders, active: activeOrders }
+  const pool = poolByTab[tab] || []
   const filtered = dirFilter === 'all' ? pool : pool.filter((o) => o.category === dirFilter)
   const myDirections = user?.directions || []
+  const isOnline = !!user?.isOnline
 
   const handleAdvance = async (orderId, status) => {
     const stored = loadDemoLocation()
@@ -173,12 +176,32 @@ export default function OrdersPage() {
       </div>
 
       <div className="flex gap-2 mb-4">
-        {['new', 'active'].map((t) => (
+        {[
+          ['feed', `Лента (${feed.length})`],
+          ['new', `Мои новые (${newOrders.length})`],
+          ['active', `В работе (${activeOrders.length})`],
+        ].map(([t, label]) => (
           <Chip key={t} active={tab === t} onClick={() => setTab(t)} className="flex-1 !w-full text-center">
-            {t === 'new' ? `Новые (${newOrders.length})` : `В работе (${activeOrders.length})`}
+            {label}
           </Chip>
         ))}
       </div>
+
+      {tab === 'feed' && !isOnline && (
+        <KaspiCard className="!p-6 text-center mb-4">
+          <p className="text-sm font-bold mb-1">Вы офлайн</p>
+          <p className="text-xs text-[var(--gp-text-muted)] mb-4">
+            Перейдите в онлайн, чтобы получать и принимать новые заказы.
+          </p>
+          <button
+            type="button"
+            onClick={() => setOnline(true)}
+            className="px-5 py-3 rounded-2xl gp-btn-primary font-bold text-sm"
+          >
+            Выйти в онлайн
+          </button>
+        </KaspiCard>
+      )}
 
       <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide mb-2">
         <Chip active={dirFilter === 'all'} onClick={() => setDirFilter('all')}>Все</Chip>
@@ -204,25 +227,30 @@ export default function OrdersPage() {
         </KaspiCard>
       )}
 
-      <ul className="space-y-3 pb-4">
-        {filtered.map((o) => (
-          <OrderCard
-            key={o.id}
-            order={o}
-            user={user}
-            selected={activeOrder?.id === o.id}
-            onAccept={acceptOrder}
-            onAdvance={handleAdvance}
-            onCancel={handleCancel}
-            onSelect={setActiveOrderId}
-          />
-        ))}
-        {!filtered.length && (
-          <KaspiCard className="!p-8 text-center text-sm text-[var(--gp-text-muted)]">
-            {tab === 'new' ? 'Нет свободных заявок' : 'Нет активных заказов'}
-          </KaspiCard>
-        )}
-      </ul>
+      {!(tab === 'feed' && !isOnline) && (
+        <ul className="space-y-3 pb-4">
+          {filtered.map((o) => (
+            <OrderCard
+              key={o.id}
+              order={o}
+              user={user}
+              feedMode={tab === 'feed'}
+              selected={activeOrder?.id === o.id}
+              onAccept={tab === 'feed' ? acceptFromFeed : acceptOrder}
+              onAdvance={handleAdvance}
+              onCancel={handleCancel}
+              onSelect={setActiveOrderId}
+            />
+          ))}
+          {!filtered.length && (
+            <KaspiCard className="!p-8 text-center text-sm text-[var(--gp-text-muted)]">
+              {tab === 'feed'
+                ? (feedLoading ? 'Загрузка...' : 'Сейчас нет доступных заказов')
+                : tab === 'new' ? 'Нет назначенных заявок' : 'Нет активных заказов'}
+            </KaspiCard>
+          )}
+        </ul>
+      )}
     </div>
   )
 }

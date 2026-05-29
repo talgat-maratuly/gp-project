@@ -19,7 +19,7 @@ import {
   registerTestPartner,
 } from '@gp/shared/testMode'
 import * as demoApi from '../lib/demoApi'
-import { subscribeGlobalOrderStatus, resetTrackingSocket } from '@gp/shared/api/trackingSocket'
+import { subscribeGlobalOrderStatus, subscribeSpecialistFeed, resetTrackingSocket } from '@gp/shared/api/trackingSocket'
 import { CATEGORY_TO_UI, ORDER_STATUS_TO_API } from '@gp/shared/api/mappers'
 
 const KEYS = { activeOrder: 'gp-partner-active-order' }
@@ -96,6 +96,8 @@ export function PartnerProvider({ children }) {
   const [orders, setOrders] = useState([])
   const [ordersLoading, setOrdersLoading] = useState(false)
   const [ordersError, setOrdersError] = useState(null)
+  const [feed, setFeed] = useState([])
+  const [feedLoading, setFeedLoading] = useState(false)
   const [products, setProducts] = useState([])
   const [productsLoading, setProductsLoading] = useState(false)
   const [productsError, setProductsError] = useState(null)
@@ -171,6 +173,24 @@ export function PartnerProvider({ children }) {
     }
   }, [notify])
 
+  // Лента пула: только ONLINE-специалист видит matching-заказы (видимость решает бэкенд)
+  const refreshFeed = useCallback(async () => {
+    if (isDemoMode() || demoApi.getDemoSession()) return
+    if (!getToken()) return
+    if (!user?.isOnline) {
+      setFeed([])
+      return
+    }
+    setFeedLoading(true)
+    try {
+      setFeed(await api.getSpecialistFeed())
+    } catch {
+      setFeed([])
+    } finally {
+      setFeedLoading(false)
+    }
+  }, [user?.isOnline])
+
   const refreshProducts = useCallback(async () => {
     if (!user?.partnerProfileId) return
     setProductsLoading(true)
@@ -222,15 +242,22 @@ export function PartnerProvider({ children }) {
       const t = setInterval(refreshOrders, 3000)
       return () => clearInterval(t)
     }
-    const t = setInterval(refreshOrders, 5000)
+    const t = setInterval(() => {
+      refreshOrders()
+      refreshFeed()
+    }, 5000)
     const unsubWs = subscribeGlobalOrderStatus(() => {
       refreshOrders()
     })
+    const unsubFeed = subscribeSpecialistFeed(() => {
+      refreshFeed()
+    }, user?.partnerProfileId)
     return () => {
       clearInterval(t)
       unsubWs()
+      unsubFeed()
     }
-  }, [user?.id, refreshAll, refreshOrders])
+  }, [user?.id, user?.partnerProfileId, refreshAll, refreshOrders, refreshFeed])
 
   useEffect(() => {
     if (!user?.id) resetTrackingSocket('logout')
@@ -397,7 +424,9 @@ export function PartnerProvider({ children }) {
   const setOnline = useCallback(async (isOnline) => {
     await api.patchPartnerMe({ isOnline })
     setUser((u) => (u ? { ...u, isOnline } : u))
-  }, [])
+    if (isOnline) refreshFeed()
+    else setFeed([])
+  }, [refreshFeed])
 
   const addPartnerOfferings = useCallback(
     async (subserviceIds) => {
@@ -435,6 +464,20 @@ export function PartnerProvider({ children }) {
     await refreshAll()
     notify('Заявка принята')
   }, [refreshAll, refreshOrders, notify])
+
+  // Приём заказа из общей ленты (пула). Race-protection — на бэкенде.
+  const acceptFromFeed = useCallback(async (orderId) => {
+    try {
+      await api.acceptOrderFromPool(orderId)
+      setActiveOrderId(orderId)
+      await Promise.all([refreshAll(), refreshFeed()])
+      notify('Заявка принята')
+    } catch (e) {
+      await refreshFeed()
+      notify(e?.message || 'Не удалось принять заказ')
+      throw e
+    }
+  }, [refreshAll, refreshFeed, notify])
 
   const advanceOrder = useCallback(async (orderId, uiStatus, location) => {
     if (isDemoMode()) {
@@ -537,6 +580,7 @@ export function PartnerProvider({ children }) {
 
   const value = {
     user, authReady, orders, ordersLoading, ordersError, newOrders, myOrders, activeOrders, activeOrder,
+    feed, feedLoading, refreshFeed, acceptFromFeed,
     products, productsLoading, productsError, transactions,
     loading, toast, activeOrderId, setActiveOrderId,
     register, login, loginViaWhatsappOtp, logout, setOnline, addPartnerOfferings, acceptOrder, advanceOrder, cancelOrder,

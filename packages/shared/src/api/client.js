@@ -91,6 +91,17 @@ export const api = {
     return list.map((o) => mapOrder(o, { forClient: false }))
   },
 
+  // Лента доступных заказов из пула (matching на бэкенде)
+  getSpecialistFeed: async () => {
+    const list = await get('/specialist/orders/feed')
+    if (!Array.isArray(list)) return []
+    return list.map((o) => mapOrder(o, { forClient: false }))
+  },
+
+  // Приём заказа из пула (race-protection на бэкенде)
+  acceptOrderFromPool: (id) =>
+    patch(`/orders/${id}/accept`, {}).then((o) => mapOrder(o, { forClient: false })),
+
   acceptPartnerOrder: (id) =>
     patch(`/partner/orders/${id}/accept`, {}).then((o) => mapOrder(o, { forClient: false })),
 

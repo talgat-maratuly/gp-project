@@ -182,6 +182,26 @@ export function subscribeAdminFleet(onUpdate) {
   }
 }
 
+/**
+ * Подписка специалиста на ленту пула: новый заказ (feed:new) и принятый другим (feed:taken).
+ * Бэкенд фильтрует видимость — здесь только триггер на обновление ленты.
+ */
+export function subscribeSpecialistFeed(onChange, partnerProfileId) {
+  if (!onChange) return () => {}
+  const s = ensureSocket()
+  const onNew = (data) => onChange({ type: 'new', ...data })
+  const onTaken = (data) => onChange({ type: 'taken', ...data })
+  const sub = () => s.emit('subscribe', { role: 'specialist', partnerProfileId })
+  if (s.connected) sub()
+  else s.once('connect', sub)
+  s.on('feed:new', onNew)
+  s.on('feed:taken', onTaken)
+  return () => {
+    s.off('feed:new', onNew)
+    s.off('feed:taken', onTaken)
+  }
+}
+
 export function resetTrackingSocket(reason = 'manual') {
   log('reset socket', reason)
   manualClose = true
