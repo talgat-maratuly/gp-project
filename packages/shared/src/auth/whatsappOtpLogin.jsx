@@ -7,7 +7,8 @@ import { api } from '../api/client.js'
 export function WhatsappOtpLogin({
   deviceId,
   deviceName = 'GP Web',
-  desiredRole = 'CLIENT',
+  loginAs = 'client',
+  desiredRole,
   accountType,
   onVerified,
   className = '',
@@ -55,8 +56,9 @@ export function WhatsappOtpLogin({
         deviceId,
         deviceName,
         platform: 'web',
-        desiredRole,
+        loginAs,
       }
+      if (desiredRole) body.desiredRole = desiredRole
       if (accountType) body.accountType = accountType
       const session = await api.verifyOtp(body)
       await onVerified(session)

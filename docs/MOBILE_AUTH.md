@@ -112,6 +112,16 @@ Repository **Variables** (optional):
 
 Web apps (`gp-service`, `gp-partner`, `gp-admin`) use shared `WhatsappOtpLogin` — default channel WhatsApp on login screens.
 
+## Бір телефон — бірнеше рөл
+
+Бір `User` жазбасы, бір телефон:
+
+- **Service** (`loginAs: client`) — `clientProfile` + JWT сессиясы `CLIENT`
+- **Partner** (`loginAs: partner`) — `partnerProfile` қосылады + JWT `PARTNER`
+- **Admin** (`loginAs: admin`) — тек бұрын берілген admin құқығы бар аккаунт (автоматты admin құрылмайды)
+
+Бірінші кіруде жаңа user жасалады; кейін басқа фронтта кірсеңіз — сол user-ге қажет профиль қосылады.
+
 ## Security notes
 
 - Refresh tokens stored hashed server-side; rotation on each refresh.

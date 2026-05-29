@@ -7,9 +7,9 @@ const OPERATOR_ROLES: PortalRole[] = [
   PortalRole.FRANCHISE_OWNER,
 ];
 
+/** SPECIALIST бірге болмауы керек (CLIENT/ADMIN/GLOBAL_OPERATOR бір аккаунтта болуы мүмкін) */
 const FORBIDDEN_WITH_SPECIALIST: PortalRole[] = [
   PortalRole.GP_OPERATOR,
-  PortalRole.GLOBAL_OPERATOR,
   PortalRole.FRANCHISE_OWNER,
 ];
 

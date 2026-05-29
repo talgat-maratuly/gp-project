@@ -615,7 +615,7 @@ export default function AuthPage({ initialMode = 'register' }) {
               <WhatsappOtpLogin
                 deviceId="gp-partner-web"
                 deviceName="GP Partner Web"
-                desiredRole="PARTNER"
+                loginAs="partner"
                 inputClassName="gp-input-kaspi"
                 buttonClassName="w-full py-3.5 rounded-2xl gp-gradient-kaspi text-white font-bold text-sm shadow-md disabled:opacity-50"
                 onVerified={async () => {

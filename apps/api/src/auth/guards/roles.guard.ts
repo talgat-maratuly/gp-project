@@ -3,6 +3,8 @@ import { Reflector } from '@nestjs/core';
 import { Role } from '@prisma/client';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 
+const STAFF_ROLES = new Set<Role>([Role.ADMIN, Role.SUPER_ADMIN, Role.REGION_ADMIN]);
+
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
@@ -14,6 +16,11 @@ export class RolesGuard implements CanActivate {
     ]);
     if (!roles?.length) return true;
     const { user } = context.switchToHttp().getRequest();
-    return roles.includes(user?.role);
+    if (!user) return false;
+    if (roles.includes(user.role)) return true;
+    if (roles.includes(Role.CLIENT) && user.clientProfile) return true;
+    if (roles.includes(Role.PARTNER) && user.partnerProfile) return true;
+    if (roles.some((r) => STAFF_ROLES.has(r)) && STAFF_ROLES.has(user.role)) return true;
+    return false;
   }
 }

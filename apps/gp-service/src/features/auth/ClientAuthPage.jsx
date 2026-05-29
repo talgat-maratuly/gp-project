@@ -67,7 +67,7 @@ export default function ClientAuthPage() {
         deviceId: 'gp-service-web',
         deviceName: 'GP Service Web',
         platform: 'web',
-        desiredRole: isPartnerRole ? 'PARTNER' : 'CLIENT',
+        loginAs: isPartnerRole ? 'partner' : 'client',
         accountType,
       })
       if (isPartnerRole) {

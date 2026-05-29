@@ -58,7 +58,7 @@ export default function LoginPage() {
           <WhatsappOtpLogin
             deviceId="gp-admin-web"
             deviceName="GP Admin Web"
-            desiredRole="CLIENT"
+            loginAs="admin"
             inputClassName="admin-input"
             buttonClassName="w-full py-3 rounded-xl bg-sky-600 hover:bg-sky-500 font-bold text-sm text-white disabled:opacity-50"
             onVerified={async () => {

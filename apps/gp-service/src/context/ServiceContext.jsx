@@ -91,7 +91,11 @@ export function ServiceProvider({ children }) {
     }
     try {
       const me = await api.me()
-      if (me.role !== 'CLIENT' || !me.clientProfile) {
+      const roles = me.roles || []
+      const canUseService =
+        me.clientProfile &&
+        (me.role === 'CLIENT' || roles.includes('CLIENT') || roles.includes('SPECIALIST'))
+      if (!canUseService) {
         clearToken()
         setAuthUser(null)
         return
@@ -234,9 +238,9 @@ export function ServiceProvider({ children }) {
     try {
       await api.login(email, password)
       const me = await api.me()
-      if (me.role !== 'CLIENT' || !me.clientProfile) {
+      if (!me.clientProfile) {
         clearToken()
-        throw new Error('Это аккаунт партнёра. Для услуг войдите как client@gp.kz или откройте GP Partner.')
+        throw new Error('Клиент профилі жоқ. Телефон OTP арқылы кіріңіз немесе client@gp.kz')
       }
       applyTestSession(me)
       notify('Вход выполнен')
@@ -290,7 +294,7 @@ export function ServiceProvider({ children }) {
   const verifyOtp = useCallback(async (payload) => {
     const session = await api.verifyOtp(payload)
     const me = await api.me()
-    if (me.role === 'CLIENT' && me.clientProfile) {
+    if (me.clientProfile) {
       applyTestSession(me)
     }
     return { session, me }
@@ -329,8 +333,8 @@ export function ServiceProvider({ children }) {
       return
     }
     if (!getToken()) throw new Error('Войдите как клиент: Профиль → Вход (demo: client@gp.kz)')
-    if (authUser && authUser.role !== 'CLIENT') {
-      throw new Error('Аккаунт партнёра не подходит для заказа услуг. Используйте client@gp.kz')
+    if (authUser && !authUser.clientProfile) {
+      throw new Error('Клиент профилі жоқ. Кіріңіз немесе client@gp.kz пайдаланыңыз')
     }
   }, [authUser])
 

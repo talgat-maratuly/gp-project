@@ -1,5 +1,13 @@
 import { get, post, patch, del, request, API_URL, getApiRootUrl } from './apiClient.js'
-import { setToken, clearToken, setRefreshToken, clearRefreshToken, getToken } from './token.js'
+import {
+  setToken,
+  clearToken,
+  setRefreshToken,
+  clearRefreshToken,
+  getToken,
+  setSessionRole,
+  clearSessionRole,
+} from './token.js'
 import { mapOrder, mapProduct, mapPartnerUser } from './mappers.js'
 
 const mapOrdersForApp = (list) => {
@@ -17,6 +25,8 @@ export const api = {
     post('/auth/mobile/otp/verify', body, { auth: false }).then((r) => {
       setToken(r.accessToken)
       if (r.refreshToken) setRefreshToken(r.refreshToken)
+      const role = r.sessionRole || r.user?.role
+      if (role) setSessionRole(role)
       return r
     }),
 
@@ -47,6 +57,7 @@ export const api = {
   logout: () => {
     clearToken()
     clearRefreshToken()
+    clearSessionRole()
   },
 
   me: () => get('/auth/me'),
