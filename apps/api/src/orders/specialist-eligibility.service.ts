@@ -16,6 +16,7 @@ import {
   orderCategoriesForPartnerType,
 } from '../common/partner-access.util';
 import { orderMatchesActiveOffering } from '../common/partner-offerings.util';
+import { requestStatusFromPartnerStatus } from '../user-status/request-status.mapper';
 
 type MatchableOrder = Pick<
   Order,
@@ -52,12 +53,14 @@ export class SpecialistEligibilityService {
       this.partners.ensurePartnerProfile(userId),
     ]);
     const activeSubserviceIds = await this.partners.getActiveSubserviceIdsForPartnerProfile(profile.id);
+    // requestStatus может быть null у ранее созданных профилей — используем тот же fallback, что и guard'ы.
+    const effectiveRequest = profile.requestStatus ?? requestStatusFromPartnerStatus(profile.status);
     return {
       userId,
       profile,
       activeSubserviceIds,
       accountActive: user?.accountStatus === AccountStatus.ACTIVE,
-      requestApproved: profile.requestStatus === RequestStatus.APPROVED,
+      requestApproved: effectiveRequest === RequestStatus.APPROVED,
     };
   }
 
@@ -126,8 +129,8 @@ export class SpecialistEligibilityService {
   async findMatchingSpecialists(order: MatchableOrder) {
     const partners = await this.prisma.partnerProfile.findMany({
       where: {
+        // PartnerStatus.APPROVED уже подразумевает одобренную заявку и исключает SUSPENDED
         status: PartnerStatus.APPROVED,
-        requestStatus: RequestStatus.APPROVED,
         workStatus: WorkStatus.ONLINE,
         user: { accountStatus: AccountStatus.ACTIVE },
       },
