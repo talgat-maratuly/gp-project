@@ -41,7 +41,7 @@ function StepDots({ step }) {
 export default function AuthPage({ initialMode = 'register' }) {
   const navigate = useNavigate()
   const location = useLocation()
-  const { register, login, loginViaWhatsappOtp, loading, user, authReady } = usePartner()
+  const { register, login, loginViaWhatsappOtp, logout, loading, user, authReady } = usePartner()
   const [mode, setMode] = useState(initialMode)
   const [loginMethod, setLoginMethod] = useState('whatsapp')
   const [regStep, setRegStep] = useState(1)
@@ -74,8 +74,11 @@ export default function AuthPage({ initialMode = 'register' }) {
 
   useEffect(() => {
     if (!authReady || !user) return
-    const onAuthScreen = ['/login', '/register', '/auth'].includes(location.pathname)
-    if (onAuthScreen) navigate('/', { replace: true })
+    // /login — кіру экранында қалу (басқа нөмір / logout)
+    if (location.pathname === '/login') return
+    if (location.pathname === '/register' || location.pathname === '/auth') {
+      navigate('/', { replace: true })
+    }
   }, [authReady, user, navigate, location.pathname])
 
   useEffect(() => {
@@ -310,7 +313,36 @@ export default function AuthPage({ initialMode = 'register' }) {
 
       {mode === 'register' && <StepDots step={regStep} />}
 
-      {mode === 'login' && loginMethod === 'whatsapp' && (
+      {mode === 'login' && user && (
+        <div className="gp-card-kaspi p-4 mb-4 space-y-3 border border-emerald-500/30">
+          <p className="text-sm text-[var(--gp-text)]">
+            Сіз кірдіңіз: <strong>{user.phone || user.email}</strong>
+            {user.partnerStatus && user.partnerStatus !== 'APPROVED' && (
+              <span className="block text-xs text-[var(--gp-text-muted)] mt-1">
+                Статус: {user.partnerStatus} — басты беттен өтінімді толықтыра аласыз (бұл тіркелу формасы емес).
+              </span>
+            )}
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => navigate('/', { replace: true })}
+              className="flex-1 py-2.5 rounded-xl gp-gradient-kaspi text-white text-sm font-bold"
+            >
+              Кабинетке өту
+            </button>
+            <button
+              type="button"
+              onClick={() => logout()}
+              className="flex-1 py-2.5 rounded-xl border border-[var(--gp-border)] text-sm font-semibold"
+            >
+              Шығу
+            </button>
+          </div>
+        </div>
+      )}
+
+      {mode === 'login' && loginMethod === 'whatsapp' && !user && (
         <div className="gp-card-kaspi p-5 space-y-4">
           <div className="flex gap-2 mb-1">
             {[
@@ -337,17 +369,10 @@ export default function AuthPage({ initialMode = 'register' }) {
             loginAs="partner"
             inputClassName="gp-input-kaspi"
             buttonClassName="w-full py-3.5 rounded-2xl gp-gradient-kaspi text-white font-bold text-sm shadow-md disabled:opacity-50"
-            onVerified={async (otpSession) => {
+            onVerified={async () => {
               try {
                 await loginViaWhatsappOtp()
-                if (otpSession?.needsApplication) {
-                  navigate('/apply/specialist', {
-                    replace: true,
-                    state: { fromWhatsappLogin: true },
-                  })
-                } else {
-                  navigate('/', { replace: true })
-                }
+                navigate('/', { replace: true })
               } catch (err) {
                 setError(err.message || 'Кіру қатесі')
                 throw err

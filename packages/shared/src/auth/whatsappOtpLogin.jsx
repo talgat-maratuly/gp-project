@@ -34,6 +34,11 @@ export function WhatsappOtpLogin({
     try {
       const res = await api.sendOtp(phone.trim(), 'whatsapp')
       if (res.devCode) setDevCode(String(res.devCode))
+      if (res.whatsappSent === false && !res.devCode) {
+        setError(
+          'WhatsApp арқылы код жіберілмеді (серверде WHATSAPP_SERVICE_* тексеріңіз). Код сақталды — әкімшімен байланысыңыз.',
+        )
+      }
       setStep(2)
     } catch (err) {
       setError(err?.message || 'OTP жіберу қатесі')
