@@ -15,6 +15,16 @@ enum Role {
   REGION_ADMIN
 }
 
+/// Portal RBAC — көп рөлді қолжетімділік (UserRole spec)
+enum PortalRole {
+  CLIENT
+  SPECIALIST
+  GP_OPERATOR
+  FRANCHISE_OWNER
+  GLOBAL_OPERATOR
+  ADMIN
+}
+
 /// Физическое или юридическое лицо (клиент и партнёр)
 enum AccountType {
   INDIVIDUAL
@@ -156,10 +166,14 @@ model User {
   email        String   @unique
   passwordHash String
   role         Role
+  /// Канондық RBAC рөлдері (JWT + guards). Бос болса — legacy Role-дан resolve
+  portalRoles  PortalRole[] @default([CLIENT])
   name         String
   phone        String?
   regionId     String?
   region       Region?  @relation(fields: [regionId], references: [id])
+  franchiseId  String?
+  franchise    Franchise? @relation(fields: [franchiseId], references: [id])
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -172,6 +186,22 @@ model User {
   marketOrders   MarketOrder[]
   approvedPartners PartnerProfile[] @relation("PartnerApprovedBy")
   moderationActions PartnerModerationAuditLog[] @relation("ModerationAdmin")
+
+  @@index([regionId])
+  @@index([franchiseId])
+}
+
+/// Франшиза (аймақтық масштабтау)
+model Franchise {
+  id        String   @id @default(uuid())
+  name      String
+  regionId  String?
+  region    Region?  @relation(fields: [regionId], references: [id])
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users User[]
 
   @@index([regionId])
 }
@@ -780,12 +810,13 @@ model Region {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
 
-  users    User[]
-  partners PartnerProfile[]
-  stores   Store[]
-  products MarketProduct[]
-  stocks   Stock[]
-  orders   MarketOrder[]
+  users      User[]
+  partners   PartnerProfile[]
+  stores     Store[]
+  products   MarketProduct[]
+  stocks     Stock[]
+  orders     MarketOrder[]
+  franchises Franchise[]
 }
 
 enum StoreStatus {

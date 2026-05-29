@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { OrderStatus, Role } from '@prisma/client';
+import { OrderStatus, PortalRole, Role } from '@prisma/client';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
@@ -9,6 +9,10 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { OnlyServicePartnerGuard } from '../partners/guards/only-service-partner.guard';
+import { PortalRolesGuard } from '../rbac/guards/portal-roles.guard';
+import { PermissionGuard } from '../rbac/guards/permission.guard';
+import { RequirePermission } from '../rbac/decorators/require-permission.decorator';
+import { PortalRoles } from '../rbac/decorators/portal-roles.decorator';
 
 @ApiTags('orders')
 @Controller('orders')
@@ -16,11 +20,17 @@ export class OrdersController {
   constructor(private orders: OrdersService) {}
 
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.CLIENT)
+  @UseGuards(JwtAuthGuard, PortalRolesGuard, PermissionGuard)
+  @PortalRoles(
+    PortalRole.CLIENT,
+    PortalRole.GP_OPERATOR,
+    PortalRole.GLOBAL_OPERATOR,
+    PortalRole.ADMIN,
+  )
+  @RequirePermission('order:create')
   @Post()
   create(@CurrentUser() user: { id: string }, @Body() dto: CreateOrderDto) {
-    return this.orders.createForClient(user.id, dto);
+    return this.orders.createOrder(user.id, dto);
   }
 
   @ApiBearerAuth()

@@ -4,7 +4,15 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { FurnitureServiceType, OrderCategory, OrderStatus, PartnerType, Role } from '@prisma/client';
+import {
+  AccountType,
+  FurnitureServiceType,
+  OrderCategory,
+  OrderStatus,
+  PartnerType,
+  PortalRole,
+  Role,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PartnersService } from '../partners/partners.service';
 import { PartnerBalanceService } from '../partner-balance/partner-balance.service';
@@ -28,6 +36,10 @@ import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { sanitizeOrderForRole, sanitizeOrdersForRole } from '../common/order-response.util';
 import { ORDER_STATUS_UI } from '../common/order-status-ui.util';
 import { FurnitureExecutorService } from '../furniture-executor/furniture-executor.service';
+import { RbacService } from '../rbac/rbac.service';
+import { RbacRegionService } from '../rbac/rbac-region.service';
+import { randomBytes } from 'crypto';
+import * as bcrypt from 'bcrypt';
 
 const FURNITURE_SERVICE_ID_TO_TYPE: Record<string, FurnitureServiceType> = {
   'furniture-manufacturing': FurnitureServiceType.furniture_manufacturing,
@@ -53,7 +65,172 @@ export class OrdersService {
     private notifications: NotificationsService,
     private furnitureExecutor: FurnitureExecutorService,
     private gateway: GeoGateway,
+    private rbac: RbacService,
+    private rbacRegion: RbacRegionService,
   ) {}
+
+  async createOrder(userId: string, dto: CreateOrderDto) {
+    const actor = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { clientProfile: true, partnerProfile: true },
+    });
+    if (!actor) throw new NotFoundException('Пайдаланушы табылмады');
+    this.rbac.assertCanCreateOrder(actor);
+
+    if (dto.onBehalfClientPhone) {
+      return this.createForOperator(actor, dto);
+    }
+    if (actor.clientProfile) {
+      return this.createForClient(userId, dto);
+    }
+    const roles = this.rbac.resolvePortalRoles(actor);
+    const operatorRoles: PortalRole[] = [
+      PortalRole.GP_OPERATOR,
+      PortalRole.GLOBAL_OPERATOR,
+      PortalRole.ADMIN,
+    ];
+    const isOperator = roles.some((r) => operatorRoles.includes(r));
+    if (isOperator) {
+      return this.createForOperator(actor, dto);
+    }
+    throw new ForbiddenException('Клиент профилі жоқ — onBehalfClientPhone көрсетіңіз');
+  }
+
+  private async createForOperator(
+    actor: { id: string; regionId: string | null; name: string },
+    dto: CreateOrderDto,
+  ) {
+    const regionId = this.rbacRegion.resolveOrderRegionId(
+      actor as Parameters<RbacRegionService['resolveOrderRegionId']>[0],
+      dto.regionId,
+    );
+    const phone = dto.onBehalfClientPhone?.trim();
+    if (!phone) {
+      throw new BadRequestException('Оператор тапсырысы үшін onBehalfClientPhone міндетті');
+    }
+
+    let clientUser = await this.prisma.user.findFirst({
+      where: { phone },
+      include: { clientProfile: true },
+    });
+
+    if (!clientUser) {
+      const ts = Date.now();
+      const passwordHash = await bcrypt.hash(randomBytes(16).toString('hex'), 10);
+      clientUser = await this.prisma.user.create({
+        data: {
+          email: `guest_${ts}_${phone.replace(/\D/g, '')}@gp.local`,
+          passwordHash,
+          name: dto.onBehalfClientName?.trim() || 'Клиент GP',
+          phone,
+          role: Role.CLIENT,
+          portalRoles: [PortalRole.CLIENT],
+          regionId,
+          clientProfile: {
+            create: {
+              accountType: AccountType.INDIVIDUAL,
+              city: dto.onBehalfCity?.trim() || 'Уральск',
+            },
+          },
+        },
+        include: { clientProfile: true },
+      });
+    } else if (!clientUser.clientProfile) {
+      await this.prisma.clientProfile.create({
+        data: {
+          userId: clientUser.id,
+          accountType: AccountType.INDIVIDUAL,
+          city: dto.onBehalfCity?.trim() || 'Уральск',
+        },
+      });
+      clientUser = await this.prisma.user.findUniqueOrThrow({
+        where: { id: clientUser.id },
+        include: { clientProfile: true },
+      });
+    }
+
+    if (!clientUser.clientProfile) {
+      throw new BadRequestException('Клиент профилін құру мүмкін болмады');
+    }
+
+    return this.createOrderForClientProfile(clientUser, clientUser.clientProfile.id, dto);
+  }
+
+  private async createOrderForClientProfile(
+    user: { id: string; name: string | null; phone: string | null },
+    clientId: string,
+    dto: CreateOrderDto,
+  ) {
+    this.validateSchedule(dto);
+    const client = await this.prisma.clientProfile.findUniqueOrThrow({ where: { id: clientId } });
+    const total = calcServiceTotal({
+      serviceId: dto.serviceId,
+      category: dto.category,
+      septicVolume: dto.septicVolume,
+      lawnAreaSqm: dto.lawnAreaSqm,
+      fallbackTotal: dto.total,
+    });
+    const commission = calcOrderCommission(dto.category, {
+      septicVolume: dto.septicVolume,
+      serviceId: dto.serviceId,
+    });
+    const preferredDate = this.parsePreferredDate(dto.preferredDate);
+
+    const order = await this.prisma.order.create({
+      data: {
+        clientId,
+        category: dto.category,
+        serviceName: dto.serviceName,
+        serviceId: dto.serviceId,
+        address: dto.address,
+        clientName: user.name,
+        clientPhone: user.phone,
+        clientLat: dto.clientLat ?? 51.233,
+        clientLng: dto.clientLng ?? 51.367,
+        total,
+        paymentMethod: dto.paymentMethod,
+        paymentStatus: 'DIRECT_TO_PARTNER',
+        comment: dto.comment,
+        septicVolume: dto.septicVolume,
+        gpCommission: commission,
+        preferredDate,
+        preferredTime: dto.flexibleTime ? null : dto.preferredTime,
+        flexibleTime: dto.flexibleTime ?? false,
+        lawnAreaSqm: dto.lawnAreaSqm,
+        lawnWorkType: dto.lawnWorkType,
+        scheduledDate: preferredDate,
+        items: dto.items?.length
+          ? {
+              create: dto.items.map((i) => ({
+                productId: i.productId,
+                name: i.name,
+                price: i.price,
+                qty: i.qty,
+              })),
+            }
+          : undefined,
+      },
+      include: this.orderInclude(),
+    });
+
+    const furnitureType = dto.serviceId ? FURNITURE_SERVICE_ID_TO_TYPE[dto.serviceId] : undefined;
+    if (furnitureType) {
+      await this.furnitureExecutor.createFromServiceRequest({
+        serviceType: furnitureType,
+        clientName: user.name || 'Клиент',
+        phone: user.phone || '',
+        address: dto.address,
+        comment: dto.comment,
+        city: client.city || undefined,
+        totalPrice: Number(total),
+        franchiseId: undefined,
+      });
+    }
+
+    await this.notifications.notifyOrderStatusChange(order.id, OrderStatus.NEW);
+    this.broadcastOrderStatus(order.id, OrderStatus.NEW);
+    return order;
+  }
 
   private broadcastOrderStatus(orderId: string, status: OrderStatus) {
     this.gateway.emitOrderStatus(orderId, {
@@ -119,75 +296,9 @@ export class OrdersService {
     const client = await this.prisma.clientProfile.findUnique({ where: { userId } });
     if (!client) throw new ForbiddenException('Только клиент может создавать заказы');
 
-    this.validateSchedule(dto);
-
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    const total = calcServiceTotal({
-      serviceId: dto.serviceId,
-      category: dto.category,
-      septicVolume: dto.septicVolume,
-      lawnAreaSqm: dto.lawnAreaSqm,
-      fallbackTotal: dto.total,
-    });
-    const commission = calcOrderCommission(dto.category, {
-      septicVolume: dto.septicVolume,
-      serviceId: dto.serviceId,
-    });
-    const preferredDate = this.parsePreferredDate(dto.preferredDate);
-
-    const order = await this.prisma.order.create({
-      data: {
-        clientId: client.id,
-        category: dto.category,
-        serviceName: dto.serviceName,
-        serviceId: dto.serviceId,
-        address: dto.address,
-        clientName: user?.name,
-        clientPhone: user?.phone,
-        clientLat: dto.clientLat ?? 51.233,
-        clientLng: dto.clientLng ?? 51.367,
-        total,
-        paymentMethod: dto.paymentMethod,
-        paymentStatus: 'DIRECT_TO_PARTNER',
-        comment: dto.comment,
-        septicVolume: dto.septicVolume,
-        gpCommission: commission,
-        preferredDate,
-        preferredTime: dto.flexibleTime ? null : dto.preferredTime,
-        flexibleTime: dto.flexibleTime ?? false,
-        lawnAreaSqm: dto.lawnAreaSqm,
-        lawnWorkType: dto.lawnWorkType,
-        scheduledDate: preferredDate,
-        items: dto.items?.length
-          ? {
-              create: dto.items.map((i) => ({
-                productId: i.productId,
-                name: i.name,
-                price: i.price,
-                qty: i.qty,
-              })),
-            }
-          : undefined,
-      },
-      include: this.orderInclude(),
-    });
-
-    const furnitureType = dto.serviceId ? FURNITURE_SERVICE_ID_TO_TYPE[dto.serviceId] : undefined;
-    if (furnitureType) {
-      await this.furnitureExecutor.createFromServiceRequest({
-        serviceType: furnitureType,
-        clientName: user?.name || 'Клиент',
-        phone: user?.phone || '',
-        address: dto.address,
-        comment: dto.comment,
-        city: client.city || undefined,
-        totalPrice: Number(total),
-        franchiseId: undefined,
-      });
-    }
-
-    await this.notifications.notifyOrderStatusChange(order.id, OrderStatus.NEW);
-    this.broadcastOrderStatus(order.id, OrderStatus.NEW);
+    if (!user) throw new NotFoundException('Пайдаланушы табылмады');
+    const order = await this.createOrderForClientProfile(user, client.id, dto);
     return sanitizeOrderForRole(order, Role.CLIENT);
   }
 

@@ -12,6 +12,7 @@
     "./api-contracts": "./src/api-contracts.js",
     "./ecosystem-types": "./src/ecosystem-types.js",
     "./validation": "./src/validation.js",
-    "./storeUi": "./src/storeUi.js"
+    "./storeUi": "./src/storeUi.js",
+    "./portal-roles": "./src/portal-roles.js"
   }
 }

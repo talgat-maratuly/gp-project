@@ -29,6 +29,8 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { VerifyResetOtpDto } from './dto/verify-reset-otp.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { PartnersService } from '../partners/partners.service';
+import { RbacService, UserWithProfiles } from '../rbac/rbac.service';
+import { PortalRole } from '@prisma/client';
 import { generateOtpCode, hashOtp, normalizePhone } from './mobile-auth.util';
 
 const RESET_OTP_TTL_MS = 10 * 60 * 1000;
@@ -43,21 +45,27 @@ export class AuthService {
     private prisma: PrismaService,
     private jwt: JwtService,
     private partners: PartnersService,
+    private rbac: RbacService,
   ) {}
 
-  private async signToken(user: { id: string; email: string; role: Role; regionId?: string | null }) {
+  private async signToken(user: UserWithProfiles) {
+    const roles = this.rbac.resolvePortalRoles(user);
     return {
       accessToken: await this.jwt.signAsync({
         sub: user.id,
         email: user.email,
         role: user.role,
+        roles,
         regionId: user.regionId ?? null,
+        franchiseId: user.franchiseId ?? null,
       }),
       user: {
         id: user.id,
         email: user.email,
         role: user.role,
+        roles,
         regionId: user.regionId ?? null,
+        franchiseId: user.franchiseId ?? null,
       },
     };
   }
@@ -127,6 +135,7 @@ export class AuthService {
         name: displayName,
         phone,
         role: Role.CLIENT,
+        portalRoles: [PortalRole.CLIENT],
         regionId: region.id,
         clientProfile: {
           create: {
@@ -139,7 +148,7 @@ export class AuthService {
           },
         },
       },
-      include: { clientProfile: true },
+      include: { clientProfile: true, partnerProfile: true },
     });
     return this.signToken(user);
   }
@@ -231,7 +240,10 @@ export class AuthService {
     });
     if (!user) return null;
     const { passwordHash: _, ...safe } = user;
-    return safe;
+    return {
+      ...safe,
+      roles: this.rbac.resolvePortalRoles(user),
+    };
   }
 
   private hashResetToken(token: string) {

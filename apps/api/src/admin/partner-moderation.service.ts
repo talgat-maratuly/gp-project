@@ -11,6 +11,7 @@ import {
 import { RegionAccessService } from '../common/region-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PartnersService } from '../partners/partners.service';
+import { RbacService } from '../rbac/rbac.service';
 
 @Injectable()
 export class PartnerModerationAdminService {
@@ -18,6 +19,7 @@ export class PartnerModerationAdminService {
     private prisma: PrismaService,
     private regionAccess: RegionAccessService,
     private partners: PartnersService,
+    private rbac: RbacService,
   ) {}
 
   private regionFilter(admin: User) {
@@ -169,6 +171,7 @@ export class PartnerModerationAdminService {
 
     await this.partners.syncDirectionsFromOfferings(partnerId);
     await this.partners.syncServiceAccessFromOfferings(partnerId);
+    await this.rbac.onSpecialistApproved(profile.userId);
     return this.getOne(admin, partnerId);
   }
 
