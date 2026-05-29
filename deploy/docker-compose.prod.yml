@@ -35,6 +35,12 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-gp}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-gp_service}?schema=public
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
       CORS_ORIGINS: ${CORS_ORIGINS:-https://gp-service.kz,https://partner.gp-service.kz,https://admin.gp-service.kz,https://market.gp-service.kz,https://admingp.duckdns.org,https://servicegp.duckdns.org,https://partnergp.duckdns.org}
+      WHATSAPP_SERVICE_URL: ${WHATSAPP_SERVICE_URL:-https://wp.gpartners.kz/queues/push}
+      WHATSAPP_SERVICE_TOKEN: ${WHATSAPP_SERVICE_TOKEN:-}
+      OTP_STORE_REVIEW_PHONE: ${OTP_STORE_REVIEW_PHONE:-}
+      OTP_STORE_REVIEW_CODE: ${OTP_STORE_REVIEW_CODE:-}
+      OTP_DEV_BYPASS_ENABLED: ${OTP_DEV_BYPASS_ENABLED:-false}
+      OTP_DEV_BYPASS_CODE: ${OTP_DEV_BYPASS_CODE:-777777}
     ports:
       - '4000:4000'
     networks:

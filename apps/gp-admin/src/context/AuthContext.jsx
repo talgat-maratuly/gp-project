@@ -70,6 +70,18 @@ export function AuthProvider({ children }) {
       .finally(() => setReady(true))
   }, [])
 
+  const loginViaWhatsappOtp = useCallback(async () => {
+    const me = await api.me()
+    const session = mapMeToAdminSession(me)
+    if (!session) {
+      clearToken()
+      throw new Error('login_error')
+    }
+    localStorage.setItem(AUTH_KEY, JSON.stringify(session))
+    setUser(session)
+    return session
+  }, [])
+
   const login = useCallback(async (username, password) => {
     const email = username.includes('@') ? username.trim().toLowerCase() : `${username.trim().toLowerCase()}@gp.kz`
 
@@ -123,7 +135,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, ready }}>
+    <AuthContext.Provider value={{ user, login, loginViaWhatsappOtp, logout, ready }}>
       {children}
     </AuthContext.Provider>
   )

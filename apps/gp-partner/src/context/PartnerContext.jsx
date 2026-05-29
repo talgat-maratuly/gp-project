@@ -310,6 +310,23 @@ export function PartnerProvider({ children }) {
     }
   }, [notify])
 
+  const loginViaWhatsappOtp = useCallback(async () => {
+    setLoading(true)
+    try {
+      const session = await loadPartnerSession()
+      if (!session) {
+        clearToken()
+        throw new Error('Это не аккаунт партнёра. Зарегистрируйтесь или войдите по email.')
+      }
+      setUser(session)
+      await refreshOrders()
+      notify('Добро пожаловать!')
+      return session
+    } finally {
+      setLoading(false)
+    }
+  }, [notify, refreshOrders])
+
   const login = useCallback(async (email, password) => {
     setLoading(true)
     try {
@@ -513,7 +530,7 @@ export function PartnerProvider({ children }) {
     user, authReady, orders, ordersLoading, ordersError, newOrders, myOrders, activeOrders, activeOrder,
     products, productsLoading, productsError, transactions,
     loading, toast, activeOrderId, setActiveOrderId,
-    register, login, logout, setOnline, addPartnerOfferings, acceptOrder, advanceOrder, cancelOrder,
+    register, login, loginViaWhatsappOtp, logout, setOnline, addPartnerOfferings, acceptOrder, advanceOrder, cancelOrder,
     updateOrderStatus: (orderId, status) => advanceOrder(orderId, status),
     isDemoMode: isDemoMode(),
     refreshMarket: () => {},

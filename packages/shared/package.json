@@ -29,7 +29,8 @@
     "./ecosystem": "./src/ecosystem/index.js",
     "./i18n": "./src/i18n/index.js",
     "./components/LanguageSwitcher": "./src/components/LanguageSwitcher.jsx",
-    "./auth/passwordRecovery": "./src/auth/passwordRecovery.jsx"
+    "./auth/passwordRecovery": "./src/auth/passwordRecovery.jsx",
+    "./auth/whatsappOtpLogin": "./src/auth/whatsappOtpLogin.jsx"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",

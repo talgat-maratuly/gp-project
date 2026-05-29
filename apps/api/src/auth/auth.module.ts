@@ -5,6 +5,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { MobileAuthController } from './mobile-auth.controller';
 import { MobileAuthService } from './mobile-auth.service';
+import { OtpDeliveryService } from './otp-delivery.service';
 import { JwtStrategy } from './jwt.strategy';
 import { PartnersModule } from '../partners/partners.module';
 
@@ -18,7 +19,7 @@ import { PartnersModule } from '../partners/partners.module';
     PartnersModule,
   ],
   controllers: [AuthController, MobileAuthController],
-  providers: [AuthService, MobileAuthService, JwtStrategy],
+  providers: [AuthService, MobileAuthService, OtpDeliveryService, JwtStrategy],
   exports: [AuthService, MobileAuthService, JwtModule, PassportModule],
 })
 export class AuthModule {}

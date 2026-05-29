@@ -12,6 +12,7 @@ import {
   getServiceWebUrl,
 } from '@gp/shared/constants'
 import { API_URL } from '@gp/shared/api'
+import { WhatsappOtpLogin } from '@gp/shared/auth/whatsappOtpLogin'
 import { usePartner } from '../context/PartnerContext'
 
 const SERVICE_GROUPS = [
@@ -39,8 +40,9 @@ function StepDots({ step }) {
 
 export default function AuthPage({ initialMode = 'register' }) {
   const navigate = useNavigate()
-  const { register, login, loading, user, authReady } = usePartner()
+  const { register, login, loginViaWhatsappOtp, loading, user, authReady } = usePartner()
   const [mode, setMode] = useState(initialMode)
+  const [loginMethod, setLoginMethod] = useState('whatsapp')
   const [regStep, setRegStep] = useState(1)
   const [selectedMainIds, setSelectedMainIds] = useState(() => new Set(['lawn']))
   const [selectedSubIds, setSelectedSubIds] = useState(() => new Set())
@@ -238,8 +240,11 @@ export default function AuthPage({ initialMode = 'register' }) {
 
   const onFormSubmit = (e) => {
     e.preventDefault()
-    if (mode === 'login') handleLogin(e)
-    else if (regStep === 3) finishRegister()
+    if (mode === 'login') {
+      if (loginMethod === 'password') handleLogin(e)
+      return
+    }
+    if (regStep === 3) finishRegister()
   }
 
   if (!authReady) {
@@ -587,25 +592,65 @@ export default function AuthPage({ initialMode = 'register' }) {
         {/* ——— Вход ——— */}
         {mode === 'login' && (
           <div className="gp-form-stack">
-            <input
-              type="text"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="gp-input-kaspi"
-              placeholder="uralsk_partner или partner@gp.kz"
-              autoComplete="username"
-              required
-            />
-            <input
-              type="password"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              className="gp-input-kaspi"
-              placeholder="Пароль"
-              autoComplete="current-password"
-            />
-            <p className="text-[11px] text-slate-500">API: partner@gp.kz / password123 · Demo: uralsk_partner / 1234</p>
-            <Link to="/forgot-password" className="text-xs text-emerald-400 hover:underline">Забыли пароль?</Link>
+            <div className="flex gap-2 mb-1">
+              {[
+                ['whatsapp', 'WhatsApp OTP'],
+                ['password', 'Email / пароль'],
+              ].map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => { setLoginMethod(id); setError('') }}
+                  className={`flex-1 py-2 rounded-xl text-xs font-bold border ${
+                    loginMethod === id
+                      ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10'
+                      : 'border-white/10 text-slate-500'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {loginMethod === 'whatsapp' ? (
+              <WhatsappOtpLogin
+                deviceId="gp-partner-web"
+                deviceName="GP Partner Web"
+                desiredRole="PARTNER"
+                inputClassName="gp-input-kaspi"
+                buttonClassName="w-full py-3.5 rounded-2xl gp-gradient-kaspi text-white font-bold text-sm shadow-md disabled:opacity-50"
+                onVerified={async () => {
+                  try {
+                    await loginViaWhatsappOtp()
+                    navigate('/', { replace: true })
+                  } catch (err) {
+                    setError(err.message || 'Кіру қатесі')
+                    throw err
+                  }
+                }}
+              />
+            ) : (
+              <>
+                <input
+                  type="text"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  className="gp-input-kaspi"
+                  placeholder="uralsk_partner или partner@gp.kz"
+                  autoComplete="username"
+                  required
+                />
+                <input
+                  type="password"
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  className="gp-input-kaspi"
+                  placeholder="Пароль"
+                  autoComplete="current-password"
+                />
+                <p className="text-[11px] text-slate-500">API: partner@gp.kz / password123 · Demo: uralsk_partner / 1234</p>
+                <Link to="/forgot-password" className="text-xs text-emerald-400 hover:underline">Забыли пароль?</Link>
+              </>
+            )}
           </div>
         )}
 
@@ -643,7 +688,7 @@ export default function AuthPage({ initialMode = 'register' }) {
               Далее <ChevronRight className="w-4 h-4" />
             </button>
           )}
-          {(mode === 'login' || (mode === 'register' && regStep === 3)) && (
+          {(mode === 'login' && loginMethod === 'password') || (mode === 'register' && regStep === 3) ? (
             <button
               type="submit"
               disabled={loading}
@@ -659,7 +704,7 @@ export default function AuthPage({ initialMode = 'register' }) {
                 </>
               )}
             </button>
-          )}
+          ) : null}
         </div>
       </form>
 

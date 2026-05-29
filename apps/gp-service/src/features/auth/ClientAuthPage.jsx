@@ -21,6 +21,7 @@ export default function ClientAuthPage() {
     direction: '',
   })
   const [partnerSession, setPartnerSession] = useState(null)
+  const [otpChannel] = useState('whatsapp')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -42,7 +43,7 @@ export default function ClientAuthPage() {
     }
     setLoading(true)
     try {
-      await sendOtp(form.phone)
+      await sendOtp(form.phone, otpChannel)
       setStep(2)
     } catch (err) {
       setError(err.message || 'Ошибка')
@@ -152,8 +153,9 @@ export default function ClientAuthPage() {
                 placeholder="+7 701 234 56 78"
               />
             </label>
+            <p className="text-xs text-[var(--gp-text-muted)]">Код WhatsApp арқылы жіберіледі</p>
             {error && <p className="text-red-600 text-sm">{error}</p>}
-            <KaspiButton type="submit" disabled={loading}>{loading ? '...' : 'OTP жіберу'}</KaspiButton>
+            <KaspiButton type="submit" disabled={loading}>{loading ? '...' : 'WhatsApp OTP жіберу'}</KaspiButton>
           </KaspiCard>
         </form>
       )}

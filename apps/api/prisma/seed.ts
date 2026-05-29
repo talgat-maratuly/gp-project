@@ -34,24 +34,26 @@ async function main() {
 
   const admin = await prisma.user.upsert({
     where: { email: 'admin@gp.kz' },
-    update: { role: Role.SUPER_ADMIN, regionId: null },
+    update: { role: Role.SUPER_ADMIN, regionId: null, phone: '+77001110001' },
     create: {
       email: 'admin@gp.kz',
       passwordHash,
       name: 'GP Super Admin',
       role: Role.SUPER_ADMIN,
+      phone: '+77001110001',
     },
   });
 
   await prisma.user.upsert({
     where: { email: 'uralsk_admin@gp.kz' },
-    update: { role: Role.REGION_ADMIN, regionId: uralskRegion.id },
+    update: { role: Role.REGION_ADMIN, regionId: uralskRegion.id, phone: '+77001110002' },
     create: {
       email: 'uralsk_admin@gp.kz',
       passwordHash,
       name: 'Админ Уральск',
       role: Role.REGION_ADMIN,
       regionId: uralskRegion.id,
+      phone: '+77001110002',
     },
   });
 

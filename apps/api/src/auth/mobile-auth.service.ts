@@ -20,6 +20,9 @@ import {
   normalizePhone,
   phoneToEmail,
 } from './mobile-auth.util';
+import { OtpDeliveryService } from './otp-delivery.service';
+
+const STAFF_ROLES = new Set<Role>([Role.ADMIN, Role.SUPER_ADMIN, Role.REGION_ADMIN]);
 
 const OTP_TTL_MS = 5 * 60 * 1000;
 const OTP_COOLDOWN_MS = 60 * 1000;
@@ -33,7 +36,32 @@ export class MobileAuthService {
     private prisma: PrismaService,
     private jwt: JwtService,
     private userStatus: UserStatusService,
+    private otpDelivery: OtpDeliveryService,
   ) {}
+
+  /** App Store / Play review (prod): OTP_STORE_REVIEW_PHONE + OTP_STORE_REVIEW_CODE */
+  private getStoreReviewCredentials(): { phone: string; code: string } | null {
+    const raw = process.env.OTP_STORE_REVIEW_PHONE?.trim();
+    const rawCode = process.env.OTP_STORE_REVIEW_CODE?.trim();
+    if (!raw || !rawCode || rawCode.length !== 6) return null;
+    try {
+      return { phone: normalizePhone(raw), code: rawCode };
+    } catch {
+      return null;
+    }
+  }
+
+  private isOtpVerifyBypass(phone: string, code: string): boolean {
+    const trimmed = code.trim();
+    const storeReview = this.getStoreReviewCredentials();
+    if (storeReview && phone === storeReview.phone && trimmed === storeReview.code) {
+      return true;
+    }
+    const devEnabled =
+      String(process.env.OTP_DEV_BYPASS_ENABLED ?? '').toLowerCase() === 'true';
+    const devCode = process.env.OTP_DEV_BYPASS_CODE ?? '777777';
+    return devEnabled && trimmed === devCode;
+  }
 
   private accessExpiresSec(): number {
     const m = String(ACCESS_TTL).match(/^(\d+)([smhd])$/);
@@ -138,27 +166,18 @@ export class MobileAuthService {
     const devPayload = { phone, channel: dto.channel, code, challengeId: challenge.id };
     if (process.env.NODE_ENV !== 'production') {
       console.log('[GP Mobile OTP]', JSON.stringify(devPayload));
-    } else {
-      await this.dispatchOtp(phone, code, dto.channel);
     }
+
+    const delivery = await this.otpDelivery.dispatchOtp(phone, code, dto.channel);
 
     return {
       ok: true,
       expiresInSec: OTP_TTL_MS / 1000,
+      ...(dto.channel === OtpChannel.whatsapp
+        ? { whatsappSent: delivery.whatsappSent ?? false }
+        : {}),
       ...(process.env.NODE_ENV !== 'production' ? { devCode: code } : {}),
     };
-  }
-
-  private async dispatchOtp(phone: string, code: string, channel: OtpChannel) {
-    // Production: plug SMS/WhatsApp provider via env
-    const webhook = process.env.OTP_WEBHOOK_URL;
-    if (webhook) {
-      await fetch(webhook, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, code, channel }),
-      }).catch(() => {});
-    }
   }
 
   async verifyOtp(dto: MobileOtpVerifyDto) {
@@ -169,24 +188,31 @@ export class MobileAuthService {
       throw new BadRequestException('Некорректный номер телефона');
     }
 
-    const challenge = await this.prisma.otpChallenge.findFirst({
-      where: { phone, verified: false },
-      orderBy: { createdAt: 'desc' },
-    });
-    if (!challenge || challenge.expiresAt < new Date()) {
-      throw new UnauthorizedException('Код истёк. Запросите новый.');
-    }
-    if (challenge.attempts >= MAX_ATTEMPTS) {
-      throw new UnauthorizedException('Слишком много попыток');
+    const bypass = this.isOtpVerifyBypass(phone, dto.code);
+    if (!bypass) {
+      const challenge = await this.prisma.otpChallenge.findFirst({
+        where: { phone, verified: false },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (!challenge || challenge.expiresAt < new Date()) {
+        throw new UnauthorizedException('Код истёк. Запросите новый.');
+      }
+      if (challenge.attempts >= MAX_ATTEMPTS) {
+        throw new UnauthorizedException('Слишком много попыток');
+      }
+
+      const ok = challenge.codeHash === hashOtp(dto.code.trim());
+      await this.prisma.otpChallenge.update({
+        where: { id: challenge.id },
+        data: { attempts: challenge.attempts + 1, verified: ok },
+      });
+      if (!ok) throw new UnauthorizedException('Неверный код');
     }
 
-    const ok = challenge.codeHash === hashOtp(dto.code.trim());
-    await this.prisma.otpChallenge.update({
-      where: { id: challenge.id },
-      data: { attempts: challenge.attempts + 1, verified: ok },
-    });
-    if (!ok) throw new UnauthorizedException('Неверный код');
+    return this.completeLoginAfterOtp(phone, dto);
+  }
 
+  private async completeLoginAfterOtp(phone: string, dto: MobileOtpVerifyDto) {
     const desiredRole = dto.desiredRole === Role.PARTNER ? Role.PARTNER : Role.CLIENT;
     const desiredAccountType = dto.accountType || AccountType.INDIVIDUAL;
 
@@ -243,7 +269,7 @@ export class MobileAuthService {
         },
         include: { clientProfile: true, partnerProfile: true },
       });
-    } else if (user.role !== desiredRole) {
+    } else if (user.role !== desiredRole && !STAFF_ROLES.has(user.role)) {
       throw new UnauthorizedException('Бұл телефон басқа рөлге тіркелген');
     }
 

@@ -112,6 +112,12 @@ jobs:
       DEPLOY_HOST: ${{ secrets.SERVER_HOST != '' && secrets.SERVER_HOST || vars.SERVER_HOST }}
       DEPLOY_USER: ${{ secrets.SERVER_USER != '' && secrets.SERVER_USER || vars.SERVER_USER }}
       CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ORIGINS != '' && secrets.CORS_ORIGINS || vars.CORS_ORIGINS }}
+      WHATSAPP_SERVICE_URL: ${{ vars.WHATSAPP_SERVICE_URL != '' && vars.WHATSAPP_SERVICE_URL || 'https://wp.gpartners.kz/queues/push' }}
+      WHATSAPP_SERVICE_TOKEN: ${{ secrets.WHATSAPP_SERVICE_TOKEN }}
+      OTP_STORE_REVIEW_PHONE: ${{ vars.OTP_STORE_REVIEW_PHONE }}
+      OTP_STORE_REVIEW_CODE: ${{ secrets.OTP_STORE_REVIEW_CODE }}
+      OTP_DEV_BYPASS_ENABLED: ${{ vars.OTP_DEV_BYPASS_ENABLED }}
+      OTP_DEV_BYPASS_CODE: ${{ vars.OTP_DEV_BYPASS_CODE }}
       DEPLOY_PATH: /opt/gp/gp-project/deploy
       POSTGRES_DB: gp
       POSTGRES_USER: gp
@@ -145,6 +151,10 @@ jobs:
           fi
           if [ -z "${{ secrets.JWT_SECRET }}" ]; then
             echo "JWT_SECRET must be configured as a repository Secret."
+            exit 1
+          fi
+          if [ -z "${WHATSAPP_SERVICE_TOKEN}" ]; then
+            echo "WHATSAPP_SERVICE_TOKEN must be configured as a repository Secret (mobile WhatsApp OTP)."
             exit 1
           fi
 
@@ -184,11 +194,17 @@ jobs:
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           CORS_ORIGINS: ${{ env.CORS_ALLOWED_ORIGINS }}
+          WHATSAPP_SERVICE_URL: ${{ env.WHATSAPP_SERVICE_URL }}
+          WHATSAPP_SERVICE_TOKEN: ${{ env.WHATSAPP_SERVICE_TOKEN }}
+          OTP_STORE_REVIEW_PHONE: ${{ env.OTP_STORE_REVIEW_PHONE }}
+          OTP_STORE_REVIEW_CODE: ${{ env.OTP_STORE_REVIEW_CODE }}
+          OTP_DEV_BYPASS_ENABLED: ${{ env.OTP_DEV_BYPASS_ENABLED }}
+          OTP_DEV_BYPASS_CODE: ${{ env.OTP_DEV_BYPASS_CODE }}
         with:
           host: ${{ env.DEPLOY_HOST }}
           username: ${{ env.DEPLOY_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          envs: GHCR_USERNAME,GHCR_TOKEN,IMAGE_PREFIX,POSTGRES_PASSWORD,JWT_SECRET,CORS_ORIGINS,DEPLOY_PATH,POSTGRES_DB,POSTGRES_USER,GP_API_PORT,GP_SERVICE_PORT,GP_PARTNER_PORT,GP_ADMIN_PORT
+          envs: GHCR_USERNAME,GHCR_TOKEN,IMAGE_PREFIX,POSTGRES_PASSWORD,JWT_SECRET,CORS_ORIGINS,WHATSAPP_SERVICE_URL,WHATSAPP_SERVICE_TOKEN,OTP_STORE_REVIEW_PHONE,OTP_STORE_REVIEW_CODE,OTP_DEV_BYPASS_ENABLED,OTP_DEV_BYPASS_CODE,DEPLOY_PATH,POSTGRES_DB,POSTGRES_USER,GP_API_PORT,GP_SERVICE_PORT,GP_PARTNER_PORT,GP_ADMIN_PORT
           script: |
             set -euo pipefail
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
@@ -202,6 +218,12 @@ jobs:
             POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
             JWT_SECRET=${JWT_SECRET}
             CORS_ORIGINS=${CORS_ORIGINS}
+            WHATSAPP_SERVICE_URL=${WHATSAPP_SERVICE_URL}
+            WHATSAPP_SERVICE_TOKEN=${WHATSAPP_SERVICE_TOKEN}
+            OTP_STORE_REVIEW_PHONE=${OTP_STORE_REVIEW_PHONE}
+            OTP_STORE_REVIEW_CODE=${OTP_STORE_REVIEW_CODE}
+            OTP_DEV_BYPASS_ENABLED=${OTP_DEV_BYPASS_ENABLED}
+            OTP_DEV_BYPASS_CODE=${OTP_DEV_BYPASS_CODE}
             GP_API_PORT=${GP_API_PORT}
             GP_SERVICE_PORT=${GP_SERVICE_PORT}
             GP_PARTNER_PORT=${GP_PARTNER_PORT}

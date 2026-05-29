@@ -73,8 +73,44 @@ flowchart TD
 MOBILE_OTP_FIXED=123456          # optional dev code
 MOBILE_ACCESS_EXPIRES_IN=15m
 MOBILE_REFRESH_DAYS=30
-OTP_WEBHOOK_URL=                 # optional real SMS/WhatsApp provider
+
+# WhatsApp OTP (gpartners-portal-api сияқты)
+WHATSAPP_SERVICE_URL=https://wp.gpartners.kz/queues/push
+WHATSAPP_SERVICE_TOKEN=          # Bearer token
+
+# SMS (опционал)
+OTP_WEBHOOK_URL=                 # POST { phone, code, channel: "sms" }
+
+# Store review (prod verify-only)
+# OTP_STORE_REVIEW_PHONE=+7...
+# OTP_STORE_REVIEW_CODE=777777
+
+# Dev bypass (verify-only, prod-та өшіріңіз)
+# OTP_DEV_BYPASS_ENABLED=true
+# OTP_DEV_BYPASS_CODE=777777
 ```
+
+`POST /auth/mobile/otp/send` with `channel: "whatsapp"` returns `whatsappSent: true|false` when WhatsApp is used (best-effort; OTP is always stored server-side).
+
+## Production deploy (GitHub)
+
+Repository **Secrets**:
+
+| Name | Description |
+|------|-------------|
+| `WHATSAPP_SERVICE_TOKEN` | Bearer token for `wp.gpartners.kz` queue (**required** for deploy) |
+
+Repository **Variables** (optional):
+
+| Name | Default |
+|------|---------|
+| `WHATSAPP_SERVICE_URL` | `https://wp.gpartners.kz/queues/push` |
+| `OTP_STORE_REVIEW_PHONE` | — |
+| `OTP_DEV_BYPASS_ENABLED` | `false` |
+
+`OTP_STORE_REVIEW_CODE` — Secret if used.
+
+Web apps (`gp-service`, `gp-partner`, `gp-admin`) use shared `WhatsappOtpLogin` — default channel WhatsApp on login screens.
 
 ## Security notes
 
