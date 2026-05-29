@@ -12,7 +12,8 @@ import { RegionAccessService } from '../common/region-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PartnersService } from '../partners/partners.service';
 import { RbacService } from '../rbac/rbac.service';
-import { RequestStatus, WorkStatus } from '@prisma/client';
+import { PortalRole, RequestStatus, WorkStatus } from '@prisma/client';
+import { SpecialistRequestNotificationsService } from '../specialist-requests/specialist-request-notifications.service';
 
 @Injectable()
 export class PartnerModerationAdminService {
@@ -21,6 +22,7 @@ export class PartnerModerationAdminService {
     private regionAccess: RegionAccessService,
     private partners: PartnersService,
     private rbac: RbacService,
+    private specialistNotifications: SpecialistRequestNotificationsService,
   ) {}
 
   private regionFilter(admin: User) {
@@ -169,11 +171,22 @@ export class PartnerModerationAdminService {
         data: { status: PartnerOfferingStatus.ACTIVE, moderationNote: null },
       });
       await this.writeAudit(partnerId, admin.id, PartnerModerationAction.APPROVE);
+      await tx.specialistRequest.updateMany({
+        where: { partnerProfileId: partnerId },
+        data: {
+          status: RequestStatus.APPROVED,
+          moderatorId: admin.id,
+          approvedAt: new Date(),
+          rejectionReason: null,
+          rejectedAt: null,
+        },
+      });
     });
 
     await this.partners.syncDirectionsFromOfferings(partnerId);
     await this.partners.syncServiceAccessFromOfferings(partnerId);
     await this.rbac.onSpecialistApproved(profile.userId);
+    await this.specialistNotifications.notifyApproved(profile.userId);
     return this.getOne(admin, partnerId);
   }
 
@@ -198,7 +211,21 @@ export class PartnerModerationAdminService {
         data: { status: PartnerOfferingStatus.REJECTED },
       });
       await this.writeAudit(partnerId, admin.id, PartnerModerationAction.REJECT, { reason });
+      await tx.specialistRequest.updateMany({
+        where: { partnerProfileId: partnerId },
+        data: {
+          status: RequestStatus.REJECTED,
+          moderatorId: admin.id,
+          rejectionReason: reason.trim(),
+          rejectedAt: new Date(),
+        },
+      });
+      await tx.user.update({
+        where: { id: profile.userId },
+        data: { portalRoles: { set: [PortalRole.CLIENT] } },
+      });
     });
+    await this.specialistNotifications.notifyRejected(profile.userId, reason.trim());
     return this.getOne(admin, partnerId);
   }
 

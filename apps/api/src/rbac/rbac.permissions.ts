@@ -29,6 +29,7 @@ export function canAcceptOrders(roles: PortalRole[]): boolean {
 
 const APPROVE_SPECIALIST_ROLES: PortalRole[] = [
   PortalRole.GP_OPERATOR,
+  PortalRole.FRANCHISE_OWNER,
   PortalRole.GLOBAL_OPERATOR,
   PortalRole.ADMIN,
 ];

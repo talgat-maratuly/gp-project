@@ -7,12 +7,13 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { PartnerApprovedGuard } from '../partners/guards/partner-approved.guard';
 import { SpecialistOnlineGuard } from '../user-status/guards/specialist-online.guard';
+import { SpecialistRequestApprovedGuard } from '../specialist-requests/guards/specialist-request-approved.guard';
 import { OrdersService } from './orders.service';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 
 @ApiTags('partner-orders')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard, PartnerApprovedGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PartnerApprovedGuard, SpecialistRequestApprovedGuard)
 @Roles(Role.PARTNER)
 @Controller('partner/orders')
 export class PartnerOrdersController {

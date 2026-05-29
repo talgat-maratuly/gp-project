@@ -210,6 +210,8 @@ model User {
   marketOrders   MarketOrder[]
   approvedPartners PartnerProfile[] @relation("PartnerApprovedBy")
   moderationActions PartnerModerationAuditLog[] @relation("ModerationAdmin")
+  specialistRequest SpecialistRequest?
+  moderatedSpecialistRequests SpecialistRequest[] @relation("SpecialistRequestModerator")
 
   @@index([regionId])
   @@index([franchiseId])
@@ -305,11 +307,45 @@ model PartnerProfile {
   trips        Trip[]
   serviceProjects ServiceProject[] @relation("AssignedPartnerProjects")
   furnitureExecutorOrders FurnitureExecutorOrder[] @relation("FurnitureExecutorPartner")
+  specialistRequest SpecialistRequest?
 
   @@index([regionId])
   @@index([status])
   @@index([partnerType])
   @@index([partnerRole])
+}
+
+/// Specialist moderation request (Request Status — PartnerProfile workflow-дан бөлек жазба)
+model SpecialistRequest {
+  id               String        @id @default(uuid())
+  userId           String        @unique
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  partnerProfileId String        @unique
+  partnerProfile   PartnerProfile @relation(fields: [partnerProfileId], references: [id], onDelete: Cascade)
+
+  regionId         String
+  region           Region        @relation(fields: [regionId], references: [id])
+  city             String?
+  district         String?
+  primarySubserviceId String?
+  primaryCategory  OrderCategory?
+
+  status           RequestStatus
+
+  moderatorId      String?
+  moderator        User?         @relation("SpecialistRequestModerator", fields: [moderatorId], references: [id])
+  approvedAt       DateTime?
+  rejectionReason  String?
+  rejectedAt       DateTime?
+  resubmittedAt    DateTime?
+
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([regionId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([city])
 }
 
 enum FurnitureServiceType {
@@ -845,6 +881,7 @@ model Region {
   stocks     Stock[]
   orders     MarketOrder[]
   franchises Franchise[]
+  specialistRequests SpecialistRequest[]
 }
 
 enum StoreStatus {

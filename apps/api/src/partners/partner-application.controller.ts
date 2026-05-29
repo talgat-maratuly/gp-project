@@ -8,6 +8,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { PartnerApplyDto } from './dto/partner-apply.dto';
 import { PartnerResubmitDto } from './dto/partner-resubmit.dto';
 import { PartnerModerationService } from './partner-moderation.service';
+import { SpecialistRequestsService } from '../specialist-requests/specialist-requests.service';
 
 @ApiTags('partner')
 @ApiBearerAuth()
@@ -15,11 +16,14 @@ import { PartnerModerationService } from './partner-moderation.service';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.PARTNER)
 export class PartnerApplicationController {
-  constructor(private moderation: PartnerModerationService) {}
+  constructor(
+    private moderation: PartnerModerationService,
+    private specialistRequests: SpecialistRequestsService,
+  ) {}
 
   @Post('apply')
   apply(@CurrentUser() user: { id: string }, @Body() dto: PartnerApplyDto) {
-    return this.moderation.apply(user.id, dto);
+    return this.specialistRequests.submit(user.id, dto);
   }
 
   @Get('me')
@@ -29,6 +33,6 @@ export class PartnerApplicationController {
 
   @Patch('me/resubmit')
   resubmit(@CurrentUser() user: { id: string }, @Body() dto: PartnerResubmitDto) {
-    return this.moderation.resubmit(user.id, dto);
+    return this.specialistRequests.resubmit(user.id, dto as PartnerApplyDto);
   }
 }

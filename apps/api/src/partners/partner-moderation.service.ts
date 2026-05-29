@@ -191,8 +191,14 @@ export class PartnerModerationService {
 
   async resubmit(userId: string, dto: PartnerResubmitDto) {
     const profile = await this.partners.ensurePartnerProfile(userId);
-    if (profile.status !== PartnerStatusValue.NEEDS_REVISION) {
-      throw new BadRequestException('Повторная отправка доступна только после возврата на доработку');
+    const canResubmit =
+      profile.status === PartnerStatusValue.NEEDS_REVISION ||
+      profile.status === PartnerStatusValue.REJECTED ||
+      profile.requestStatus === RequestStatus.REJECTED;
+    if (!canResubmit) {
+      throw new BadRequestException(
+        'Повторная отправка доступна только после отклонения или возврата на доработку',
+      );
     }
     if (!dto.partnerType || !dto.regionId || !dto.companyName || !dto.fullName || !dto.phone) {
       const current = await this.getMe(userId);

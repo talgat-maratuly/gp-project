@@ -9,9 +9,10 @@ import {
 import { PartnerModerationAdminService } from './partner-moderation.service';
 import { PartnersModule } from '../partners/partners.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { SpecialistRequestsModule } from '../specialist-requests/specialist-requests.module';
 
 @Module({
-  imports: [PartnersModule, NotificationsModule],
+  imports: [PartnersModule, NotificationsModule, SpecialistRequestsModule],
   controllers: [
     AdminController,
     PartnerModerationController,

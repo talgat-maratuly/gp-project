@@ -30,7 +30,7 @@ import { VerifyResetOtpDto } from './dto/verify-reset-otp.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { PartnersService } from '../partners/partners.service';
 import { RbacService, UserWithProfiles } from '../rbac/rbac.service';
-import { PortalRole } from '@prisma/client';
+import { PortalRole, WorkStatus } from '@prisma/client';
 import { UserStatusService } from '../user-status/user-status.service';
 import { generateOtpCode, hashOtp, normalizePhone } from './mobile-auth.util';
 
@@ -191,11 +191,14 @@ export class AuthService {
         name: displayName,
         phone,
         role: Role.PARTNER,
+        portalRoles: [PortalRole.CLIENT],
         regionId: region.id,
         partnerProfile: {
           create: {
             regionId: region.id,
             status: PartnerStatus.DRAFT,
+            requestStatus: null,
+            workStatus: WorkStatus.OFFLINE,
             accountType,
             partnerRole,
             partnerType,

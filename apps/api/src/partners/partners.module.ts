@@ -8,9 +8,10 @@ import { PartnerApprovedGuard } from './guards/partner-approved.guard';
 import { OnlyShopPartnerGuard } from './guards/only-shop-partner.guard';
 import { OnlyServicePartnerGuard } from './guards/only-service-partner.guard';
 import { OnlySepticPartnerGuard } from './guards/only-septic-partner.guard';
+import { SpecialistRequestsModule } from '../specialist-requests/specialist-requests.module';
 
 @Module({
-  imports: [forwardRef(() => FurnitureExecutorModule)],
+  imports: [forwardRef(() => FurnitureExecutorModule), forwardRef(() => SpecialistRequestsModule)],
   controllers: [PartnersController, PartnerApplicationController],
   providers: [
     PartnersService,
