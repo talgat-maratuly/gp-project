@@ -94,8 +94,8 @@ export const api = {
   acceptPartnerOrder: (id) =>
     patch(`/partner/orders/${id}/accept`, {}).then((o) => mapOrder(o, { forClient: false })),
 
-  rejectPartnerOrder: (id) =>
-    patch(`/partner/orders/${id}/reject`, {}).then((o) => mapOrder(o, { forClient: false })),
+  rejectPartnerOrder: (id, cancelReason) =>
+    patch(`/partner/orders/${id}/reject`, { cancelReason }).then((o) => mapOrder(o, { forClient: false })),
 
   updatePartnerOrderStatus: (id, body) =>
     patch(`/partner/orders/${id}/status`, body).then((o) => mapOrder(o, { forClient: false })),
@@ -112,6 +112,14 @@ export const api = {
     patch(`/orders/${id}/status`, body).then((o) => mapOrder(o, { forClient: false })),
 
   confirmOrder: (id) => patch(`/orders/${id}/confirm`).then((o) => mapOrder(o, { forClient: true })),
+
+  cancelOrder: (id, cancelReason) =>
+    patch(`/orders/${id}/cancel`, { cancelReason }).then((o) => mapOrder(o, { forClient: true })),
+
+  recreateOrder: (id) =>
+    post(`/orders/${id}/recreate`, {}).then((o) => mapOrder(o, { forClient: true })),
+
+  getOrderEvents: (id) => get(`/orders/${id}/events`),
 
   getPartnerMe: () =>
     get('/partners/me').then((p) => ({

@@ -2,23 +2,23 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import {
   DisposalEventType,
   MovementState,
+  OrderActorRole,
   OrderCategory,
   OrderStatus,
+  SepticStage,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PartnersService } from '../partners/partners.service';
-import { NotificationsService } from '../notifications/notifications.service';
 import {
-  CLIENT_DWELL_SEC,
   CLIENT_GEOFENCE_RADIUS_M,
-  DISPOSAL_DWELL_SEC,
   detectMovement,
   estimateEtaMinutes,
   haversineKm,
   inGeofenceZone,
-  isSepticGpsManaged,
+  nextSepticState,
 } from '../common/geofence.util';
 import { MAP_STATUS_LABELS } from '../common/schedule.util';
+import { OrderLifecycleService } from '../orders/order-lifecycle.service';
 import { GeofenceService } from './geofence.service';
 import { GeoGateway } from './geo.gateway';
 import { GpsPointDto } from './dto/gps-point.dto';
@@ -30,7 +30,7 @@ export class GpsTrackingService {
     private partners: PartnersService,
     private geofence: GeofenceService,
     private gateway: GeoGateway,
-    private notifications: NotificationsService,
+    private lifecycle: OrderLifecycleService,
   ) {}
 
   async ingestGps(userId: string, dto: GpsPointDto) {
@@ -92,50 +92,71 @@ export class GpsTrackingService {
       lastPointAt: now,
     };
 
-    let newStatus = order.status;
     const atClient = inGeofenceZone(dto.lat, dto.lng, {
       lat: order.clientLat,
       lng: order.clientLng,
       radiusM: CLIENT_GEOFENCE_RADIUS_M,
     });
     const disposalZone = this.geofence.findOfficialDisposalAt(dto.lat, dto.lng, officialDisposals);
-    const anyZone = this.geofence.findZoneAt(dto.lat, dto.lng, zones);
+    const clientDwellSec = trip.clientEnteredAt
+      ? (now.getTime() - new Date(trip.clientEnteredAt).getTime()) / 1000
+      : 0;
+    const disposalDwellSec = trip.disposalEnteredAt
+      ? (now.getTime() - new Date(trip.disposalEnteredAt).getTime()) / 1000
+      : 0;
 
-    // ACCEPTED → ON_THE_WAY when moving
-    if (order.status === OrderStatus.ACCEPTED && movement === MovementState.MOVING) {
-      newStatus = OrderStatus.ON_THE_WAY;
-    }
+    const transition = nextSepticState({
+      status: order.status,
+      septicStage: order.septicStage,
+      movement,
+      atClient,
+      atDisposal: Boolean(disposalZone),
+      clientDwellSec,
+      disposalDwellSec,
+    });
 
-    // ON_THE_WAY → ARRIVED at client
-    if (order.status === OrderStatus.ON_THE_WAY && atClient) {
-      newStatus = OrderStatus.ARRIVED;
+    // Trip-метки времени по конкретным переходам под-статуса
+    if (transition?.septicStage === SepticStage.ARRIVED) {
       tripUpdate.clientEnteredAt = trip.clientEnteredAt ?? now;
+      tripUpdate.clientDwellStartedAt = trip.clientDwellStartedAt ?? now;
     }
-
-    // ARRIVED → STARTED after dwell 3 min
-    if (order.status === OrderStatus.ARRIVED && atClient) {
-      const entered = trip.clientEnteredAt ?? now;
-      if (!trip.clientDwellStartedAt) tripUpdate.clientDwellStartedAt = entered;
-      const dwellSec = (now.getTime() - new Date(entered).getTime()) / 1000;
-      if (dwellSec >= CLIENT_DWELL_SEC) {
-        newStatus = OrderStatus.STARTED;
-      }
-    }
-
-    // STARTED → LOADED when left client zone
-    if (order.status === OrderStatus.STARTED && !atClient) {
-      newStatus = OrderStatus.LOADED;
+    if (transition?.septicStage === SepticStage.LOADED) {
       tripUpdate.clientLeftAt = now;
     }
-
-    // LOADED → DISPOSAL_ARRIVED at official disposal
-    if (order.status === OrderStatus.LOADED && disposalZone) {
-      newStatus = OrderStatus.DISPOSAL_ARRIVED;
+    if (transition?.septicStage === SepticStage.DISPOSAL_ARRIVED) {
       tripUpdate.disposalEnteredAt = trip.disposalEnteredAt ?? now;
+      tripUpdate.disposalDwellStartedAt = trip.disposalDwellStartedAt ?? now;
+    }
+    if (
+      transition?.septicStage === SepticStage.DISPOSAL_COMPLETED &&
+      order.septicStage === SepticStage.DISPOSAL_ARRIVED &&
+      disposalZone
+    ) {
+      await this.prisma.disposalEvent.create({
+        data: {
+          tripId: trip.id,
+          orderId: order.id,
+          zoneId: disposalZone.id,
+          lat: dto.lat,
+          lng: dto.lng,
+          type: DisposalEventType.LEGAL,
+          isOfficial: true,
+          note: disposalZone.name,
+        },
+      });
+    }
+    if (transition?.status === OrderStatus.COMPLETED) {
+      tripUpdate.disposalLeftAt = now;
+      tripUpdate.endedAt = now;
     }
 
-    // Illegal disposal while LOADED (unload outside official zone)
-    if (order.status === OrderStatus.LOADED && !disposalZone && movement === MovementState.STOPPED) {
+    // Незаконный слив: гружёный (LOADED), вне официальной зоны, остановился
+    if (
+      order.status === OrderStatus.IN_PROCESS &&
+      order.septicStage === SepticStage.LOADED &&
+      !disposalZone &&
+      movement === MovementState.STOPPED
+    ) {
       const recentIllegal = await this.prisma.disposalEvent.findFirst({
         where: { orderId: order.id, type: DisposalEventType.ILLEGAL },
         orderBy: { createdAt: 'desc' },
@@ -166,67 +187,51 @@ export class GpsTrackingService {
       }
     }
 
-    // DISPOSAL_ARRIVED → DISPOSAL_COMPLETED after 2 min dwell
-    if (order.status === OrderStatus.DISPOSAL_ARRIVED && disposalZone) {
-      const entered = trip.disposalEnteredAt ?? now;
-      if (!trip.disposalDwellStartedAt) tripUpdate.disposalDwellStartedAt = entered;
-      const dwellSec = (now.getTime() - new Date(entered).getTime()) / 1000;
-      if (dwellSec >= DISPOSAL_DWELL_SEC) {
-        newStatus = OrderStatus.DISPOSAL_COMPLETED;
-        await this.prisma.disposalEvent.create({
-          data: {
-            tripId: trip.id,
-            orderId: order.id,
-            zoneId: disposalZone.id,
-            lat: dto.lat,
-            lng: dto.lng,
-            type: DisposalEventType.LEGAL,
-            isOfficial: true,
-            note: disposalZone.name,
-          },
+    await this.prisma.trip.update({ where: { id: trip.id }, data: tripUpdate });
+
+    const distanceKm = haversineKm(order.clientLat, order.clientLng, dto.lat, dto.lng);
+
+    // Постоянные (не статусные) поля заказа на каждый пинг
+    await this.prisma.order.update({
+      where: { id: order.id },
+      data: {
+        executorLat: dto.lat,
+        executorLng: dto.lng,
+        etaMinutes: estimateEtaMinutes(distanceKm),
+      },
+    });
+
+    // Применяем переход статуса/под-статуса через единый lifecycle
+    if (transition) {
+      if (transition.status !== order.status) {
+        await this.lifecycle.transition({
+          orderId: order.id,
+          to: transition.status,
+          role: OrderActorRole.system,
+          septicStage: transition.septicStage,
+          executorLat: dto.lat,
+          executorLng: dto.lng,
         });
+      } else if (transition.septicStage !== order.septicStage) {
+        await this.lifecycle.updateSepticStage(order.id, transition.septicStage!);
       }
     }
 
-    // DISPOSAL_COMPLETED → COMPLETED when left disposal
-    if (order.status === OrderStatus.DISPOSAL_COMPLETED && !disposalZone) {
-      newStatus = OrderStatus.COMPLETED;
-      tripUpdate.disposalLeftAt = now;
-      tripUpdate.endedAt = now;
-    }
-
-    await this.prisma.trip.update({ where: { id: trip.id }, data: tripUpdate });
-
-    const orderData: Record<string, unknown> = {
-      executorLat: dto.lat,
-      executorLng: dto.lng,
-    };
-
-    const distanceKm = haversineKm(order.clientLat, order.clientLng, dto.lat, dto.lng);
-    orderData.etaMinutes = estimateEtaMinutes(distanceKm);
-
-    if (newStatus !== order.status) {
-      orderData.status = newStatus;
-      if (newStatus === OrderStatus.COMPLETED) orderData.completedAt = now;
-      await this.notifications.notifyOrderStatusChange(order.id, newStatus);
-    }
-
-    const updated = await this.prisma.order.update({
+    const current = await this.prisma.order.findUniqueOrThrow({
       where: { id: order.id },
-      data: orderData,
+      select: { status: true },
     });
-
     await this.prisma.geoUpdate.create({
       data: {
         orderId: order.id,
         partnerId: profile.id,
         lat: dto.lat,
         lng: dto.lng,
-        status: updated.status,
+        status: current.status,
       },
     });
 
-    const payload = await this.buildTrackingPayload(updated.id);
+    const payload = await this.buildTrackingPayload(order.id);
     this.gateway.emitOrderTracking(order.id, payload);
     this.gateway.emitFleetUpdate({ type: 'gps', ...payload });
 
@@ -288,6 +293,7 @@ export class GpsTrackingService {
       orderId: order.id,
       status: order.status,
       statusLabel: MAP_STATUS_LABELS[order.status] || order.status,
+      septicStage: order.septicStage,
       illegalDisposal: order.illegalDisposal,
       client: { lat: order.clientLat, lng: order.clientLng },
       executor: {
@@ -323,15 +329,7 @@ export class GpsTrackingService {
         orders: {
           where: {
             status: {
-              in: [
-                OrderStatus.ACCEPTED,
-                OrderStatus.ON_THE_WAY,
-                OrderStatus.ARRIVED,
-                OrderStatus.STARTED,
-                OrderStatus.LOADED,
-                OrderStatus.DISPOSAL_ARRIVED,
-                OrderStatus.DISPOSAL_COMPLETED,
-              ],
+              in: [OrderStatus.ACCEPTED, OrderStatus.ON_WAY, OrderStatus.IN_PROCESS],
             },
           },
           take: 1,

@@ -11,6 +11,7 @@ import {
   getPartnerOrderAction,
   getMapStatusText,
   formatOrderSchedule,
+  isTerminalStatus,
   LAWN_WORK_TYPES,
 } from '@gp/shared/constants'
 import { api } from '@gp/shared/api'
@@ -79,7 +80,7 @@ function OrderCard({ order, user, onAccept, onAdvance, onCancel, onSelect, selec
             </button>
           )}
           <div className="flex gap-2">
-            {isMine && !['done', 'client_confirmed', 'cancelled'].includes(order.status) && (
+            {isMine && !isTerminalStatus(order.status) && order.status !== 'new' && (
               <button type="button" onClick={() => onCancel(order.id)} className="flex-1 py-3 rounded-2xl text-sm font-bold text-red-600 border border-red-200 dark:border-red-900/50">
                 Отменить
               </button>
@@ -146,6 +147,11 @@ export default function OrdersPage() {
     }
   }
 
+  const handleCancel = async (orderId) => {
+    const reason = window.prompt('Укажите причину отмены заказа:')
+    if (reason && reason.trim().length >= 3) await cancelOrder(orderId, reason.trim())
+  }
+
   return (
     <div className="gp-animate-in">
       <h1 className="text-2xl font-extrabold mb-1">Заявки</h1>
@@ -207,7 +213,7 @@ export default function OrdersPage() {
             selected={activeOrder?.id === o.id}
             onAccept={acceptOrder}
             onAdvance={handleAdvance}
-            onCancel={cancelOrder}
+            onCancel={handleCancel}
             onSelect={setActiveOrderId}
           />
         ))}

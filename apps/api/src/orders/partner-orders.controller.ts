@@ -36,8 +36,12 @@ export class PartnerOrdersController {
   }
 
   @Patch(':id/reject')
-  reject(@CurrentUser() user: { id: string }, @Param('id') id: string) {
-    return this.orders.rejectPartnerOrder(user.id, id);
+  reject(
+    @CurrentUser() user: { id: string },
+    @Param('id') id: string,
+    @Body() body: { cancelReason?: string },
+  ) {
+    return this.orders.rejectPartnerOrder(user.id, id, body?.cancelReason);
   }
 
   @Patch(':id/status')

@@ -7,6 +7,7 @@ import {
 import {
   AccountType,
   FurnitureServiceType,
+  OrderActorRole,
   OrderCategory,
   OrderStatus,
   PartnerType,
@@ -17,6 +18,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PartnersService } from '../partners/partners.service';
 import { PartnerBalanceService } from '../partner-balance/partner-balance.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { OrderLifecycleService } from './order-lifecycle.service';
+import { OrderEventLogService } from './order-event-log.service';
 import {
   calcOrderCommission,
   calcServiceTotal,
@@ -34,7 +37,6 @@ import {
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { sanitizeOrderForRole, sanitizeOrdersForRole } from '../common/order-response.util';
-import { ORDER_STATUS_UI } from '../common/order-status-ui.util';
 import { FurnitureExecutorService } from '../furniture-executor/furniture-executor.service';
 import { RbacService } from '../rbac/rbac.service';
 import { RbacRegionService } from '../rbac/rbac-region.service';
@@ -47,16 +49,6 @@ const FURNITURE_SERVICE_ID_TO_TYPE: Record<string, FurnitureServiceType> = {
   'furniture-assembly': FurnitureServiceType.furniture_assembly,
   'furniture-repair': FurnitureServiceType.furniture_repair,
 };
-import { GeoGateway } from '../geo/geo.gateway';
-
-const PARTNER_FLOW: Partial<Record<OrderStatus, OrderStatus>> = {
-  [OrderStatus.NEW]: OrderStatus.ACCEPTED,
-  [OrderStatus.ACCEPTED]: OrderStatus.ON_THE_WAY,
-  [OrderStatus.ON_THE_WAY]: OrderStatus.ARRIVED,
-  [OrderStatus.ARRIVED]: OrderStatus.STARTED,
-  [OrderStatus.STARTED]: OrderStatus.COMPLETED,
-};
-
 @Injectable()
 export class OrdersService {
   constructor(
@@ -64,8 +56,9 @@ export class OrdersService {
     private partners: PartnersService,
     private balance: PartnerBalanceService,
     private notifications: NotificationsService,
+    private lifecycle: OrderLifecycleService,
+    private events: OrderEventLogService,
     private furnitureExecutor: FurnitureExecutorService,
-    private gateway: GeoGateway,
     private rbac: RbacService,
     private rbacRegion: RbacRegionService,
     private userStatus: UserStatusService,
@@ -202,6 +195,7 @@ export class OrdersService {
         lawnAreaSqm: dto.lawnAreaSqm,
         lawnWorkType: dto.lawnWorkType,
         scheduledDate: preferredDate,
+        recreatedFromId: dto.recreatedFromId,
         items: dto.items?.length
           ? {
               create: dto.items.map((i) => ({
@@ -230,17 +224,21 @@ export class OrdersService {
       });
     }
 
-    await this.notifications.notifyOrderStatusChange(order.id, OrderStatus.NEW);
-    this.broadcastOrderStatus(order.id, OrderStatus.NEW);
-    return order;
-  }
-
-  private broadcastOrderStatus(orderId: string, status: OrderStatus) {
-    this.gateway.emitOrderStatus(orderId, {
-      status,
-      uiStatus: ORDER_STATUS_UI[status],
-      at: new Date().toISOString(),
+    await this.events.record({
+      orderId: order.id,
+      userId: user.id,
+      role: OrderActorRole.client,
+      action: 'ORDER_CREATED',
+      toStatus: OrderStatus.NEW,
+      metadata: {
+        category: dto.category,
+        serviceId: dto.serviceId ?? null,
+        ...(dto.recreatedFromId ? { recreatedFromId: dto.recreatedFromId } : {}),
+      },
     });
+    await this.notifications.notifyOrderStatusChange(order.id, OrderStatus.NEW);
+    this.lifecycle.broadcast(order.id, OrderStatus.NEW);
+    return order;
   }
 
   private orderInclude() {
@@ -409,108 +407,143 @@ export class OrdersService {
   }
 
   async updateStatus(userId: string, role: Role, orderId: string, dto: UpdateOrderStatusDto) {
+    if (role !== Role.PARTNER) throw new ForbiddenException();
+
     const order = await this.findOne(orderId);
-
-    if (role === Role.PARTNER) {
-      const profile = await this.partners.ensurePartnerProfile(userId);
-      if (!isServicePartnerProfile(profile)) {
-        throw new ForbiddenException('Заказы услуг недоступны для партнёров-магазинов');
-      }
-      if (!isOrderAllowedForPartnerType(order, profile.partnerType)) {
-        throw new ForbiddenException('Этот тип заказа недоступен для вашего профиля партнёра');
-      }
-
-      if (dto.status === OrderStatus.ACCEPTED) {
-        if (order.status !== OrderStatus.NEW) throw new BadRequestException('Заказ уже принят');
-        if (!order.assignedPartnerId) {
-          throw new BadRequestException('Заказ не назначен администратором');
-        }
-        if (order.assignedPartnerId !== profile.id) {
-          throw new BadRequestException('Заказ назначен другому партнёру');
-        }
-
-        const all = await this.prisma.order.findMany({ select: {
-          assignedPartnerId: true, preferredDate: true, preferredTime: true, flexibleTime: true, status: true,
-        } });
-        const busySlots = getPartnerBusySlots(profile.id, all);
-        if (isOrderSlotBlockedForPartner(order, busySlots)) {
-          throw new BadRequestException('У вас уже есть заказ на это время');
-        }
-
-        const updated = await this.prisma.order.update({
-          where: { id: orderId },
-          data: {
-            status: OrderStatus.ACCEPTED,
-            assignedPartnerId: profile.id,
-            acceptedAt: new Date(),
-            executorLat: dto.executorLat ?? profile.lat ?? undefined,
-            executorLng: dto.executorLng ?? profile.lng ?? undefined,
-          },
-          include: this.orderInclude(),
-        });
-        if (order.category === OrderCategory.SEPTIC) {
-          await this.prisma.trip.upsert({
-            where: { orderId },
-            create: { orderId, partnerId: profile.id },
-            update: {},
-          });
-        }
-        await this.notifications.notifyOrderStatusChange(orderId, OrderStatus.ACCEPTED);
-        this.broadcastOrderStatus(orderId, OrderStatus.ACCEPTED);
-        return updated;
-      }
-
-      if (order.assignedPartnerId !== profile.id) throw new ForbiddenException('Заказ не ваш');
-
-      if (dto.status === OrderStatus.CANCELLED) {
-        const updated = await this.prisma.order.update({
-          where: { id: orderId },
-          data: { status: OrderStatus.CANCELLED },
-          include: this.orderInclude(),
-        });
-        await this.notifications.notifyOrderStatusChange(orderId, OrderStatus.CANCELLED);
-        this.broadcastOrderStatus(orderId, OrderStatus.CANCELLED);
-        return updated;
-      }
-
-      const expected = PARTNER_FLOW[order.status];
-      if (expected !== dto.status) {
-        throw new BadRequestException(`Ожидался статус ${expected}`);
-      }
-
-      const data: Record<string, unknown> = {
-        status: dto.status,
-        executorLat: dto.executorLat,
-        executorLng: dto.executorLng,
-      };
-      if (dto.status === OrderStatus.COMPLETED) {
-        data.completedAt = new Date();
-      }
-
-      const updated = await this.prisma.order.update({
-        where: { id: orderId },
-        data,
-        include: this.orderInclude(),
-      });
-
-      await this.notifications.notifyOrderStatusChange(orderId, dto.status);
-      this.broadcastOrderStatus(orderId, dto.status);
-      return updated;
+    const profile = await this.partners.ensurePartnerProfile(userId);
+    if (!isServicePartnerProfile(profile)) {
+      throw new ForbiddenException('Заказы услуг недоступны для партнёров-магазинов');
+    }
+    if (!isOrderAllowedForPartnerType(order, profile.partnerType)) {
+      throw new ForbiddenException('Этот тип заказа недоступен для вашего профиля партнёра');
     }
 
-    throw new ForbiddenException();
+    if (dto.status === OrderStatus.ACCEPTED) {
+      return this.acceptByPartner(profile, order, dto);
+    }
+
+    if (order.assignedPartnerId !== profile.id) throw new ForbiddenException('Заказ не ваш');
+
+    return this.lifecycle.transition({
+      orderId,
+      to: dto.status,
+      role: OrderActorRole.spec,
+      userId,
+      reason: dto.cancelReason,
+      executorLat: dto.executorLat,
+      executorLng: dto.executorLng,
+    });
+  }
+
+  private async acceptByPartner(
+    profile: { id: string; lat: number | null; lng: number | null },
+    order: Awaited<ReturnType<OrdersService['findOne']>>,
+    dto: UpdateOrderStatusDto,
+  ) {
+    if (order.status !== OrderStatus.NEW) throw new BadRequestException('Заказ уже принят');
+    if (!order.assignedPartnerId) {
+      throw new BadRequestException('Заказ не назначен администратором');
+    }
+    if (order.assignedPartnerId !== profile.id) {
+      throw new BadRequestException('Заказ назначен другому партнёру');
+    }
+
+    const all = await this.prisma.order.findMany({
+      select: {
+        assignedPartnerId: true,
+        preferredDate: true,
+        preferredTime: true,
+        flexibleTime: true,
+        status: true,
+      },
+    });
+    const busySlots = getPartnerBusySlots(profile.id, all);
+    if (isOrderSlotBlockedForPartner(order, busySlots)) {
+      throw new BadRequestException('У вас уже есть заказ на это время');
+    }
+
+    const updated = await this.lifecycle.transition({
+      orderId: order.id,
+      to: OrderStatus.ACCEPTED,
+      role: OrderActorRole.spec,
+      userId: undefined,
+      executorLat: dto.executorLat ?? profile.lat ?? undefined,
+      executorLng: dto.executorLng ?? profile.lng ?? undefined,
+    });
+
+    if (order.category === OrderCategory.SEPTIC) {
+      await this.prisma.trip.upsert({
+        where: { orderId: order.id },
+        create: { orderId: order.id, partnerId: profile.id },
+        update: {},
+      });
+    }
+    return updated;
   }
 
   async acceptPartnerOrder(userId: string, orderId: string) {
     return this.updateStatus(userId, Role.PARTNER, orderId, { status: OrderStatus.ACCEPTED });
   }
 
-  async rejectPartnerOrder(userId: string, orderId: string) {
-    return this.updateStatus(userId, Role.PARTNER, orderId, { status: OrderStatus.CANCELLED });
+  /** Партнёр отклоняет/отменяет заказ — обязателен cancelReason. */
+  async rejectPartnerOrder(userId: string, orderId: string, reason?: string) {
+    return this.updateStatus(userId, Role.PARTNER, orderId, {
+      status: OrderStatus.CANCELED_BY_SPEC,
+      cancelReason: reason || 'Отменено исполнителем',
+    });
   }
 
   async updatePartnerOrderStatus(userId: string, orderId: string, dto: UpdateOrderStatusDto) {
     return this.updateStatus(userId, Role.PARTNER, orderId, dto);
+  }
+
+  /** Клиент отменяет заказ — обязательна причина. */
+  async cancelByClient(userId: string, orderId: string, reason: string) {
+    const client = await this.prisma.clientProfile.findUnique({ where: { userId } });
+    if (!client) throw new ForbiddenException();
+    const order = await this.findOne(orderId);
+    if (order.clientId !== client.id) throw new ForbiddenException('Не ваш заказ');
+
+    const updated = await this.lifecycle.transition({
+      orderId,
+      to: OrderStatus.CANCELED_BY_CLIENT,
+      role: OrderActorRole.client,
+      userId,
+      reason,
+    });
+    return sanitizeOrderForRole(updated, Role.CLIENT);
+  }
+
+  /**
+   * Пересоздание заказа: копирует данные исходного, создаёт НОВЫЙ заказ (status = new),
+   * старый остаётся в истории.
+   */
+  async recreateOrder(userId: string, orderId: string) {
+    const client = await this.prisma.clientProfile.findUnique({ where: { userId } });
+    if (!client) throw new ForbiddenException('Только клиент может пересоздавать заказы');
+
+    const source = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!source) throw new NotFoundException('Заказ не найден');
+    if (source.clientId !== client.id) throw new ForbiddenException('Не ваш заказ');
+
+    const dto: CreateOrderDto = {
+      category: source.category,
+      serviceName: source.serviceName ?? undefined,
+      serviceId: source.serviceId ?? undefined,
+      address: source.address ?? '',
+      clientLat: source.clientLat,
+      clientLng: source.clientLng,
+      total: Number(source.total),
+      paymentMethod: source.paymentMethod,
+      comment: source.comment ?? undefined,
+      septicVolume: source.septicVolume ?? undefined,
+      lawnAreaSqm: source.lawnAreaSqm ?? undefined,
+      lawnWorkType: source.lawnWorkType ?? undefined,
+      flexibleTime: true,
+      recreatedFromId: source.id,
+    };
+
+    return this.createForClient(userId, dto);
   }
 
   async confirmByClient(userId: string, orderId: string) {
@@ -522,20 +555,32 @@ export class OrdersService {
     if (order.status !== OrderStatus.COMPLETED) {
       throw new BadRequestException('Подтвердить можно только после завершения работы партнёром');
     }
+    if (order.clientConfirmedAt) {
+      throw new BadRequestException('Заказ уже подтверждён');
+    }
     if (!order.assignedPartnerId) throw new BadRequestException('Партнёр не назначен');
 
     const updated = await this.prisma.order.update({
       where: { id: orderId },
-      data: {
-        status: OrderStatus.CLIENT_CONFIRMED,
-        clientConfirmedAt: new Date(),
-      },
+      data: { clientConfirmedAt: new Date() },
       include: this.orderInclude(),
     });
 
     await this.chargeCommissionIfNeeded(order, order.assignedPartnerId);
-    await this.notifications.notifyOrderStatusChange(orderId, OrderStatus.CLIENT_CONFIRMED);
-    this.broadcastOrderStatus(orderId, OrderStatus.CLIENT_CONFIRMED);
+    await this.events.record({
+      orderId,
+      userId,
+      role: OrderActorRole.client,
+      action: 'ORDER_CLIENT_CONFIRMED',
+      fromStatus: OrderStatus.COMPLETED,
+      toStatus: OrderStatus.COMPLETED,
+    });
+    this.lifecycle.broadcast(orderId, OrderStatus.COMPLETED, updated.septicStage);
     return sanitizeOrderForRole(updated, Role.CLIENT);
+  }
+
+  /** Журнал событий заказа (аудит). */
+  async getOrderEvents(orderId: string) {
+    return this.events.listForOrder(orderId);
   }
 }

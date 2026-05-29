@@ -138,4 +138,9 @@ export class CreateOrderDto {
   @IsOptional()
   @IsString()
   regionId?: string;
+
+  @ApiProperty({ required: false, description: 'ID исходного заказа при пересоздании' })
+  @IsOptional()
+  @IsString()
+  recreatedFromId?: string;
 }

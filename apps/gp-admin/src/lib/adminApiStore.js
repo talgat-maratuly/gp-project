@@ -13,15 +13,13 @@ const DEFAULT_FRANCHISE = {
 const ADMIN_ORDER_STATUS = {
   NEW: 'new',
   ACCEPTED: 'assigned',
-  ON_THE_WAY: 'in_progress',
-  ARRIVED: 'in_progress',
-  STARTED: 'in_work',
-  LOADED: 'in_work',
-  DISPOSAL_ARRIVED: 'in_work',
-  DISPOSAL_COMPLETED: 'in_work',
+  ON_WAY: 'in_progress',
+  IN_PROCESS: 'in_work',
   COMPLETED: 'completed',
-  CLIENT_CONFIRMED: 'completed',
-  CANCELLED: 'cancelled',
+  EXPIRED: 'expired',
+  CANCELED_BY_CLIENT: 'cancelled',
+  CANCELED_BY_SPEC: 'cancelled',
+  NO_SHOW: 'no_show',
 }
 
 function mapClient(u) {

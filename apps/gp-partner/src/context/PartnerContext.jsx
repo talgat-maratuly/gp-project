@@ -438,7 +438,7 @@ export function PartnerProvider({ children }) {
 
   const advanceOrder = useCallback(async (orderId, uiStatus, location) => {
     if (isDemoMode()) {
-      const map = { on_way: 'en_route', started: 'in_work', done: 'completed', completed: 'completed' }
+      const map = { on_way: 'en_route', in_process: 'in_work', started: 'in_work', done: 'completed', completed: 'completed' }
       await demoApi.demoUpdateStatus(orderId, map[uiStatus] || uiStatus)
       await refreshOrders()
       notify('Статус обновлён')
@@ -458,8 +458,17 @@ export function PartnerProvider({ children }) {
     notify('Статус обновлён')
   }, [refreshAll, refreshOrders, notify, activeOrderId])
 
-  const cancelOrder = useCallback(async (orderId) => {
-    await api.rejectPartnerOrder(orderId)
+  const cancelOrder = useCallback(async (orderId, cancelReason) => {
+    if (isDemoMode()) {
+      await demoApi.demoUpdateStatus(orderId, 'cancelled')
+      if (activeOrderId === orderId) setActiveOrderId(null)
+      await refreshAll()
+      notify('Заказ отменён', 'info')
+      return
+    }
+    const reason = (cancelReason || '').trim()
+    if (reason.length < 3) throw new Error('Укажите причину отмены')
+    await api.rejectPartnerOrder(orderId, reason)
     if (activeOrderId === orderId) setActiveOrderId(null)
     await refreshAll()
     notify('Заявка отменена')

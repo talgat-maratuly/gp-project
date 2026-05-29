@@ -525,7 +525,7 @@ export function ServiceProvider({ children }) {
     isDemoMode: isDemoMode(),
     isTestMode: isTestModeActive(),
     demoFranchises: isDemoMode() ? demoApi.demoFranchises() : [],
-    cancelOrder: async (orderId) => {
+    cancelOrder: async (orderId, cancelReason) => {
       requireAuth()
       if (isDemoMode()) {
         const o = orders.find((x) => x.id === orderId)
@@ -535,7 +535,19 @@ export function ServiceProvider({ children }) {
         notify('Заявка отменена', 'info')
         return
       }
-      throw new Error('API only')
+      const reason = (cancelReason || '').trim()
+      if (reason.length < 3) throw new Error('Укажите причину отмены')
+      const order = await api.cancelOrder(orderId, reason)
+      await refreshOrders()
+      notify('Заявка отменена', 'info')
+      return order
+    },
+    recreateOrder: async (orderId) => {
+      requireAuth()
+      const order = await api.recreateOrder(orderId)
+      await refreshOrders()
+      notify('Создана новая заявка на основе предыдущей')
+      return order
     },
     updateClientOrder: async (orderId, patch) => {
       requireAuth()

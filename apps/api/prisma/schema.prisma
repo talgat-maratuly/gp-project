@@ -150,15 +150,30 @@ enum ServiceProjectStatus {
 enum OrderStatus {
   NEW
   ACCEPTED
-  ON_THE_WAY
+  ON_WAY
+  IN_PROCESS
+  COMPLETED
+  EXPIRED
+  CANCELED_BY_CLIENT
+  CANCELED_BY_SPEC
+  NO_SHOW
+}
+
+/// Операционные под-статусы септик-рейса (только при ON_WAY / IN_PROCESS)
+enum SepticStage {
   ARRIVED
-  STARTED
+  PUMPING
   LOADED
   DISPOSAL_ARRIVED
   DISPOSAL_COMPLETED
-  COMPLETED
-  CLIENT_CONFIRMED
-  CANCELLED
+}
+
+/// Кто инициировал переход статуса (для аудита и нотификаций)
+enum OrderActorRole {
+  client
+  spec
+  system
+  admin
 }
 
 enum GeofenceZoneType {
@@ -581,6 +596,7 @@ model Order {
   partner           PartnerProfile? @relation("AssignedPartner", fields: [assignedPartnerId], references: [id])
   category          OrderCategory
   status            OrderStatus   @default(NEW)
+  septicStage       SepticStage?
   serviceName       String?
   serviceId         String?
   address           String?
@@ -606,6 +622,16 @@ model Order {
   acceptedAt        DateTime?
   completedAt       DateTime?
   clientConfirmedAt DateTime?
+  expiredAt         DateTime?
+  noShowAt          DateTime?
+  canceledAt        DateTime?
+  cancelReason      String?
+  canceledByRole    OrderActorRole?
+  newWarningSentAt    DateTime?
+  acceptedReminderSentAt DateTime?
+  recreatedFromId   String?
+  recreatedFrom     Order?        @relation("OrderRecreate", fields: [recreatedFromId], references: [id], onDelete: SetNull)
+  recreatedInto     Order[]       @relation("OrderRecreate")
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
@@ -617,11 +643,31 @@ model Order {
   gpsPoints     GpsPoint[]
   notifications Notification[]
   disposalEvents DisposalEvent[]
+  eventLogs     OrderEventLog[]
 
   @@index([clientId])
   @@index([assignedPartnerId])
   @@index([status])
   @@index([category])
+  @@index([createdAt])
+  @@index([recreatedFromId])
+}
+
+/// Неизменяемый журнал событий заказа (аудит, споры, аналитика)
+model OrderEventLog {
+  id         String          @id @default(uuid())
+  orderId    String
+  order      Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  userId     String?
+  role       OrderActorRole
+  action     String
+  fromStatus OrderStatus?
+  toStatus   OrderStatus?
+  metadata   Json?
+  createdAt  DateTime        @default(now())
+
+  @@index([orderId])
+  @@index([action])
   @@index([createdAt])
 }
 

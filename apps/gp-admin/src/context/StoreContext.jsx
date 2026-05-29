@@ -205,7 +205,11 @@ export function StoreProvider({ children }) {
   const updateOrder = useCallback(async (orderId, patch) => {
     if (apiMode && patch.status) {
       const prismaStatus = ADMIN_ORDER_UI_TO_PRISMA[patch.status] || patch.status
-      await api.adminUpdateOrderStatus(orderId, { status: prismaStatus })
+      const body = { status: prismaStatus }
+      if (['CANCELED_BY_CLIENT', 'CANCELED_BY_SPEC'].includes(prismaStatus)) {
+        body.cancelReason = patch.cancelReason || 'Отменено администратором'
+      }
+      await api.adminUpdateOrderStatus(orderId, body)
       await refreshFromApi()
       return
     }

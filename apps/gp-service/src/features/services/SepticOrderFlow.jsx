@@ -26,7 +26,7 @@ const LIVE_STEPS = [
 ]
 
 function statusToIndex(status) {
-  const map = { new: 0, pending: 0, assigned: 1, accepted: 1, on_way: 2, in_progress: 3, done: 4, client_confirmed: 4 }
+  const map = { new: 0, pending: 0, assigned: 1, accepted: 1, on_way: 2, in_process: 3, completed: 4 }
   return map[status] ?? 0
 }
 
@@ -169,7 +169,7 @@ export default function SepticOrderFlow() {
 
   if (phase === 'tracking' && placedOrder) {
     const liveIdx = statusToIndex(placedOrder.status)
-    const isDone = ['done', 'client_confirmed'].includes(placedOrder.status)
+    const isDone = placedOrder.status === 'completed'
     return (
       <div className="px-4 py-4 gp-animate-in">
         <PageHeader title="Заказ септика" subtitle={`№ ${placedOrder.id?.slice(0, 8) || '—'}`} onBack={() => navigate('/')} />

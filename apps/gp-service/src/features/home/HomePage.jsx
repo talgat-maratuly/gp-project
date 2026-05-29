@@ -41,9 +41,8 @@ function statusToLiveIndex(status) {
     assigned: 1,
     accepted: 1,
     on_way: 2,
-    in_progress: 3,
-    done: 4,
-    client_confirmed: 4,
+    in_process: 3,
+    completed: 4,
   }
   return map[status] ?? 0
 }
@@ -57,7 +56,7 @@ export default function HomePage() {
 
   const quickServices = QUICK.map((id) => SERVICE_CATALOG.find((s) => s.id === id)).filter(Boolean)
   const activeOrder = useMemo(
-    () => orders.find((o) => !['done', 'client_confirmed', 'cancelled'].includes(o.status)),
+    () => orders.find((o) => !['completed', 'expired', 'canceled_by_client', 'canceled_by_spec', 'no_show'].includes(o.status)),
     [orders],
   )
   const recentOrders = orders.slice(0, 3)

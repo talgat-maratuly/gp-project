@@ -4,38 +4,35 @@ export const SEPTIC_GPS_STATUSES = [
   'accepted',
   'on_way',
   'on_site',
-  'started',
+  'pumping',
   'loaded',
   'disposal_arrived',
   'disposal_completed',
-  'done',
+  'completed',
 ]
 
 export const ORDER_STATUS_TO_UI_GPS = {
-  ...{
-    NEW: 'new',
-    ACCEPTED: 'accepted',
-    ON_THE_WAY: 'on_way',
-    ARRIVED: 'on_site',
-    STARTED: 'started',
-    LOADED: 'loaded',
-    DISPOSAL_ARRIVED: 'disposal_arrived',
-    DISPOSAL_COMPLETED: 'disposal_completed',
-    COMPLETED: 'done',
-    CLIENT_CONFIRMED: 'client_confirmed',
-    CANCELLED: 'cancelled',
-  },
+  NEW: 'new',
+  ACCEPTED: 'accepted',
+  ON_WAY: 'on_way',
+  IN_PROCESS: 'in_process',
+  COMPLETED: 'completed',
+  EXPIRED: 'expired',
+  CANCELED_BY_CLIENT: 'canceled_by_client',
+  CANCELED_BY_SPEC: 'canceled_by_spec',
+  NO_SHOW: 'no_show',
 }
 
+/** Под-статус септик-рейса (приходит в realtime как septicStageUi) → текст клиенту */
 export const CLIENT_GPS_MESSAGES = {
   accepted: 'Исполнитель принял заказ',
   on_way: 'Водитель выехал к вам',
   on_site: 'Водитель у вашего адреса',
-  started: 'Началась откачка',
+  pumping: 'Началась откачка',
   loaded: 'Машина загружена, едет на слив',
   disposal_arrived: 'На официальном сливе',
   disposal_completed: 'Слив завершён официально',
-  done: 'Рейс завершён — подтвердите выполнение',
+  completed: 'Рейс завершён — подтвердите выполнение',
   illegal: '⚠ Подозрительная выгрузка вне слива',
 }
 

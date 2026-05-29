@@ -2,18 +2,35 @@ import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { CheckCircle, Package, RefreshCw, Wrench, Pencil, X } from 'lucide-react'
 import { formatDate, formatPrice } from '@gp/shared/utils'
-import { useLanguage, useOrderStatusLabel } from '../../i18n'
+import { useLanguage } from '../../i18n'
 import { useService } from '../../context/ServiceContext'
 import { AsyncState } from '@gp/shared'
-import { KaspiButton, KaspiCard, SkeletonBlock } from '@gp/shared/ui/KaspiUI'
+import { KaspiButton, KaspiCard } from '@gp/shared/ui/KaspiUI'
+import {
+  getOrderStatusLabel,
+  getClientStatusMessage,
+  getClientStatusCta,
+  isClientCancelable,
+} from '@gp/shared/constants'
 
 export default function OrdersPage() {
   const { t } = useLanguage()
-  const statusLabel = useOrderStatusLabel()
   const {
     allOrders, refreshOrders, isLoggedIn, ordersLoading, ordersError, notify,
-    isDemoMode, cancelOrder, updateClientOrder,
+    isDemoMode, cancelOrder, recreateOrder, confirmOrder, updateClientOrder,
   } = useService()
+
+  const handleCancel = async (id) => {
+    const reason = window.prompt('Укажите причину отмены заказа:')
+    if (!reason || reason.trim().length < 3) return
+    try { await cancelOrder(id, reason.trim()) } catch (e) { notify(e.message, 'error') }
+  }
+  const handleRecreate = async (id) => {
+    try { await recreateOrder(id) } catch (e) { notify(e.message, 'error') }
+  }
+  const handleConfirm = async (id) => {
+    try { await confirmOrder(id) } catch (e) { notify(e.message, 'error') }
+  }
   const [params, setParams] = useSearchParams()
   const [success, setSuccess] = useState(null)
   const [expanded, setExpanded] = useState(null)
@@ -108,13 +125,7 @@ export default function OrdersPage() {
                       <span className="text-xs px-2.5 py-1 rounded-full bg-[var(--gp-surface-2)] font-bold">
                         {o.kind === 'market'
                           ? t(`market_status_${st}`)
-                          : statusLabel(
-                            st === 'done' ? 'completed'
-                            : st === 'accepted' ? 'assigned'
-                            : st === 'on_way' ? 'in_progress'
-                            : st === 'in_work' ? 'in_work'
-                            : st,
-                          )}
+                          : getOrderStatusLabel(st)}
                       </span>
                     </div>
                     <p className="font-extrabold">{o.serviceName || o.id}</p>
@@ -122,21 +133,40 @@ export default function OrdersPage() {
                     <p className="text-xs text-[var(--gp-text-muted)] mt-1">{formatDate(o.createdAt)}</p>
                   </button>
                   {open && (
-                    <div className="px-4 pb-4 border-t border-[var(--gp-border)] pt-4 space-y-2">
+                    <div className="px-4 pb-4 border-t border-[var(--gp-border)] pt-4 space-y-3">
                       <p className="text-sm">{o.address}</p>
                       {o.partnerName && <p className="text-xs text-[var(--gp-text-muted)]">{t('partner')}: {o.partnerName}</p>}
+                      <p className="text-sm text-[var(--gp-text-muted)]">{getClientStatusMessage(st)}</p>
+                      {o.cancelReason && (
+                        <p className="text-xs text-red-600">Причина: {o.cancelReason}</p>
+                      )}
+                      {o.kind !== 'market' && o.kind !== 'shop' && (() => {
+                        const cta = getClientStatusCta(st, { clientConfirmed: o.clientConfirmed })
+                        return (
+                          <div className="flex flex-col gap-2">
+                            {st === 'completed' && !o.clientConfirmed && (
+                              <KaspiButton onClick={() => handleConfirm(o.id)}>
+                                {t('confirm') || 'Подтвердить выполнение'}
+                              </KaspiButton>
+                            )}
+                            {cta?.action === 'recreate' && (
+                              <KaspiButton onClick={() => handleRecreate(o.id)}>{cta.label}</KaspiButton>
+                            )}
+                            {isClientCancelable(st) && (
+                              <button
+                                type="button"
+                                className="flex items-center justify-center gap-2 text-sm text-red-600 font-semibold py-2 rounded-xl border border-red-200 dark:border-red-900/50"
+                                onClick={() => handleCancel(o.id)}
+                              >
+                                <X className="w-4 h-4" /> {t('cancelOrder') || 'Отменить заказ'}
+                              </button>
+                            )}
+                          </div>
+                        )
+                      })()}
                       {isDemoMode && o.canEdit && (
                         <button type="button" className="flex items-center gap-2 text-sm text-sky-600 font-semibold" onClick={() => openEdit(o)}>
                           <Pencil className="w-4 h-4" /> {t('editOrder')}
-                        </button>
-                      )}
-                      {isDemoMode && o.canCancel && st === 'new' && (
-                        <button
-                          type="button"
-                          className="flex items-center gap-2 text-sm text-red-600 font-semibold"
-                          onClick={() => cancelOrder(o.id)}
-                        >
-                          <X className="w-4 h-4" /> {t('cancelOrder')}
                         </button>
                       )}
                     </div>

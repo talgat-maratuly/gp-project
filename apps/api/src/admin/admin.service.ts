@@ -11,9 +11,11 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PartnersService } from '../partners/partners.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { RegionAccessService } from '../common/region-access.service';
+import { OrderLifecycleService } from '../orders/order-lifecycle.service';
 import { UpdateOfferingStatusDto } from './dto/update-offering-status.dto';
 import { AdminAssignOrderDto } from './dto/admin-assign-order.dto';
 import { AdminUpdateOrderStatusDto } from './dto/admin-update-order-status.dto';
+import { OrderActorRole } from '@prisma/client';
 
 @Injectable()
 export class AdminService {
@@ -22,6 +24,7 @@ export class AdminService {
     private partners: PartnersService,
     private notifications: NotificationsService,
     private regionAccess: RegionAccessService,
+    private lifecycle: OrderLifecycleService,
   ) {}
 
   /** Сервисный партнёр (маман), не чистый магазин */
@@ -152,7 +155,6 @@ export class AdminService {
     const order = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!order) throw new NotFoundException('Заказ не найден');
 
-    const data: { status: OrderStatus; assignedPartnerId?: string } = { status: dto.status };
     const assignId = dto.assignedPartnerId ?? dto.partnerId;
     if (assignId) {
       const partner = await this.prisma.partnerProfile.findUnique({ where: { id: assignId } });
@@ -160,19 +162,30 @@ export class AdminService {
       if (partner.status !== PartnerStatus.APPROVED) {
         throw new BadRequestException('Партнёр должен быть одобрен');
       }
-      data.assignedPartnerId = assignId;
+      await this.prisma.order.update({
+        where: { id: orderId },
+        data: { assignedPartnerId: assignId },
+      });
     }
 
-    const updated = await this.prisma.order.update({
-      where: { id: orderId },
-      data,
-      include: {
-        client: { include: { user: { select: { name: true, phone: true } } } },
-        partner: { include: { user: { select: { name: true, phone: true } } } },
-      },
+    // Если статус не меняется — это чистое назначение партнёра
+    if (dto.status === order.status) {
+      return this.prisma.order.findUniqueOrThrow({
+        where: { id: orderId },
+        include: {
+          client: { include: { user: { select: { name: true, phone: true } } } },
+          partner: { include: { user: { select: { name: true, phone: true } } } },
+        },
+      });
+    }
+
+    // Все переходы статуса — только через машину состояний (с аудитом и нотификациями)
+    return this.lifecycle.transition({
+      orderId,
+      to: dto.status,
+      role: OrderActorRole.admin,
+      reason: dto.cancelReason,
     });
-    await this.notifications.notifyOrderStatusChange(orderId, dto.status);
-    return updated;
   }
 
   listMarketProducts(opts?: { regionId?: string; storeId?: string; q?: string; isActive?: boolean }) {

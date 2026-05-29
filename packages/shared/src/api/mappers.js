@@ -3,29 +3,34 @@
 export const ORDER_STATUS_TO_UI = {
   NEW: 'new',
   ACCEPTED: 'accepted',
-  ON_THE_WAY: 'on_way',
-  ARRIVED: 'on_site',
-  STARTED: 'started',
-  LOADED: 'loaded',
-  DISPOSAL_ARRIVED: 'disposal_arrived',
-  DISPOSAL_COMPLETED: 'disposal_completed',
-  COMPLETED: 'done',
-  CLIENT_CONFIRMED: 'client_confirmed',
-  CANCELLED: 'cancelled',
+  ON_WAY: 'on_way',
+  IN_PROCESS: 'in_process',
+  COMPLETED: 'completed',
+  EXPIRED: 'expired',
+  CANCELED_BY_CLIENT: 'canceled_by_client',
+  CANCELED_BY_SPEC: 'canceled_by_spec',
+  NO_SHOW: 'no_show',
 }
 
 export const ORDER_STATUS_TO_API = {
   new: 'NEW',
   accepted: 'ACCEPTED',
-  on_way: 'ON_THE_WAY',
-  on_site: 'ARRIVED',
-  started: 'STARTED',
-  loaded: 'LOADED',
-  disposal_arrived: 'DISPOSAL_ARRIVED',
-  disposal_completed: 'DISPOSAL_COMPLETED',
-  done: 'COMPLETED',
-  client_confirmed: 'CLIENT_CONFIRMED',
-  cancelled: 'CANCELLED',
+  on_way: 'ON_WAY',
+  in_process: 'IN_PROCESS',
+  completed: 'COMPLETED',
+  expired: 'EXPIRED',
+  canceled_by_client: 'CANCELED_BY_CLIENT',
+  canceled_by_spec: 'CANCELED_BY_SPEC',
+  no_show: 'NO_SHOW',
+}
+
+/** Под-статус септик-рейса → UI id */
+export const SEPTIC_STAGE_TO_UI = {
+  ARRIVED: 'on_site',
+  PUMPING: 'pumping',
+  LOADED: 'loaded',
+  DISPOSAL_ARRIVED: 'disposal_arrived',
+  DISPOSAL_COMPLETED: 'disposal_completed',
 }
 
 export const CATEGORY_TO_UI = {
@@ -108,6 +113,9 @@ export function mapOrder(o, { forClient = false } = {}) {
     assignedPartnerId,
     partnerId: assignedPartnerId,
     status: ORDER_STATUS_TO_UI[o.status] || o.status?.toLowerCase?.(),
+    septicStage: o.septicStage ? (SEPTIC_STAGE_TO_UI[o.septicStage] || o.septicStage) : null,
+    cancelReason: o.cancelReason || null,
+    clientConfirmed: !!o.clientConfirmedAt,
     category: CATEGORY_TO_UI[o.category] || o.category?.toLowerCase?.(),
     total: Number(o.total),
     gpCommission: o.gpCommission != null ? Number(o.gpCommission) : null,
