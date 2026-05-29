@@ -20,6 +20,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PartnerModerationService } from '../partners/partner-moderation.service';
 import { PartnerApplyDto } from '../partners/dto/partner-apply.dto';
 import { RbacService } from '../rbac/rbac.service';
+import { AccountStatusService } from '../user-status/account-status.service';
 import { SpecialistModeratorAccessService } from './specialist-moderator-access.service';
 import { SpecialistRequestNotificationsService } from './specialist-request-notifications.service';
 import {
@@ -53,6 +54,7 @@ export class SpecialistRequestsService {
     private moderatorAccess: SpecialistModeratorAccessService,
     private notifications: SpecialistRequestNotificationsService,
     private rbac: RbacService,
+    private accountStatus: AccountStatusService,
   ) {}
 
   private mapToApi(request: Prisma.SpecialistRequestGetPayload<{ include: typeof specialistInclude }>) {
@@ -341,6 +343,10 @@ export class SpecialistRequestsService {
     });
 
     await this.rbac.onSpecialistApproved(request.userId);
+    await this.accountStatus.systemEnsureActive(
+      request.userId,
+      'Specialist application approved',
+    );
     await this.notifications.notifyApproved(request.userId);
 
     return this.getForModerator(actor, requestId);

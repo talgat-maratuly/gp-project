@@ -15,6 +15,7 @@
     "./storeUi": "./src/storeUi.js",
     "./portal-roles": "./src/portal-roles.js",
     "./user-statuses": "./src/user-statuses.js",
-    "./specialist-moderation": "./src/specialist-moderation.js"
+    "./specialist-moderation": "./src/specialist-moderation.js",
+    "./account-status": "./src/account-status.js"
   }
 }

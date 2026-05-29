@@ -5,24 +5,25 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { PortalRolesGuard } from '../rbac/guards/portal-roles.guard';
 import { PortalRoles } from '../rbac/decorators/portal-roles.decorator';
-import { AccountActiveGuard } from './guards/account-active.guard';
 import { UserStatusService } from './user-status.service';
-import { UpdateAccountStatusDto } from './dto/update-account-status.dto';
+import { ACCOUNT_STATUS_UI } from './account-status.transitions';
+import { AccountStatusAuditService } from './account-status-audit.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 @ApiTags('user-status')
 @ApiBearerAuth()
 @Controller('user-status')
-@UseGuards(JwtAuthGuard, AccountActiveGuard)
 export class UserStatusController {
   constructor(
     private userStatus: UserStatusService,
     private prisma: PrismaService,
+    private audit: AccountStatusAuditService,
   ) {}
 
+  @UseGuards(JwtAuthGuard)
   @Get('me')
-  me(@CurrentUser() user: { id: string; accountStatus: import('@prisma/client').AccountStatus }) {
-    return this.prisma.user.findUnique({
+  async me(@CurrentUser() user: { id: string }) {
+    const row = await this.prisma.user.findUnique({
       where: { id: user.id },
       select: {
         id: true,
@@ -39,16 +40,19 @@ export class UserStatusController {
         },
       },
     });
+    return {
+      ...row,
+      uiMessage: row ? ACCOUNT_STATUS_UI[row.accountStatus] : null,
+      canPerformCoreActions: row?.accountStatus === 'ACTIVE',
+      statuses: row
+        ? this.userStatus.snapshot(row, row.partnerProfile ?? null)
+        : null,
+    };
   }
 
-  @UseGuards(PortalRolesGuard)
-  @PortalRoles(PortalRole.ADMIN, PortalRole.GLOBAL_OPERATOR, PortalRole.GP_OPERATOR)
-  @Patch('users/:userId/account')
-  updateAccount(
-    @CurrentUser() actor: { id: string },
-    @Param('userId') userId: string,
-    @Body() dto: UpdateAccountStatusDto,
-  ) {
-    return this.userStatus.setAccountStatus(actor.id, userId, dto.accountStatus, dto.reason);
+  @UseGuards(JwtAuthGuard)
+  @Get('me/account-logs')
+  myLogs(@CurrentUser() user: { id: string }) {
+    return this.audit.listForUser(user.id);
   }
 }

@@ -9,13 +9,14 @@ import {
   AccountStatus,
   PartnerStatus,
   RequestStatus,
-  Role,
   User,
   WorkStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { requestStatusFromPartnerStatus } from './request-status.mapper';
 import { legacyOnlineToWorkStatus, workStatusToLegacyOnline } from './work-status.util';
+import { ACCOUNT_STATUS_UI } from './account-status.transitions';
+import { AccountStatusService } from './account-status.service';
 
 export type UserStatusSnapshot = {
   accountStatus: AccountStatus;
@@ -33,7 +34,10 @@ export type PartnerProfileStatusSlice = {
 
 @Injectable()
 export class UserStatusService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private accountStatus: AccountStatusService,
+  ) {}
 
   snapshot(
     user: Pick<User, 'accountStatus'>,
@@ -47,26 +51,45 @@ export class UserStatusService {
     };
   }
 
-  assertAccountActive(
+  /** Login: тек BANNED блок */
+  assertCanLogin(user: Pick<User, 'accountStatus' | 'accountStatusReason'>): void {
+    if (user.accountStatus === AccountStatus.BANNED) {
+      throw new UnauthorizedException({
+        message: ACCOUNT_STATUS_UI.BANNED,
+        accountStatus: AccountStatus.BANNED,
+        reason: user.accountStatusReason,
+      });
+    }
+  }
+
+  /** Негізгі әрекеттер: тек ACTIVE */
+  assertCanPerformCoreActions(
     user: Pick<User, 'accountStatus'> & { accountStatusReason?: string | null },
   ): void {
     if (user.accountStatus === AccountStatus.ACTIVE) return;
     if (user.accountStatus === AccountStatus.SUSPENDED) {
-      throw new UnauthorizedException({
-        message: 'Аккаунт уақытша тоқтатылған',
+      throw new ForbiddenException({
+        message: ACCOUNT_STATUS_UI.SUSPENDED,
         accountStatus: AccountStatus.SUSPENDED,
         reason: user.accountStatusReason,
       });
     }
-    throw new UnauthorizedException({
-      message: 'Аккаунт бұғатталған',
+    throw new ForbiddenException({
+      message: ACCOUNT_STATUS_UI.BANNED,
       accountStatus: AccountStatus.BANNED,
       reason: user.accountStatusReason,
     });
   }
 
+  /** @deprecated assertCanPerformCoreActions қолданыңыз */
+  assertAccountActive(
+    user: Pick<User, 'accountStatus'> & { accountStatusReason?: string | null },
+  ): void {
+    this.assertCanPerformCoreActions(user);
+  }
+
   assertCanUsePlatform(user: Pick<User, 'accountStatus' | 'accountStatusReason'>): void {
-    this.assertAccountActive(user);
+    this.assertCanPerformCoreActions(user);
   }
 
   assertRequestApproved(profile: Pick<PartnerProfileStatusSlice, 'requestStatus' | 'status'>): void {
@@ -83,7 +106,7 @@ export class UserStatusService {
     user: Pick<User, 'accountStatus'>,
     profile: Pick<PartnerProfileStatusSlice, 'requestStatus' | 'status'>,
   ): void {
-    this.assertAccountActive(user);
+    this.assertCanPerformCoreActions(user);
     this.assertRequestApproved(profile);
   }
 
@@ -91,7 +114,7 @@ export class UserStatusService {
     user: Pick<User, 'accountStatus'>,
     profile: PartnerProfileStatusSlice,
   ): void {
-    this.assertAccountActive(user);
+    this.assertCanPerformCoreActions(user);
     this.assertRequestApproved(profile);
     if (profile.status !== PartnerStatus.APPROVED) {
       throw new ForbiddenException({
@@ -113,32 +136,12 @@ export class UserStatusService {
     status: AccountStatus,
     reason?: string,
   ): Promise<User> {
-    const actor = await this.prisma.user.findUnique({ where: { id: actorId } });
-    if (!actor) throw new NotFoundException('Actor табылмады');
-    if (actor.role !== Role.ADMIN && actor.role !== Role.SUPER_ADMIN) {
-      throw new ForbiddenException('Тек ADMIN аккаунт статусын өзгерте алады');
-    }
-
-    const target = await this.prisma.user.update({
-      where: { id: targetUserId },
-      data: {
-        accountStatus: status,
-        accountStatusReason: reason?.trim() || null,
-        accountStatusChangedAt: new Date(),
-      },
-    });
-
-    if (status !== AccountStatus.ACTIVE) {
-      await this.prisma.partnerProfile.updateMany({
-        where: { userId: targetUserId },
-        data: {
-          workStatus: WorkStatus.OFFLINE,
-          isOnline: false,
-        },
-      });
-    }
-
-    return target;
+    return this.accountStatus.operatorChange(
+      actorId,
+      targetUserId,
+      status,
+      reason ?? 'Manual status change',
+    );
   }
 
   async setWorkStatus(userId: string, workStatus: WorkStatus): Promise<PartnerProfileStatusSlice> {
@@ -151,7 +154,7 @@ export class UserStatusService {
     if (workStatus === WorkStatus.ONLINE) {
       this.assertCanGoOnline(user, profile);
     } else {
-      this.assertAccountActive(user);
+      this.assertCanPerformCoreActions(user);
     }
 
     const updated = await this.prisma.partnerProfile.update({
@@ -227,7 +230,7 @@ export class UserStatusService {
       return;
     }
     if (next === WorkStatus.OFFLINE) {
-      this.assertAccountActive(user);
+      this.assertCanPerformCoreActions(user);
       return;
     }
     throw new BadRequestException(`WorkStatus ${next} әлі қолдау көрсетілмейді`);

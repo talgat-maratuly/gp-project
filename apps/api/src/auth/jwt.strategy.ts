@@ -32,7 +32,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       include: { clientProfile: true, partnerProfile: true },
     });
     if (!user) throw new UnauthorizedException();
-    this.userStatus.assertAccountActive(user);
+    this.userStatus.assertCanLogin(user);
     return user;
   }
 }

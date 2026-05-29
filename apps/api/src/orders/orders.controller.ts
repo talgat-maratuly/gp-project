@@ -9,6 +9,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { OnlyServicePartnerGuard } from '../partners/guards/only-service-partner.guard';
+import { AccountCoreActionsGuard } from '../user-status/guards/account-core-actions.guard';
 import { PortalRolesGuard } from '../rbac/guards/portal-roles.guard';
 import { PermissionGuard } from '../rbac/guards/permission.guard';
 import { RequirePermission } from '../rbac/decorators/require-permission.decorator';
@@ -20,7 +21,7 @@ export class OrdersController {
   constructor(private orders: OrdersService) {}
 
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, PortalRolesGuard, PermissionGuard)
+  @UseGuards(JwtAuthGuard, AccountCoreActionsGuard, PortalRolesGuard, PermissionGuard)
   @PortalRoles(
     PortalRole.CLIENT,
     PortalRole.GP_OPERATOR,

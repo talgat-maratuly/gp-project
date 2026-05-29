@@ -1,9 +1,9 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { UserStatusService } from '../user-status.service';
 
-/** @deprecated AccountCoreActionsGuard қолданыңыз — ACTIVE қажет */
+/** ACTIVE қажет: тапсырыс, қабылдау, т.б. SUSPENDED login істей алады */
 @Injectable()
-export class AccountActiveGuard implements CanActivate {
+export class AccountCoreActionsGuard implements CanActivate {
   constructor(private userStatus: UserStatusService) {}
 
   canActivate(context: ExecutionContext): boolean {

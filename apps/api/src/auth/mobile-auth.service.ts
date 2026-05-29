@@ -247,7 +247,7 @@ export class MobileAuthService {
       throw new UnauthorizedException('Бұл телефон басқа рөлге тіркелген');
     }
 
-    this.userStatus.assertAccountActive(user);
+    this.userStatus.assertCanLogin(user);
 
     await this.upsertDevice(user.id, dto);
     const { refreshToken, expiresAt } = await this.issueSession(

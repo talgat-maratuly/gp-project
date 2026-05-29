@@ -26,7 +26,7 @@ export class PartnerApprovedGuard implements CanActivate {
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new ForbiddenException('Пользователь не найден');
-    this.userStatus.assertAccountActive(user);
+    this.userStatus.assertCanPerformCoreActions(user);
 
     const profile = await this.prisma.partnerProfile.findUnique({
       where: { userId },

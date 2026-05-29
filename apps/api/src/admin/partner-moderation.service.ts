@@ -14,6 +14,7 @@ import { PartnersService } from '../partners/partners.service';
 import { RbacService } from '../rbac/rbac.service';
 import { PortalRole, RequestStatus, WorkStatus } from '@prisma/client';
 import { SpecialistRequestNotificationsService } from '../specialist-requests/specialist-request-notifications.service';
+import { AccountStatusService } from '../user-status/account-status.service';
 
 @Injectable()
 export class PartnerModerationAdminService {
@@ -23,6 +24,7 @@ export class PartnerModerationAdminService {
     private partners: PartnersService,
     private rbac: RbacService,
     private specialistNotifications: SpecialistRequestNotificationsService,
+    private accountStatus: AccountStatusService,
   ) {}
 
   private regionFilter(admin: User) {
@@ -186,6 +188,10 @@ export class PartnerModerationAdminService {
     await this.partners.syncDirectionsFromOfferings(partnerId);
     await this.partners.syncServiceAccessFromOfferings(partnerId);
     await this.rbac.onSpecialistApproved(profile.userId);
+    await this.accountStatus.systemEnsureActive(
+      profile.userId,
+      'Specialist application approved by admin',
+    );
     await this.specialistNotifications.notifyApproved(profile.userId);
     return this.getOne(admin, partnerId);
   }

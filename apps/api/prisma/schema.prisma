@@ -92,6 +92,12 @@ enum AccountStatus {
   BANNED
 }
 
+enum AccountStatusChangeType {
+  AUTO
+  OPERATOR
+  SYSTEM
+}
+
 /// Specialist availability — тек PartnerProfile
 enum WorkStatus {
   ONLINE
@@ -212,9 +218,48 @@ model User {
   moderationActions PartnerModerationAuditLog[] @relation("ModerationAdmin")
   specialistRequest SpecialistRequest?
   moderatedSpecialistRequests SpecialistRequest[] @relation("SpecialistRequestModerator")
+  accountStatusLogs AccountStatusLog[] @relation("AccountStatusSubject")
+  accountStatusChanges AccountStatusLog[] @relation("AccountStatusChangedBy")
+  complaintsReceived UserComplaint[] @relation("ComplaintTarget")
+  complaintsFiled UserComplaint[] @relation("ComplaintReporter")
 
   @@index([regionId])
   @@index([franchiseId])
+  @@index([accountStatus])
+}
+
+model AccountStatusLog {
+  id          String                  @id @default(uuid())
+  userId      String
+  user        User                    @relation("AccountStatusSubject", fields: [userId], references: [id], onDelete: Cascade)
+  oldStatus   AccountStatus
+  newStatus   AccountStatus
+  changeType  AccountStatusChangeType
+  reason      String
+  rule        String?
+  changedById String?
+  changedBy   User?                   @relation("AccountStatusChangedBy", fields: [changedById], references: [id])
+  createdAt   DateTime                @default(now())
+
+  @@index([userId])
+  @@index([newStatus])
+  @@index([changeType])
+  @@index([rule])
+  @@index([createdAt])
+}
+
+model UserComplaint {
+  id             String   @id @default(uuid())
+  targetUserId   String
+  targetUser     User     @relation("ComplaintTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+  reporterUserId String?
+  reporter       User?    @relation("ComplaintReporter", fields: [reporterUserId], references: [id], onDelete: SetNull)
+  regionId       String?
+  reason         String
+  createdAt      DateTime @default(now())
+
+  @@index([targetUserId, createdAt])
+  @@index([regionId])
 }
 
 /// Франшиза (аймақтық масштабтау)

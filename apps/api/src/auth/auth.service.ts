@@ -232,7 +232,7 @@ export class AuthService {
     if (!user) throw new UnauthorizedException('Неверный email или пароль');
     const ok = await bcrypt.compare(dto.password, user.passwordHash);
     if (!ok) throw new UnauthorizedException('Неверный email или пароль');
-    this.userStatus.assertAccountActive(user);
+    this.userStatus.assertCanLogin(user);
     this.logger.log(`login ok email=${user.email} role=${user.role}`);
     return this.signToken(user);
   }
