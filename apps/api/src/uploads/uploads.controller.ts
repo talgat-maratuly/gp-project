@@ -16,13 +16,13 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { AccountActiveGuard } from '../user-status/guards/account-active.guard';
 import { UploadsService } from './uploads.service';
 
+/** Onboarding: маман өтінімі толтырғанша фото жүктей алады (APPROVED қажет емес). */
 @ApiTags('uploads')
 @ApiBearerAuth()
 @Controller('uploads')
-@UseGuards(JwtAuthGuard, AccountActiveGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.PARTNER)
 export class UploadsController {
   constructor(private uploads: UploadsService) {}

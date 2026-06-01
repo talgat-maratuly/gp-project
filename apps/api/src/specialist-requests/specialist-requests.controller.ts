@@ -5,13 +5,12 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { AccountActiveGuard } from '../user-status/guards/account-active.guard';
 import { SpecialistRequestsService } from './specialist-requests.service';
 
 @ApiTags('specialist-requests')
 @ApiBearerAuth()
 @Controller()
-@UseGuards(JwtAuthGuard, AccountActiveGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class SpecialistRequestsController {
   constructor(private specialistRequests: SpecialistRequestsService) {}
 

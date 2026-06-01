@@ -155,6 +155,10 @@ export function PartnerProvider({ children }) {
   }, [user?.id])
 
   const refreshOrders = useCallback(async () => {
+    if (user?.partnerStatus && user.partnerStatus !== 'APPROVED') {
+      setOrders([])
+      return
+    }
     if (isDemoMode() || demoApi.getDemoSession()) {
       if (!demoApi.getDemoSession()) return
       try {
@@ -171,7 +175,7 @@ export function PartnerProvider({ children }) {
     } catch (e) {
       notify(e.message || 'Не удалось загрузить заказы')
     }
-  }, [notify])
+  }, [notify, user?.partnerStatus])
 
   // Лента пула: только ONLINE-специалист видит matching-заказы (видимость решает бэкенд)
   const refreshFeed = useCallback(async () => {

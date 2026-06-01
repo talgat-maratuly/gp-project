@@ -28,6 +28,7 @@ export const API_CONTRACT = {
     'submitSpecialistApplication',
     'getSpecialistApplications',
     'getSpecialistOnboardingCatalog',
+    'uploadSpecialistPhoto',
     'getRegions',
   ],
   market: ['getMarketProducts'],
@@ -43,4 +44,5 @@ export const BACKEND_ROUTE_CHECKS = [
   { method: 'adminAssignOrder', http: 'PATCH', fragment: 'orders' },
   { method: 'adminModerationPartners', http: 'GET', fragment: 'moderation/partners' },
   { method: 'getMarketProducts', http: 'GET', fragment: 'market/products' },
+  { method: 'uploadSpecialistPhoto', http: 'POST', fragment: 'uploads/specialist-photo' },
 ]

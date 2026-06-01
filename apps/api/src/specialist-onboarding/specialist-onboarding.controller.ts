@@ -5,7 +5,6 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { AccountActiveGuard } from '../user-status/guards/account-active.guard';
 import { SpecialistOnboardingService } from './specialist-onboarding.service';
 import { SubmitOnboardingApplicationDto } from './dto/submit-onboarding-application.dto';
 
@@ -23,7 +22,7 @@ export class SpecialistOnboardingPublicController {
 @ApiTags('specialist-onboarding')
 @ApiBearerAuth()
 @Controller('specialist')
-@UseGuards(JwtAuthGuard, AccountActiveGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.PARTNER)
 export class SpecialistOnboardingController {
   constructor(private onboarding: SpecialistOnboardingService) {}
