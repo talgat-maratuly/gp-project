@@ -305,7 +305,7 @@ export function ServiceProvider({ children }) {
     throw new Error('Use GP Partner app: /apply/specialist')
   }, [notify])
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
     if (isDemoMode()) {
       demoApi.demoLogout()
       setAuthUser(null)
@@ -320,7 +320,7 @@ export function ServiceProvider({ children }) {
       notify('Вы вышли', 'info')
       return
     }
-    api.logout()
+    await api.logout()
     setAuthUser(null)
     setOrders([])
     notify('Вы вышли', 'info')

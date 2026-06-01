@@ -1,7 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEmail, IsString, MinLength } from 'class-validator';
+import { DeviceSessionDto } from './device-session.dto';
 
-export class LoginDto {
+export class LoginDto extends DeviceSessionDto {
   @ApiProperty()
   @IsEmail()
   email: string;

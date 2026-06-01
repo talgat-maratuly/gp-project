@@ -7,6 +7,28 @@ const APP =
 const TOKEN_KEY = `gp-${APP}-access-token`
 const REFRESH_KEY = `gp-${APP}-refresh-token`
 const SESSION_ROLE_KEY = `gp-${APP}-session-role`
+const DEVICE_ID_KEY = `gp-${APP}-device-id`
+
+/** OTP refresh үшін (MinLength 8) */
+export function getDeviceId() {
+  try {
+    const stored = localStorage.getItem(DEVICE_ID_KEY)
+    if (stored && stored.length >= 8) return stored
+  } catch {
+    /* ignore */
+  }
+  return `gp-${APP}-web`
+}
+
+export function setDeviceId(deviceId) {
+  try {
+    if (deviceId && String(deviceId).length >= 8) {
+      localStorage.setItem(DEVICE_ID_KEY, String(deviceId))
+    }
+  } catch {
+    /* ignore */
+  }
+}
 
 export function getToken() {
   try {

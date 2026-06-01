@@ -1,9 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { AccountType } from '@prisma/client';
 import { IsEmail, IsEnum, IsOptional, IsString, MaxLength, MinLength, ValidateIf } from 'class-validator';
+import { DeviceSessionDto } from './device-session.dto';
 
 /** MVP: region/email/password опциональны — подставляются на сервере */
-export class RegisterClientDto {
+export class RegisterClientDto extends DeviceSessionDto {
   @ApiProperty({ required: false, example: 'test_123@gp.local' })
   @IsOptional()
   @ValidateIf((o) => Boolean(o.email?.trim()))

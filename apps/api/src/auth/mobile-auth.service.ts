@@ -16,7 +16,7 @@ import {
 } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
-import { RbacService } from '../rbac/rbac.service';
+import { RbacService, UserWithProfiles } from '../rbac/rbac.service';
 import { UserStatusService } from '../user-status/user-status.service';
 import { MobileOtpSendDto } from './dto/mobile-otp-send.dto';
 import { MobileOtpVerifyDto } from './dto/mobile-otp-verify.dto';
@@ -399,6 +399,54 @@ export class MobileAuthService {
         loginAs === 'partner' && user.partnerProfile?.status !== PartnerStatus.APPROVED,
       partnerStatus: user.partnerProfile?.status || null,
       statuses: this.userStatus.snapshot(user, user.partnerProfile ?? null),
+    };
+  }
+
+  /**
+   * Email/password (and register) login: same access/refresh rotation as mobile OTP.
+   */
+  async issueCredentialSession(
+    user: UserWithProfiles,
+    opts: {
+      deviceId: string;
+      deviceName?: string;
+      platform?: string;
+      sessionRole?: Role;
+    },
+  ) {
+    const sessionRole = opts.sessionRole ?? user.role;
+    await this.upsertDevice(user.id, {
+      deviceId: opts.deviceId,
+      deviceName: opts.deviceName,
+      platform: opts.platform,
+      rememberDevice: true,
+    });
+    const { refreshToken, expiresAt } = await this.issueSession(
+      user.id,
+      opts.deviceId,
+      opts.deviceName,
+      opts.platform,
+    );
+    const accessToken = await this.signAccess(user, sessionRole);
+    const portalRoles = this.rbac.resolvePortalRoles(user);
+
+    return {
+      accessToken,
+      refreshToken,
+      accessExpiresIn: this.accessExpiresSec(),
+      refreshExpiresAt: expiresAt.toISOString(),
+      sessionRole,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        phone: user.phone,
+        role: sessionRole,
+        roles: portalRoles,
+        regionId: user.regionId ?? null,
+        franchiseId: user.franchiseId ?? null,
+        accountStatus: user.accountStatus,
+      },
     };
   }
 

@@ -1,14 +1,13 @@
 import { get, post, patch, del, request, uploadForm, API_URL, getApiRootUrl } from './apiClient.js'
-import {
-  setToken,
-  clearToken,
-  setRefreshToken,
-  clearRefreshToken,
-  getToken,
-  setSessionRole,
-  clearSessionRole,
-} from './token.js'
+import { getToken, getDeviceId, clearRefreshToken } from './token.js'
+import { persistAuthSession, clearAuthSession, getWebDeviceMeta } from './authSession.js'
 import { mapOrder, mapProduct, mapPartnerUser } from './mappers.js'
+
+function withDeviceSession(body = {}) {
+  const deviceId = getDeviceId()
+  const { deviceName, platform } = getWebDeviceMeta()
+  return { ...body, deviceId, deviceName, platform }
+}
 
 const mapOrdersForApp = (list) => {
   const forClient = import.meta.env?.VITE_APP_NAME === 'service'
@@ -23,30 +22,30 @@ export const api = {
 
   verifyOtp: (body) =>
     post('/auth/mobile/otp/verify', body, { auth: false }).then((r) => {
-      setToken(r.accessToken)
-      if (r.refreshToken) setRefreshToken(r.refreshToken)
-      const role = r.sessionRole || r.user?.role
-      if (role) setSessionRole(role)
+      persistAuthSession(r, { deviceId: body?.deviceId || getDeviceId() })
       return r
     }),
 
   registerClient: (body) =>
-    post('/auth/register/client', body, { auth: false }).then((r) => {
-      setToken(r.accessToken)
+    post('/auth/register/client', withDeviceSession(body), { auth: false }).then((r) => {
+      persistAuthSession(r, { deviceId: getDeviceId() })
       return r
     }),
 
   registerPartner: (body) =>
-    post('/auth/register/partner', body, { auth: false }).then((r) => {
-      setToken(r.accessToken)
+    post('/auth/register/partner', withDeviceSession(body), { auth: false }).then((r) => {
+      persistAuthSession(r, { deviceId: getDeviceId() })
       return r
     }),
 
-  login: (email, password) =>
-    post('/auth/login', { email, password }, { auth: false }).then((r) => {
-      setToken(r.accessToken)
+  login: (email, password) => {
+    const deviceId = getDeviceId()
+    clearRefreshToken()
+    return post('/auth/login', withDeviceSession({ email, password }), { auth: false }).then((r) => {
+      persistAuthSession(r, { deviceId })
       return r
-    }),
+    })
+  },
 
   forgotPassword: (body) => post('/auth/forgot-password', body, { auth: false }),
 
@@ -54,11 +53,7 @@ export const api = {
 
   resetPassword: (body) => post('/auth/reset-password', body, { auth: false }),
 
-  logout: () => {
-    clearToken()
-    clearRefreshToken()
-    clearSessionRole()
-  },
+  logout: () => clearAuthSession(),
 
   me: () => get('/auth/me'),
 

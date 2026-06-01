@@ -32,6 +32,8 @@ import { PartnersService } from '../partners/partners.service';
 import { RbacService, UserWithProfiles } from '../rbac/rbac.service';
 import { PortalRole, WorkStatus } from '@prisma/client';
 import { UserStatusService } from '../user-status/user-status.service';
+import { MobileAuthService } from './mobile-auth.service';
+import { DeviceSessionDto } from './dto/device-session.dto';
 import { generateOtpCode, hashOtp, normalizePhone } from './mobile-auth.util';
 
 const RESET_OTP_TTL_MS = 10 * 60 * 1000;
@@ -48,7 +50,23 @@ export class AuthService {
     private partners: PartnersService,
     private rbac: RbacService,
     private userStatus: UserStatusService,
+    private mobileAuth: MobileAuthService,
   ) {}
+
+  private hasDeviceSession(dto?: DeviceSessionDto) {
+    return Boolean(dto?.deviceId && dto.deviceId.length >= 8);
+  }
+
+  private async buildAuthResponse(user: UserWithProfiles, dto?: DeviceSessionDto) {
+    if (this.hasDeviceSession(dto)) {
+      return this.mobileAuth.issueCredentialSession(user, {
+        deviceId: dto!.deviceId!,
+        deviceName: dto!.deviceName,
+        platform: dto!.platform,
+      });
+    }
+    return this.signToken(user);
+  }
 
   private async signToken(user: UserWithProfiles) {
     const roles = this.rbac.resolvePortalRoles(user);
@@ -154,7 +172,7 @@ export class AuthService {
       },
       include: { clientProfile: true, partnerProfile: true },
     });
-    return this.signToken(user);
+    return this.buildAuthResponse(user, dto);
   }
 
   /** MVP: автогенерация email/phone/password, регион по умолчанию; partnerRole обязателен */
@@ -218,23 +236,24 @@ export class AuthService {
           },
         },
       },
-      include: { partnerProfile: true },
+      include: { clientProfile: true, partnerProfile: true },
     });
 
-    return this.signToken(user);
+    return this.buildAuthResponse(user, dto);
   }
 
   async login(dto: LoginDto) {
+    const email = dto.email.trim().toLowerCase();
     const user = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+      where: { email },
       include: { clientProfile: true, partnerProfile: true },
     });
     if (!user) throw new UnauthorizedException('Неверный email или пароль');
     const ok = await bcrypt.compare(dto.password, user.passwordHash);
     if (!ok) throw new UnauthorizedException('Неверный email или пароль');
     this.userStatus.assertCanLogin(user);
-    this.logger.log(`login ok email=${user.email} role=${user.role}`);
-    return this.signToken(user);
+    this.logger.log(`login ok email=${user.email} role=${user.role} device=${!!dto.deviceId}`);
+    return this.buildAuthResponse(user, dto);
   }
 
   async me(userId: string) {

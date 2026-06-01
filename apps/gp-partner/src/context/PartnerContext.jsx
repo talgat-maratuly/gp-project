@@ -386,7 +386,7 @@ export function PartnerProvider({ children }) {
     }
   }, [notify, refreshOrders])
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
     if (isDemoMode()) {
       demoApi.demoLogout()
       setUser(null)
@@ -401,7 +401,7 @@ export function PartnerProvider({ children }) {
       setOrders([])
       return
     }
-    api.logout()
+    await api.logout()
     setUser(null)
     setActiveOrderId(null)
     setOrders([])
