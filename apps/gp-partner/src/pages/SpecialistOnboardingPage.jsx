@@ -97,7 +97,10 @@ export default function SpecialistOnboardingPage() {
   const validateStep = () => {
     if (step === 0 && !mainServiceId) return 'Қызметті таңдаңыз'
     if (step === 1 && subserviceIds.size < 1) return 'Кем дегенде бір подуслуга'
-    if (step === 2 && (!regionId || !city.trim())) return 'Аймақ пен қала'
+    if (step === 2) {
+      if (!regions.length) return 'Аймақ тізімі жүктелмеді — API байланысын тексеріңіз'
+      if (!regionId || !city.trim()) return 'Аймақ пен қала'
+    }
     if (step === 3 && (!fullName.trim() || !phone.trim())) return 'Аты және телефон'
     if (step === 4) {
       if (!profilePhotoUrl.trim()) return 'Профиль фотосы'
@@ -177,6 +180,10 @@ export default function SpecialistOnboardingPage() {
 
   const submit = async (e) => {
     e.preventDefault()
+    if (!regionId?.trim()) {
+      setError('Аймақты таңдаңыз (қадам 3)')
+      return
+    }
     const err = validateStep()
     if (err) {
       setError(err)
@@ -271,10 +278,20 @@ export default function SpecialistOnboardingPage() {
         <>
           <div className="gp-form-field">
             <label className="gp-form-label">Регион</label>
-            <select className="gp-input-kaspi" value={regionId} onChange={(e) => setRegionId(e.target.value)} required>
-              {regions.map((r) => (
-                <option key={r.id} value={r.id}>{r.name}</option>
-              ))}
+            <select
+              className="gp-input-kaspi"
+              value={regionId}
+              onChange={(e) => setRegionId(e.target.value)}
+              required
+              disabled={!regions.length}
+            >
+              {!regions.length ? (
+                <option value="">Аймақтар жүктелуде…</option>
+              ) : (
+                regions.map((r) => (
+                  <option key={r.id} value={r.id}>{r.name}</option>
+                ))
+              )}
             </select>
           </div>
           <div className="gp-form-field">

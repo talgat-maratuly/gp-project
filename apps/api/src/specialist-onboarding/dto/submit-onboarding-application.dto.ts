@@ -13,6 +13,7 @@ import {
   IsUrl,
   IsUUID,
   MaxLength,
+  MinLength,
   ValidateNested,
 } from 'class-validator';
 import { MainServiceId } from '../specialist-onboarding.catalog';
@@ -64,8 +65,10 @@ export class SubmitOnboardingApplicationDto {
   @IsString({ each: true })
   subserviceIds: string[];
 
-  @ApiProperty()
-  @IsUUID()
+  @ApiProperty({ description: 'Region id from GET /api/regions (e.g. region_uralsk or UUID)' })
+  @IsString()
+  @MinLength(2)
+  @MaxLength(64)
   regionId: string;
 
   @ApiProperty()

@@ -61,7 +61,18 @@ export class SpecialistOnboardingService {
     return this.mapApplication(row);
   }
 
+  private async assertActiveRegion(regionId: string) {
+    const region = await this.prisma.region.findFirst({
+      where: { id: regionId.trim(), isActive: true },
+    });
+    if (!region) {
+      throw new BadRequestException('Регион не найден или неактивен');
+    }
+    return region;
+  }
+
   async submit(userId: string, dto: SubmitOnboardingApplicationDto) {
+    await this.assertActiveRegion(dto.regionId);
     const { primaryCategory } = validateOnboardingPayload(dto);
     const profile = await this.ensurePartnerProfile(userId);
 

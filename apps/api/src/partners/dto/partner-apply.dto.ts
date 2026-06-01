@@ -7,7 +7,6 @@ import {
   IsEnum,
   IsOptional,
   IsString,
-  IsUUID,
   MaxLength,
   MinLength,
   ValidateNested,
@@ -24,9 +23,11 @@ export class PartnerApplyDto {
   @IsEnum(PartnerRole)
   partnerRole?: PartnerRole;
 
-  @ApiProperty({ required: false, description: 'MVP: регион из аккаунта или uralsk по умолчанию' })
+  @ApiProperty({ required: false, description: 'MVP: регион из GET /api/regions' })
   @IsOptional()
-  @IsUUID()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(64)
   regionId?: string;
 
   @ApiProperty({ required: false })
