@@ -1,5 +1,12 @@
 import { get, post, patch, del, request, uploadForm, API_URL, getApiRootUrl } from './apiClient.js'
-import { getToken, getDeviceId, clearRefreshToken } from './token.js'
+import {
+  getToken,
+  setToken,
+  clearToken,
+  setRefreshToken,
+  clearRefreshToken,
+  getDeviceId,
+} from './token.js'
 import { persistAuthSession, clearAuthSession, getWebDeviceMeta } from './authSession.js'
 import { mapOrder, mapProduct, mapPartnerUser } from './mappers.js'
 
