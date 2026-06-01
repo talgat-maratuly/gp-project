@@ -101,7 +101,7 @@ export default function ProfilePage() {
           </Link>
         )}
       </div>
-      <h1 className="text-xl font-bold text-white mb-1">{user?.company || user?.name}</h1>
+      <h1 className="text-xl font-bold text-[var(--gp-text)] mb-1">{user?.company || user?.name}</h1>
       <p className="text-xs font-bold text-emerald-600 mb-1">{getAccountTypeLabel(user?.accountType || 'INDIVIDUAL')}</p>
       {user?.accountType === 'LEGAL_ENTITY' && (
         <div className="text-xs text-[var(--gp-text-muted)] mb-2 space-y-0.5">
@@ -114,7 +114,7 @@ export default function ProfilePage() {
       {service && (
       <div className="partner-card p-4 mb-4">
         <div className="flex items-center justify-between gap-2 mb-3">
-          <p className="text-xs text-slate-500 uppercase tracking-wide">Подуслуги и модерация</p>
+          <p className="text-xs text-[var(--gp-text-muted)] uppercase tracking-wide">Подуслуги и модерация</p>
           <button
             type="button"
             onClick={() => setShowAdd(true)}
@@ -124,7 +124,7 @@ export default function ProfilePage() {
             <Plus className="w-3.5 h-3.5" /> Қызмет қосу
           </button>
         </div>
-        <p className="text-[11px] text-slate-500 mb-3 leading-snug">
+        <p className="text-[11px] text-[var(--gp-text-muted)] mb-3 leading-snug">
           Жаңа қызмет түрін қосқанда өтінім GP Admin модерациясына жіберіледі. Тапсырыс тек «Активна» статусы бар қызметтер бойынша келеді.
         </p>
         {offerings.length ? (
@@ -132,39 +132,39 @@ export default function ProfilePage() {
             {offerings.map((o) => (
               <li
                 key={o.id}
-                className="flex flex-col gap-0.5 rounded-xl border border-white/10 bg-[#0a0f1a]/60 px-3 py-2.5"
+                className="flex flex-col gap-0.5 rounded-xl border border-[var(--gp-border)] bg-[var(--gp-surface-2)] px-3 py-2.5"
               >
-                <span className="text-sm text-slate-200">{getPartnerSubserviceLabel(o.subserviceId)}</span>
-                <span className="text-[11px] text-slate-500 font-mono">{o.subserviceId}</span>
+                <span className="text-sm text-[var(--gp-text)]">{getPartnerSubserviceLabel(o.subserviceId)}</span>
+                <span className="text-[11px] text-[var(--gp-text-muted)] font-mono">{o.subserviceId}</span>
                 <span className={`text-xs font-medium mt-1 ${
-                  o.status === 'ACTIVE' ? 'text-emerald-400'
-                    : o.status === 'TEMPORARILY_BLOCKED' ? 'text-red-400'
-                      : o.status === 'PENDING_MODERATION' ? 'text-amber-400'
-                        : 'text-slate-500'
+                  o.status === 'ACTIVE' ? 'text-emerald-600'
+                    : o.status === 'TEMPORARILY_BLOCKED' ? 'text-red-500'
+                      : o.status === 'PENDING_MODERATION' ? 'text-amber-500'
+                        : 'text-[var(--gp-text-muted)]'
                 }`}
                 >
                   {getPartnerOfferingStatusLabel(o.status)}
                 </span>
                 {o.moderationNote && (
-                  <span className="text-[11px] text-slate-500 mt-1">Комментарий модератора: {o.moderationNote}</span>
+                  <span className="text-[11px] text-[var(--gp-text-muted)] mt-1">Комментарий модератора: {o.moderationNote}</span>
                 )}
               </li>
             ))}
           </ul>
         ) : (
-          <p className="text-xs text-slate-500">Нет зарегистрированных подуслуг</p>
+          <p className="text-xs text-[var(--gp-text-muted)]">Нет зарегистрированных подуслуг</p>
         )}
       </div>
       )}
 
       {(user?.documents?.length > 0 || user?.bin) && (
         <div className="partner-card p-4 mb-4 text-sm">
-          <p className="text-xs text-slate-500 mb-2 uppercase tracking-wide">Документы</p>
-          {user.bin && <p className="text-slate-400 text-xs">БИН: {user.bin}</p>}
-          {user.legalAddress && <p className="text-slate-400 text-xs mt-1">{user.legalAddress}</p>}
+          <p className="text-xs text-[var(--gp-text-muted)] mb-2 uppercase tracking-wide">Документы</p>
+          {user.bin && <p className="text-[var(--gp-text-muted)] text-xs">БИН: {user.bin}</p>}
+          {user.legalAddress && <p className="text-[var(--gp-text-muted)] text-xs mt-1">{user.legalAddress}</p>}
           <ul className="mt-2 space-y-1">
             {(Array.isArray(user.documents) ? user.documents : []).map((d, i) => (
-              <li key={i} className="text-xs text-slate-300">
+              <li key={i} className="text-xs text-[var(--gp-text)]">
                 {PARTNER_DOCUMENT_KIND_OPTIONS.find((o) => o.id === d.kind)?.label || d.kind}
                 {d.number ? `: ${d.number}` : ''}
               </li>
@@ -174,34 +174,34 @@ export default function ProfilePage() {
       )}
 
       <div className="partner-card p-4 mb-4">
-        <p className="text-xs text-slate-500 mb-2 uppercase tracking-wide">Направления профиля</p>
+        <p className="text-xs text-[var(--gp-text-muted)] mb-2 uppercase tracking-wide">Направления профиля</p>
         <div className="flex flex-wrap gap-1.5">
           {(user?.directions || []).length ? (
             (user?.directions || []).map((d) => (
               <span
                 key={d}
-                className="text-xs px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                className="text-xs px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
               >
                 {getPartnerDirectionLabel(d)}
               </span>
             ))
           ) : (
-            <span className="text-xs text-slate-500">Не указаны</span>
+            <span className="text-xs text-[var(--gp-text-muted)]">Не указаны</span>
           )}
         </div>
       </div>
 
       {showAdd && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 p-3" role="dialog">
-          <div className="partner-card w-full max-w-md max-h-[85vh] overflow-hidden flex flex-col border border-white/10 shadow-2xl">
-            <div className="p-4 border-b border-white/10">
-              <h2 className="text-lg font-bold text-white">Добавить подуслуги</h2>
-              <p className="text-xs text-slate-500 mt-1">Новые позиции уходят на модерацию.</p>
+          <div className="partner-card w-full max-w-md max-h-[85vh] overflow-hidden flex flex-col border border-[var(--gp-border)] shadow-2xl">
+            <div className="p-4 border-b border-[var(--gp-border)]">
+              <h2 className="text-lg font-bold text-[var(--gp-text)]">Добавить подуслуги</h2>
+              <p className="text-xs text-[var(--gp-text-muted)] mt-1">Новые позиции уходят на модерацию.</p>
             </div>
             <div className="p-3 overflow-y-auto flex-1 space-y-3">
               {ALL_GROUPS.map((g) => (
-                <div key={g.id} className="rounded-xl border border-white/5 bg-[#0a0f1a]/50 p-3">
-                  <p className="text-xs font-semibold text-emerald-400/90 mb-2">{g.title}</p>
+                <div key={g.id} className="rounded-xl border border-[var(--gp-border)] bg-[var(--gp-surface-2)] p-3">
+                  <p className="text-xs font-semibold text-emerald-600 mb-2">{g.title}</p>
                   <div className="space-y-1.5">
                     {(g.subs || []).map((s) => {
                       const blocked = blockedAddIds.has(s.id)
@@ -210,9 +210,9 @@ export default function ProfilePage() {
                         <label
                           key={s.id}
                           className={`flex items-center gap-2 py-2 px-2 rounded-lg text-sm ${
-                            blocked ? 'opacity-40 cursor-not-allowed text-slate-500'
-                              : checked ? 'bg-emerald-500/10 text-slate-100 cursor-pointer'
-                                : 'text-slate-300 cursor-pointer'
+                            blocked ? 'opacity-40 cursor-not-allowed text-[var(--gp-text-muted)]'
+                              : checked ? 'bg-emerald-500/10 text-[var(--gp-text)] cursor-pointer'
+                                : 'text-[var(--gp-text)] cursor-pointer'
                           }`}
                         >
                           <input
@@ -230,12 +230,12 @@ export default function ProfilePage() {
                 </div>
               ))}
             </div>
-            {msg && <p className="text-red-400 text-sm px-4">{msg}</p>}
-            <div className="p-3 flex gap-2 border-t border-white/10">
+            {msg && <p className="text-red-500 text-sm px-4">{msg}</p>}
+            <div className="p-3 flex gap-2 border-t border-[var(--gp-border)]">
               <button
                 type="button"
                 onClick={() => { setShowAdd(false); setMsg('') }}
-                className="flex-1 py-2.5 rounded-xl border border-white/15 text-slate-300 text-sm font-semibold"
+                className="flex-1 py-2.5 rounded-xl border border-[var(--gp-border)] text-[var(--gp-text)] text-sm font-semibold"
               >
                 Отмена
               </button>
@@ -243,7 +243,7 @@ export default function ProfilePage() {
                 type="button"
                 disabled={saving}
                 onClick={submitAdd}
-                className="flex-1 py-2.5 rounded-xl partner-gradient text-sm font-bold disabled:opacity-50"
+                className="flex-1 py-2.5 rounded-xl partner-gradient text-white text-sm font-bold disabled:opacity-50"
               >
                 {saving ? '…' : 'Отправить'}
               </button>
@@ -291,7 +291,7 @@ export default function ProfilePage() {
       <button
         type="button"
         onClick={logout}
-        className="w-full py-3 rounded-xl border border-red-500/30 text-red-400 flex items-center justify-center gap-2"
+        className="w-full py-3 rounded-xl border border-red-500/30 text-red-500 flex items-center justify-center gap-2"
       >
         <LogOut className="w-4 h-4" /> Выйти
       </button>
