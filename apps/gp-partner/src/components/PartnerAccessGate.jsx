@@ -35,7 +35,11 @@ export default function PartnerAccessGate() {
     return <Outlet />
   }
 
-  const cfg = MESSAGES[status] || MESSAGES.DRAFT
+  const isShop = user?.partnerRole === 'SHOP'
+  const cfg = { ...(MESSAGES[status] || MESSAGES.DRAFT) }
+  if (status === 'DRAFT' && isShop) {
+    cfg.action = { to: '/apply', label: 'Дүкен өтінімін толтыру' }
+  }
 
   return (
     <div className="rounded-2xl border border-[var(--gp-border)] bg-[var(--gp-surface)] p-6 text-center space-y-4">

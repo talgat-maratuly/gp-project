@@ -96,7 +96,10 @@ export default function ProfilePage() {
         <p className="text-lg font-extrabold text-[var(--gp-text)] mt-1">{partnerStatusLabel(status)}</p>
         <p className="text-xs text-[var(--gp-text-muted)] mt-1">{PROFILE_STATUS_HINT[status] || ''}</p>
         {(status === 'DRAFT' || status === 'NEEDS_REVISION') && (
-          <Link to="/apply" className="inline-block mt-3 text-sm font-bold text-emerald-600 underline">
+          <Link
+            to={user?.partnerRole === 'SHOP' ? '/apply' : '/apply/specialist'}
+            className="inline-block mt-3 text-sm font-bold text-emerald-600 underline"
+          >
             {status === 'NEEDS_REVISION' ? 'Исправить заявку' : 'Заполнить заявку'}
           </Link>
         )}

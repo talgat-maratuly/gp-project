@@ -83,13 +83,6 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
     }
   }
 
-  const photos = useMemo(() => {
-    if (!selected) return []
-    const v = Array.isArray(selected.vehiclePhotos) ? selected.vehiclePhotos : []
-    const e = Array.isArray(selected.equipmentPhotos) ? selected.equipmentPhotos : []
-    return [...v, ...e]
-  }, [selected])
-
   const pendingOfferings = useMemo(() => {
     const rows = selected?.serviceOfferings
     if (!Array.isArray(rows)) return []
@@ -243,16 +236,6 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
             )}
             {selected.revisionComment && (
               <p className="text-sm text-amber-300">{t('revisionComment')}: {selected.revisionComment}</p>
-            )}
-            {photos.length > 0 && (
-              <div>
-                <p className="text-xs text-slate-500 mb-1">{t('equipmentPhotos')}</p>
-                <ul className="text-xs text-slate-300 space-y-1">
-                  {photos.map((url, i) => (
-                    <li key={i} className="truncate">{url}</li>
-                  ))}
-                </ul>
-              </div>
             )}
             {selected.documents && (
               <pre className="text-xs bg-slate-950 p-2 rounded overflow-auto max-h-24">{JSON.stringify(selected.documents, null, 2)}</pre>

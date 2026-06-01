@@ -41,13 +41,18 @@ services:
       OTP_STORE_REVIEW_CODE: ${OTP_STORE_REVIEW_CODE:-}
       OTP_DEV_BYPASS_ENABLED: ${OTP_DEV_BYPASS_ENABLED:-false}
       OTP_DEV_BYPASS_CODE: ${OTP_DEV_BYPASS_CODE:-777777}
+      PUBLIC_API_URL: ${PUBLIC_API_URL:-}
+      UPLOAD_DIR: /app/uploads
     ports:
       - '4000:4000'
+    volumes:
+      - gp_uploads_prod:/app/uploads
     networks:
       - gp-net
 
 volumes:
   gp_pg_prod:
+  gp_uploads_prod:
 
 networks:
   gp-net:

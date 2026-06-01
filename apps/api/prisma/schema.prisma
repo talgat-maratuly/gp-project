@@ -341,8 +341,6 @@ model PartnerProfile {
   idDocumentNumber String?
   /** Реквизиты и документы: [{ kind, number, note, url? }] */
   documents    Json?
-  vehiclePhotos Json              @default("[]")
-  equipmentPhotos Json            @default("[]")
   rejectionReason String?
   revisionComment String?
   approvedByAdminId String?

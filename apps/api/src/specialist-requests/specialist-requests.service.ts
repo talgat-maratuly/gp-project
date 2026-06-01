@@ -17,7 +17,6 @@ import {
   WorkStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { PartnerApplyDto } from '../partners/dto/partner-apply.dto';
 import { RbacService } from '../rbac/rbac.service';
 import { AccountStatusService } from '../user-status/account-status.service';
 import { SpecialistModeratorAccessService } from './specialist-moderator-access.service';
@@ -145,18 +144,6 @@ export class SpecialistRequestsService {
       hasApprovedApplication: hasApproved,
       latest: applications[0],
     };
-  }
-
-  async submit(_userId: string, _dto: PartnerApplyDto & { district?: string }) {
-    throw new BadRequestException(
-      'Use POST /api/specialist/applications (one application per main service).',
-    );
-  }
-
-  async resubmit(_userId: string, _dto: PartnerApplyDto & { district?: string }) {
-    throw new BadRequestException(
-      'Use POST /api/specialist/applications with resubmitRequestId for rejected applications.',
-    );
   }
 
   async listForModerator(actor: User, query: ModeratorSpecialistRequestsQueryDto) {

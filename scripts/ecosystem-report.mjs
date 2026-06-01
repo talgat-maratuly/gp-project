@@ -503,7 +503,7 @@ async function main() {
     })
     groups.runtime.push(checks.at(-1))
 
-    const mod = await runModerationFlow(auth.tokens?.admin, partner.partnerProfileId)
+    const mod = await runModerationFlow(auth.tokens?.admin, partner.partnerProfileId, partner.specialistRequestId)
     const modSt = statusFrom(mod.ok)
     addCheck({
       id: 'moderation-flow',

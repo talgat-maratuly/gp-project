@@ -292,24 +292,6 @@ export function PartnerProvider({ children }) {
           documents: data.documents,
         })
 
-        await api.partnerApply({
-          partnerType,
-          partnerRole,
-          companyName: data.company?.trim() || displayName,
-          fullName: displayName,
-          phone: creds.phone,
-          city: data.city?.trim() || 'Уральск',
-          address: data.address?.trim(),
-          description: data.description?.trim(),
-          accountType: data.accountType || 'INDIVIDUAL',
-          bin: data.bin?.trim(),
-          legalAddress: data.legalAddress?.trim(),
-          idDocumentNumber: data.idDocumentNumber?.trim(),
-          documents: data.documents,
-          vehiclePhotos: data.vehiclePhotos || [],
-          equipmentPhotos: data.equipmentPhotos || [],
-          subserviceIds: data.subserviceIds?.length ? data.subserviceIds : undefined,
-        })
       }
 
       try {

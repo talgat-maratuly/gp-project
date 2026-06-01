@@ -300,10 +300,9 @@ export function ServiceProvider({ children }) {
     return { session, me }
   }, [applyTestSession])
 
-  const submitPartnerApplication = useCallback(async (payload) => {
-    const result = await api.partnerApply(payload)
-    notify('Өтінім жіберілді. Аккаунт тексеруде.')
-    return result
+  const submitPartnerApplication = useCallback(async () => {
+    notify('Маман өтінімін GP Partner қолданбасында толтырыңыз (specialist onboarding).', 'info')
+    throw new Error('Use GP Partner app: /apply/specialist')
   }, [notify])
 
   const logout = useCallback(() => {

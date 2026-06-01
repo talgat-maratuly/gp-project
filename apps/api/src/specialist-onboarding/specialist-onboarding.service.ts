@@ -283,8 +283,15 @@ export class SpecialistOnboardingService {
     primaryCategory: OrderCategory;
     subserviceIds: string[];
     city: string | null;
+    district?: string | null;
     rejectionReason: string | null;
     rejectionReasonCode: string | null;
+    profilePhotoUrl?: string | null;
+    idCardFrontUrl?: string | null;
+    idCardBackUrl?: string | null;
+    vehicleData?: unknown;
+    equipmentPhotoUrls?: string[];
+    workExperience?: string | null;
     region: { id: string; name: string; code: string };
     offerings?: { subserviceId: string; status: string }[];
   }) {
@@ -295,7 +302,14 @@ export class SpecialistOnboardingService {
       mainServiceId: r.primaryCategory,
       subserviceIds: r.subserviceIds,
       city: r.city,
+      district: r.district ?? null,
       region: r.region,
+      profilePhotoUrl: r.profilePhotoUrl ?? null,
+      idCardFrontUrl: r.idCardFrontUrl ?? null,
+      idCardBackUrl: r.idCardBackUrl ?? null,
+      vehicleData: r.vehicleData ?? null,
+      equipmentPhotoUrls: r.equipmentPhotoUrls ?? [],
+      workExperience: r.workExperience ?? null,
       rejectionReason: r.rejectionReason,
       rejectionReasonCode: r.rejectionReasonCode,
       offerings: r.offerings,

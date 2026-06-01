@@ -21,7 +21,15 @@ export const API_CONTRACT = {
     'adminClients',
     'adminPartners',
   ],
-  partner: ['getPartnerMe', 'getPartnerApplication', 'partnerApply', 'getRegions'],
+  partner: [
+    'getPartnerMe',
+    'getPartnerApplication',
+    'partnerApply',
+    'submitSpecialistApplication',
+    'getSpecialistApplications',
+    'getSpecialistOnboardingCatalog',
+    'getRegions',
+  ],
   market: ['getMarketProducts'],
 }
 

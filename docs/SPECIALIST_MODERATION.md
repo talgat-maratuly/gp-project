@@ -11,7 +11,7 @@
 | PATCH | `/api/moderator/specialist-requests/:id/approve` | Moderators |
 | PATCH | `/api/moderator/specialist-requests/:id/reject` | Moderators |
 
-Legacy: `POST /api/partner/apply` → moderation submit (автобекіту жоқ).
+`POST /api/partner/apply` — тек **дүкен** және **мебель орындаушы**. Мамандар: `POST /api/specialist/applications`.
 
 ## Статус өтуі
 

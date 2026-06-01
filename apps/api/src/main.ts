@@ -2,7 +2,9 @@ import { RequestMethod, ValidationPipe } from '@nestjs/common';
 import { DomainLoggingInterceptor } from './common/domain-logging.interceptor';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { IoAdapter } from '@nestjs/platform-socket.io';
+import { join } from 'path';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/http-exception.filter';
@@ -42,9 +44,13 @@ function resolveCorsOrigins(config: ConfigService): string[] | boolean {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.useWebSocketAdapter(new IoAdapter(app));
   const configService = app.get(ConfigService);
+
+  const uploadDir =
+    configService.get<string>('UPLOAD_DIR') || join(process.cwd(), 'uploads');
+  app.useStaticAssets(uploadDir, { prefix: '/uploads/' });
 
   app.enableCors({
     origin: resolveCorsOrigins(configService),
@@ -57,6 +63,8 @@ async function bootstrap() {
       { path: 'health/db', method: RequestMethod.GET },
       { path: 'health/ws', method: RequestMethod.GET },
       { path: 'health/full', method: RequestMethod.GET },
+      { path: 'uploads', method: RequestMethod.ALL },
+      { path: 'uploads/(.*)', method: RequestMethod.ALL },
     ],
   });
 

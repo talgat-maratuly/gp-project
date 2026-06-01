@@ -1,4 +1,4 @@
-import { get, post, patch, del, request, API_URL, getApiRootUrl } from './apiClient.js'
+import { get, post, patch, del, request, uploadForm, API_URL, getApiRootUrl } from './apiClient.js'
 import {
   setToken,
   clearToken,
@@ -152,9 +152,45 @@ export const api = {
 
   getPartnerApplication: () => get('/partner/me'),
 
+  /** Shop partners only — specialists use submitSpecialistApplication */
   partnerApply: (body) => post('/partner/apply', body),
 
   partnerResubmit: (body) => patch('/partner/me/resubmit', body),
+
+  getSpecialistOnboardingCatalog: () =>
+    get('/specialist/onboarding/catalog', { auth: false }),
+
+  getSpecialistApplications: () => get('/specialist/applications'),
+
+  getSpecialistApplication: (id) => get(`/specialist/applications/${id}`),
+
+  submitSpecialistApplication: (body) => post('/specialist/applications', body),
+
+  uploadSpecialistPhoto: (file, kind) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    return uploadForm(`/uploads/specialist-photo?kind=${encodeURIComponent(kind)}`, fd)
+  },
+
+  moderatorListSpecialistRequests: (opts = {}) => {
+    const params = new URLSearchParams()
+    if (opts.status) params.set('status', opts.status)
+    if (opts.page) params.set('page', String(opts.page))
+    if (opts.limit) params.set('limit', String(opts.limit))
+    if (opts.city) params.set('city', opts.city)
+    if (opts.specialistName) params.set('specialistName', opts.specialistName)
+    if (opts.phoneNumber) params.set('phoneNumber', opts.phoneNumber)
+    const q = params.toString() ? `?${params.toString()}` : ''
+    return get(`/moderator/specialist-requests${q}`)
+  },
+
+  moderatorGetSpecialistRequest: (id) => get(`/moderator/specialist-requests/${id}`),
+
+  moderatorApproveSpecialistRequest: (id) =>
+    patch(`/moderator/specialist-requests/${id}/approve`, {}),
+
+  moderatorRejectSpecialistRequest: (id, body) =>
+    patch(`/moderator/specialist-requests/${id}/reject`, body),
 
   getRegions: () => get('/regions', { auth: false }),
 

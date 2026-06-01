@@ -15,7 +15,8 @@ import PartnerCabinetPage from '../pages/PartnerCabinetPage'
 import CabinetShopPage from '../pages/cabinet/CabinetShopPage'
 import AddProductPage from '../pages/AddProductPage'
 import ProfilePage from '../pages/ProfilePage'
-import PartnerApplyPage from '../pages/PartnerApplyPage'
+import SpecialistOnboardingPage from '../pages/SpecialistOnboardingPage'
+import ShopApplyPage from '../pages/ShopApplyPage'
 import PartnerAccessGate from '../components/PartnerAccessGate'
 import QrOrdersPage from '../pages/QrOrdersPage'
 import FurnitureExecutorOrdersPage from '../pages/FurnitureExecutorOrdersPage'
@@ -45,8 +46,8 @@ export default function App() {
       <Route element={<PartnerShell />}>
         <Route path="moderation" element={<Navigate to="/profile" replace state={{ noAccess: true }} />} />
         <Route path="moderation/*" element={<Navigate to="/profile" replace state={{ noAccess: true }} />} />
-        <Route path="apply" element={<PartnerApplyPage />} />
-        <Route path="apply/specialist" element={<PartnerApplyPage specialistOnly />} />
+        <Route path="apply" element={<ShopApplyPage />} />
+        <Route path="apply/specialist" element={<SpecialistOnboardingPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route element={<PartnerAccessGate />}>
           <Route index element={<DashboardPage />} />

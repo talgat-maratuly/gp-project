@@ -26,7 +26,9 @@
 
 `mainServiceId`, `subserviceIds[]`, `regionId`, `city`, `fullName`, `phone`, `profilePhotoUrl`, `idCardFrontUrl`, `idCardBackUrl`, `vehicle?` (SEPTIC), `equipmentPhotoUrls?` (Lawn/…), `termsAccepted`, `personalDataAccepted`, `resubmitRequestId?`
 
-Файлдар: URL массивтері (upload endpoint кейін қосылады).
+Файлдар: `POST /api/uploads/specialist-photo?kind=profile|id_front|id_back|vehicle|registration|driver_license|equipment` (multipart). GP Partner: `/apply/specialist` — галерея/камера.
+
+Ескі `PartnerProfile.vehiclePhotos` / `equipmentPhotos` жойылған.
 
 ## Flutter архитектурасы (10 қадам)
 

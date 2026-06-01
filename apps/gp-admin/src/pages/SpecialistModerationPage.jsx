@@ -1,5 +1,5 @@
 import { useSearchParams } from 'react-router-dom'
-import PartnerModerationPanel from '../components/PartnerModerationPanel'
+import SpecialistRequestsModerationPanel from '../components/SpecialistRequestsModerationPanel'
 import OfferingModerationPanel from '../components/OfferingModerationPanel'
 import { useLanguage } from '../i18n/LanguageContext'
 
@@ -37,8 +37,7 @@ export default function SpecialistModerationPage() {
       </div>
 
       {view === 'profiles' ? (
-        <PartnerModerationPanel
-          scope="specialist"
+        <SpecialistRequestsModerationPanel
           title={t('specialist_moderation')}
           subtitle={t('specialist_moderation_desc')}
         />

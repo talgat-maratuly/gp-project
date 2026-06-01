@@ -91,18 +91,6 @@ export class PartnerApplyDto {
   @Type(() => PartnerDocumentItemDto)
   documents?: PartnerDocumentItemDto[];
 
-  @ApiProperty({ type: [String], required: false })
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  vehiclePhotos?: string[];
-
-  @ApiProperty({ type: [String], required: false })
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  equipmentPhotos?: string[];
-
   /** Для SPECIALIST / OTHER — выбранные подуслуги */
   @ApiProperty({ required: false, type: [String] })
   @IsOptional()

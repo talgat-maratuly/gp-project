@@ -101,7 +101,7 @@ export default function ServicesPage() {
 
       {user?.partnerStatus && user.partnerStatus !== 'APPROVED' && (
         <Link
-          to="/apply"
+          to={user?.partnerRole === 'SHOP' ? '/apply' : '/apply/specialist'}
           className="block rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200"
         >
           Статус модерации: {PARTNER_STATUS_LABELS[user.partnerStatus]}

@@ -158,8 +158,6 @@ export class PartnerModerationService {
           legalAddress: dto.legalAddress?.trim() || null,
           idDocumentNumber: dto.idDocumentNumber?.trim() || null,
           documents: documents.length ? documents : undefined,
-          vehiclePhotos: dto.vehiclePhotos ?? [],
-          equipmentPhotos: dto.equipmentPhotos ?? [],
           rejectionReason: null,
           revisionComment: null,
           rejectedAt: null,
@@ -217,8 +215,6 @@ export class PartnerModerationService {
         legalAddress: dto.legalAddress ?? current.legalAddress ?? undefined,
         idDocumentNumber: dto.idDocumentNumber ?? current.idDocumentNumber ?? undefined,
         documents: dto.documents,
-        vehiclePhotos: dto.vehiclePhotos ?? (current.vehiclePhotos as string[]),
-        equipmentPhotos: dto.equipmentPhotos ?? (current.equipmentPhotos as string[]),
         subserviceIds: dto.subserviceIds,
       });
     }

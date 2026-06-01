@@ -87,7 +87,7 @@ export const API_CONTRACT = {
     'adminOfferings',
     'adminUpdateOfferingStatus',
   ],
-  partner: ['getPartnerMe', 'partnerApply', 'getRegions'],
+  partner: ['getPartnerMe', 'partnerApply', 'submitSpecialistApplication', 'getSpecialistApplications', 'uploadSpecialistPhoto', 'getRegions'],
   market: ['getMarketProducts'],
 }
 

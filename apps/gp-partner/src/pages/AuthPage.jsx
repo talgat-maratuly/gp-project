@@ -64,7 +64,7 @@ export default function AuthPage() {
   const [passwordStarted, setPasswordStarted] = useState(false)
 
   useEffect(() => {
-    if (authReady && user) navigate('/', { replace: true })
+    if (authReady && user?.partnerStatus === 'APPROVED') navigate('/', { replace: true })
   }, [authReady, user, navigate])
 
   useEffect(() => {
@@ -212,6 +212,8 @@ export default function AuthPage() {
           ? [{ kind: form.docKind, number: form.docNumber.trim() }]
           : undefined,
       })
+      const shopOnly = [...selectedMainIds].length > 0 && [...selectedMainIds].every((id) => id === 'shop')
+      navigate(shopOnly ? '/apply' : '/apply/specialist', { replace: true })
     } catch (err) {
       setError(err?.message || 'Ошибка регистрации')
     }
