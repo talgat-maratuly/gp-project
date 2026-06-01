@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '@gp/shared/api'
 import { useLanguage } from '../i18n/LanguageContext'
-import { useAdminAuth } from '../context/AdminAuthContext'
-import { ACTIONS } from '@gp/shared-core/permissions'
+import { useAccess } from '../context/AccessContext'
+import { ACTIONS } from '../lib/permissions'
 
 const STATUS_TABS = ['PENDING', 'APPROVED', 'REJECTED', '']
 
 export default function SpecialistRequestsModerationPanel({ title, subtitle }) {
   const { t } = useLanguage()
-  const { can } = useAdminAuth()
+  const { can } = useAccess()
   const [tab, setTab] = useState('PENDING')
   const [list, setList] = useState([])
   const [selected, setSelected] = useState(null)
