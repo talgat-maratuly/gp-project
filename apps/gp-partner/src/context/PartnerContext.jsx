@@ -574,6 +574,7 @@ export function PartnerProvider({ children }) {
     isDemoMode: isDemoMode(),
     refreshMarket: () => {},
     topupBalance, addProduct, refreshAll, refreshStores, updateExecutorLocation, notify,
+    syncPartner,
     clearToast: () => setToast(null),
   }
 
