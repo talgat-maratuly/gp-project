@@ -57,14 +57,14 @@ async function bootstrap() {
     credentials: true,
   });
 
+  // Не exclude «uploads» — иначе @Controller('uploads') → POST /uploads/... без /api (404 на /api/uploads/...).
+  // Статика файлов: express useStaticAssets('/uploads/') — globalPrefix-ке тәуелсіз.
   app.setGlobalPrefix('api', {
     exclude: [
       { path: 'health', method: RequestMethod.GET },
       { path: 'health/db', method: RequestMethod.GET },
       { path: 'health/ws', method: RequestMethod.GET },
       { path: 'health/full', method: RequestMethod.GET },
-      { path: 'uploads', method: RequestMethod.ALL },
-      { path: 'uploads/(.*)', method: RequestMethod.ALL },
     ],
   });
 
