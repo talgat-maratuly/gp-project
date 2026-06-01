@@ -10,6 +10,7 @@ import {
   PartnerStatus,
   PartnerType,
   PortalRole,
+  Prisma,
   RequestStatus,
   Role,
   WorkStatus,
@@ -85,7 +86,17 @@ export class SpecialistOnboardingService {
     });
     if (pendingSameCategory) {
       throw new BadRequestException(
-        `You already have a pending application for ${dto.mainServiceId}. Wait for moderation or resubmit after rejection.`,
+        `Бұл қызмет (${dto.mainServiceId}) бойынша өтініміңіз тексеруде. Жаңасын жіберуге болмайды — модерация нәтижесін күтіңіз.`,
+      );
+    }
+
+    const rejectedSameCategory = await this.prisma.specialistRequest.findFirst({
+      where: { userId, primaryCategory, status: RequestStatus.REJECTED },
+      orderBy: { updatedAt: 'desc' },
+    });
+    if (rejectedSameCategory && !dto.resubmitRequestId) {
+      throw new BadRequestException(
+        `Бұл қызмет бойынша өтінім қабылданбады. Қайта жіберу үшін профильден «Өңдеу» немесе resubmitRequestId=${rejectedSameCategory.id} қолданыңыз.`,
       );
     }
 
@@ -98,13 +109,30 @@ export class SpecialistOnboardingService {
     });
     if (duplicateSubs) {
       throw new BadRequestException(
-        'These sub-services are already approved. Submit only new sub-services in a new application.',
+        'Бұл подуслугалар бекітілген. Тек жаңа подуслуга үшін жаңа өтінім жіберіңіз.',
+      );
+    }
+
+    const conflictingOfferings = await this.prisma.partnerServiceOffering.findMany({
+      where: {
+        partnerId: profile.id,
+        subserviceId: { in: dto.subserviceIds },
+        specialistRequest: { status: { in: [RequestStatus.PENDING, RequestStatus.APPROVED] } },
+      },
+      select: { subserviceId: true, specialistRequest: { select: { status: true, primaryCategory: true } } },
+    });
+    if (conflictingOfferings.length) {
+      const subs = conflictingOfferings.map((o) => o.subserviceId).join(', ');
+      throw new BadRequestException(
+        `Подуслугалар (${subs}) бойынша өтінім қазірдің өзінде бар. Басқа подуслуга таңдаңыз немесе модерацияны күтіңіз.`,
       );
     }
 
     const partnerType = this.partnerTypeForCategory(primaryCategory);
 
-    const request = await this.prisma.$transaction(async (tx) => {
+    let request: { id: string; regionId: string };
+    try {
+      request = await this.prisma.$transaction(async (tx) => {
       await tx.user.update({
         where: { id: userId },
         data: {
@@ -171,7 +199,24 @@ export class SpecialistOnboardingService {
       }
 
       return created;
-    });
+      });
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002'
+      ) {
+        const any = await this.prisma.specialistRequest.findFirst({
+          where: { userId },
+          orderBy: { createdAt: 'desc' },
+        });
+        throw new BadRequestException(
+          any
+            ? `Сізде өтінім бар (${any.status}, ${any.primaryCategory}). Бір қызметке бір актив өтінім. Ескі БД шектеуі болса: npm run prisma:migrate:deploy`
+            : 'Бұл деректер бойынша жазба бар (P2002). Подуслуга қайталануы мүмкін.',
+        );
+      }
+      throw err;
+    }
 
     await this.notifications.notifySubmitted(userId, request.regionId, false);
 
