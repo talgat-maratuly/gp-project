@@ -4,7 +4,7 @@ import { isKnownSubserviceId, SUBSERVICE_TO_DIRECTION } from '../common/partner-
 import { FurnitureExecutorService } from '../furniture-executor/furniture-executor.service';
 import { UserStatusService } from '../user-status/user-status.service';
 import { WorkStatus } from '@prisma/client';
-import { workStatusToLegacyOnline } from '../user-status/work-status.util';
+import { workStatusToLegacyOnline, normalizePartnerProfileForApi } from '../user-status/work-status.util';
 
 const PartnerOfferingStatusValue = {
   ACTIVE: 'ACTIVE',
@@ -52,7 +52,7 @@ export class PartnersService {
       },
     });
     if (!profile) throw new NotFoundException('Профиль партнёра не найден');
-    return profile;
+    return normalizePartnerProfileForApi(profile);
   }
 
   async updateProfile(
@@ -92,10 +92,12 @@ export class PartnersService {
       patch.isOnline = workStatusToLegacyOnline(nextWork);
     }
 
-    return this.prisma.partnerProfile.update({
-      where: { id: profile.id },
-      data: patch,
-    });
+    return normalizePartnerProfileForApi(
+      await this.prisma.partnerProfile.update({
+        where: { id: profile.id },
+        data: patch,
+      }),
+    );
   }
 
   async updateWorkStatus(userId: string, workStatus: WorkStatus) {

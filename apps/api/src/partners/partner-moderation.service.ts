@@ -8,6 +8,7 @@ import { AccountType, PartnerRole, PartnerType, RequestStatus } from '@prisma/cl
 import { GP_SHOP_SUBSERVICE_ID } from '../common/partner-offerings.util';
 import { normalizePartnerDocuments, validatePartnerRegistration } from '../common/account-type.util';
 import { resolveSubserviceIdsForPartnerType } from '../common/partner-type.util';
+import { normalizePartnerProfileForApi } from '../user-status/work-status.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { PartnerApplyDto } from './dto/partner-apply.dto';
 import { PartnerResubmitDto } from './dto/partner-resubmit.dto';
@@ -51,7 +52,7 @@ export class PartnerModerationService {
       },
     });
     if (!profile) throw new NotFoundException('Профиль партнёра не найден');
-    return profile;
+    return normalizePartnerProfileForApi(profile);
   }
 
   private resolvePartnerRole(dto: PartnerApplyDto): PartnerRole {

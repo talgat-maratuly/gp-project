@@ -8,8 +8,10 @@ import {
   PartnerRole,
   PaymentMethod,
   PrismaClient,
+  RequestStatus,
   Role,
   StoreStatus,
+  WorkStatus,
 } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { expandDirectionsToSubservices } from '../src/common/partner-offerings.util';
@@ -109,7 +111,8 @@ async function main() {
             PartnerDirection.SHOP,
           ],
           balance: 15000,
-          isOnline: true,
+          isOnline: false,
+          workStatus: WorkStatus.OFFLINE,
           lat: 51.243,
           lng: 51.377,
         },
@@ -123,8 +126,9 @@ async function main() {
     data: {
       regionId: uralskRegion.id,
       status: PartnerStatus.APPROVED,
-      partnerType: PartnerType.SHOP,
-      partnerRole: PartnerRole.SHOP,
+      requestStatus: RequestStatus.APPROVED,
+      partnerType: PartnerType.SPECIALIST,
+      partnerRole: PartnerRole.MIXED_PARTNER,
       companyName: 'GP Услуги Уральск',
       fullName: partnerUser.name,
       approvedAt: new Date(),
@@ -242,6 +246,8 @@ async function main() {
         serviceName: 'Откачка септика',
         serviceId: 'septic-pumping',
         address: 'Уральск, ул. Мухит 112',
+        city: 'Уральск',
+        regionId: uralskRegion.id,
         clientName: clientUser.name,
         clientPhone: clientUser.phone,
         clientLat: 51.233,

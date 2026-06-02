@@ -22,6 +22,7 @@ import {
   validatePartnerRegistration,
 } from '../common/account-type.util';
 import { PrismaService } from '../prisma/prisma.service';
+import { normalizePartnerProfileForApi } from '../user-status/work-status.util';
 import { RegisterClientDto } from './dto/register-client.dto';
 import { RegisterPartnerDto } from './dto/register-partner.dto';
 import { LoginDto } from './dto/login.dto';
@@ -269,6 +270,9 @@ export class AuthService {
     const { passwordHash: _, ...safe } = user;
     return {
       ...safe,
+      partnerProfile: safe.partnerProfile
+        ? normalizePartnerProfileForApi(safe.partnerProfile)
+        : null,
       roles: this.rbac.resolvePortalRoles(user),
       statuses: this.userStatus.snapshot(user, user.partnerProfile ?? null),
     };

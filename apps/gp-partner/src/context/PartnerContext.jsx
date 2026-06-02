@@ -46,6 +46,12 @@ function mapTestPartnerToSession(me) {
   }
 }
 
+function partnerIsOnline(profile) {
+  if (!profile) return false
+  if (profile.workStatus) return profile.workStatus === 'ONLINE'
+  return !!profile.isOnline
+}
+
 async function loadPartnerSession() {
   if (!getToken()) return null
   if (isTestModeActive() && getToken().startsWith('gp_test_')) {
@@ -69,7 +75,7 @@ async function loadPartnerSession() {
     company: profile.companyName || profile.company,
     directions: (profile.directions || []).map((d) => CATEGORY_TO_UI[d] || d.toLowerCase()),
     balance: Number(profile.balance),
-    isOnline: profile.isOnline,
+    isOnline: partnerIsOnline(profile),
     lat: profile.lat,
     lng: profile.lng,
     partnerProfileId: profile.id,
@@ -135,7 +141,7 @@ export function PartnerProvider({ children }) {
       company: profile.companyName || profile.company,
       directions: (profile.directions || []).map((d) => CATEGORY_TO_UI[d] || d.toLowerCase()),
       balance: Number(profile.balance),
-      isOnline: profile.isOnline,
+      isOnline: partnerIsOnline(profile),
       lat: profile.lat,
       lng: profile.lng,
       partnerProfileId: profile.id,
@@ -410,9 +416,9 @@ export function PartnerProvider({ children }) {
   }, [])
 
   const setOnline = useCallback(async (isOnline) => {
-    await api.patchPartnerMe({ isOnline })
-    setUser((u) => (u ? { ...u, isOnline } : u))
-    if (isOnline) refreshFeed()
+    const profile = await api.patchPartnerMe({ isOnline })
+    setUser((u) => (u ? { ...u, isOnline: partnerIsOnline(profile) } : u))
+    if (partnerIsOnline(profile)) refreshFeed()
     else setFeed([])
   }, [refreshFeed])
 
@@ -426,7 +432,7 @@ export function PartnerProvider({ children }) {
             company: profile.company,
             directions: (profile.directions || []).map((d) => CATEGORY_TO_UI[d] || d.toLowerCase()),
             balance: Number(profile.balance),
-            isOnline: profile.isOnline,
+            isOnline: partnerIsOnline(profile),
             lat: profile.lat,
             lng: profile.lng,
             partnerProfileId: profile.id,
