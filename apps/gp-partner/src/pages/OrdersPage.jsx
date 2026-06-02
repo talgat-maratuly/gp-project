@@ -19,18 +19,11 @@ import { buildMockTracking } from '@gp/shared/utils'
 import { URALSK_DISPOSAL_ZONES } from '@gp/shared/constants'
 import { subscribeOrderTracking } from '@gp/shared/api/trackingSocket'
 import LiveTrackingMap from '../components/LiveTrackingMap'
+import MapNavigationPicker from '../components/MapNavigationPicker'
 import { useGpsTracker } from '../hooks/useGpsTracker'
 import { Chip, KaspiCard } from '@gp/shared/ui/KaspiUI'
 
-function openNavigation(order) {
-  const lat = order.clientLat
-  const lng = order.clientLng
-  if (lat == null || lng == null) return
-  const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
-  window.open(url, '_blank', 'noopener')
-}
-
-function OrderCard({ order, user, onAccept, onAdvance, onCancel, onSelect, selected, feedMode = false }) {
+function OrderCard({ order, user, onAccept, onAdvance, onCancel, onSelect, onRoute, selected, feedMode = false }) {
   const action = getPartnerOrderAction(order.status, order.category)
   const isMine = (order.assignedPartnerId || order.partnerId) === user?.partnerProfileId
   const lawnLabel = LAWN_WORK_TYPES.find((t) => t.id === order.lawnWorkType)?.label
@@ -88,10 +81,10 @@ function OrderCard({ order, user, onAccept, onAdvance, onCancel, onSelect, selec
             <button type="button" onClick={() => onSelect(order.id)} className="flex-1 py-3 rounded-2xl text-sm font-bold border border-[var(--gp-border)]">
               На карте
             </button>
-            {isMine && order.clientLat != null && (
+            {isMine && (order.clientLat != null || order.address) && (
               <button
                 type="button"
-                onClick={() => openNavigation(order)}
+                onClick={() => onRoute(order)}
                 className="flex-1 py-3 rounded-2xl text-sm font-bold gp-gradient-kaspi text-white flex items-center justify-center gap-1"
               >
                 <Navigation className="w-4 h-4" /> Маршрут
@@ -112,6 +105,7 @@ export default function OrdersPage() {
   } = usePartner()
   const [tab, setTab] = useState('feed')
   const [dirFilter, setDirFilter] = useState('all')
+  const [routeTarget, setRouteTarget] = useState(null)
   const [tracking, setTracking] = useState(null)
   const [geofences, setGeofences] = useState(URALSK_DISPOSAL_ZONES)
 
@@ -153,6 +147,14 @@ export default function OrdersPage() {
   const handleCancel = async (orderId) => {
     const reason = window.prompt('Укажите причину отмены заказа:')
     if (reason && reason.trim().length >= 3) await cancelOrder(orderId, reason.trim())
+  }
+
+  const handleRoute = (order) => {
+    setRouteTarget({
+      lat: order.clientLat,
+      lng: order.clientLng,
+      address: order.address,
+    })
   }
 
   return (
@@ -240,6 +242,7 @@ export default function OrdersPage() {
               onAdvance={handleAdvance}
               onCancel={handleCancel}
               onSelect={setActiveOrderId}
+              onRoute={handleRoute}
             />
           ))}
           {!filtered.length && (
@@ -251,6 +254,12 @@ export default function OrdersPage() {
           )}
         </ul>
       )}
+
+      <MapNavigationPicker
+        open={!!routeTarget}
+        destination={routeTarget}
+        onClose={() => setRouteTarget(null)}
+      />
     </div>
   )
 }
