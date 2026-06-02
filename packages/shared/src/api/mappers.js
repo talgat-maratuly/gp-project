@@ -125,6 +125,7 @@ export function mapOrder(o, { forClient = false } = {}) {
     preferredDate: o.preferredDate || null,
     preferredTime: o.preferredTime || null,
     lawnAreaSqm: o.lawnAreaSqm != null ? Number(o.lawnAreaSqm) : null,
+    city: o.city || o.client?.city || null,
   }
   if (forClient) {
     delete mapped.gpCommission

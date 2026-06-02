@@ -154,6 +154,7 @@ export default function OrdersPage() {
       lat: order.clientLat,
       lng: order.clientLng,
       address: order.address,
+      city: order.city,
     })
   }
 

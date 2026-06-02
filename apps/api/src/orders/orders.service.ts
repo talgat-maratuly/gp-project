@@ -354,9 +354,9 @@ export class OrdersService {
   }
 
   async findForUser(userId: string, role: Role, filters?: { status?: OrderStatus; category?: string }) {
-    if (role === Role.CLIENT) {
-      const client = await this.prisma.clientProfile.findUnique({ where: { userId } });
-      if (!client) return [];
+    const client = await this.prisma.clientProfile.findUnique({ where: { userId } });
+    // ClientProfile бар — client тапсырыстары (JWT role PARTNER болса да, OTP dual-role кейсі)
+    if (client) {
       const list = await this.prisma.order.findMany({
         where: {
           clientId: client.id,

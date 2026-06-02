@@ -19,16 +19,40 @@ export default function ServicesPage() {
   const [svcModal, setSvcModal] = useState(null)
   const [subModal, setSubModal] = useState(null)
   const [form, setForm] = useState({ name: '', basePrice: 0, gpCommission: 0, active: true })
-  const [subForm, setSubForm] = useState({ name: '', price: 0, gpCommission: 0 })
+  const [subForm, setSubForm] = useState({ serviceId: '', name: '', price: 0, gpCommission: 0 })
 
   const franchiseId = effectiveFranchiseId || user.franchiseId
+  const hasServices = scoped.services.length > 0
 
   const openAddService = () => {
     setSvcModal('new')
     setForm({ name: '', basePrice: 10000, gpCommission: 500, active: true })
   }
 
+  const openAddSubservice = (presetServiceId = '') => {
+    const serviceId = presetServiceId || scoped.services[0]?.id || ''
+    const svc = scoped.services.find((s) => s.id === serviceId)
+    setSubModal({ serviceId, subId: 'new' })
+    setSubForm({
+      serviceId,
+      name: '',
+      price: svc?.basePrice ?? 0,
+      gpCommission: svc?.gpCommission ?? 0,
+    })
+  }
+
+  const onSubserviceParentChange = (serviceId) => {
+    const svc = scoped.services.find((s) => s.id === serviceId)
+    setSubForm((prev) => ({
+      ...prev,
+      serviceId,
+      price: svc?.basePrice ?? prev.price,
+      gpCommission: svc?.gpCommission ?? prev.gpCommission,
+    }))
+  }
+
   const saveService = () => {
+    if (!form.name.trim()) return
     if (svcModal === 'new') {
       addService({ ...form, franchiseId, subservices: [] })
     } else {
@@ -38,11 +62,14 @@ export default function ServicesPage() {
   }
 
   const saveSub = () => {
-    if (!subModal) return
+    if (!subModal || !subForm.name.trim()) return
     if (subModal.subId === 'new') {
-      addSubservice(subModal.serviceId, subForm)
+      if (!subForm.serviceId) return
+      const { name, price, gpCommission } = subForm
+      addSubservice(subForm.serviceId, { name, price, gpCommission })
     } else {
-      updateSubservice(subModal.serviceId, subModal.subId, subForm)
+      const { name, price, gpCommission } = subForm
+      updateSubservice(subModal.serviceId, subModal.subId, { name, price, gpCommission })
     }
     setSubModal(null)
   }
@@ -51,9 +78,20 @@ export default function ServicesPage() {
 
   return (
     <div className="space-y-4">
-      <button type="button" onClick={openAddService} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-600 text-sm font-semibold">
-        <Plus className="w-4 h-4" /> {t('addService')}
-      </button>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={openAddService} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-600 text-sm font-semibold">
+          <Plus className="w-4 h-4" /> {t('addService')}
+        </button>
+        <button
+          type="button"
+          disabled={!hasServices}
+          onClick={() => openAddSubservice()}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/20 text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+          title={!hasServices ? t('selectService') : undefined}
+        >
+          <Plus className="w-4 h-4" /> {t('addSubservice')}
+        </button>
+      </div>
       {scoped.services.map((s) => (
         <div key={s.id} className="admin-card">
           <div className="flex flex-wrap items-start justify-between gap-2">
@@ -74,7 +112,7 @@ export default function ServicesPage() {
             <div className="mt-4 border-t border-white/10 pt-4">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm font-semibold">{t('subservices')}</span>
-                <button type="button" className="text-xs text-sky-400" onClick={() => { setSubModal({ serviceId: s.id, subId: 'new' }); setSubForm({ name: '', price: s.basePrice, gpCommission: s.gpCommission }) }}>
+                <button type="button" className="text-xs text-sky-400" onClick={() => openAddSubservice(s.id)}>
                   + {t('addSubservice')}
                 </button>
               </div>
@@ -83,7 +121,7 @@ export default function ServicesPage() {
                   <li key={sub.id} className="flex justify-between items-center px-3 py-2 rounded-lg bg-white/5 text-sm">
                     <span>{sub.name} — {formatMoney(sub.price)}</span>
                     <div className="flex gap-1">
-                      <button type="button" className="text-xs text-sky-400" onClick={() => { setSubModal({ serviceId: s.id, subId: sub.id }); setSubForm({ name: sub.name, price: sub.price, gpCommission: sub.gpCommission }) }}>{t('edit')}</button>
+                      <button type="button" className="text-xs text-sky-400" onClick={() => { setSubModal({ serviceId: s.id, subId: sub.id }); setSubForm({ serviceId: s.id, name: sub.name, price: sub.price, gpCommission: sub.gpCommission }) }}>{t('edit')}</button>
                       <button type="button" className="text-xs text-red-400" onClick={() => removeSubservice(s.id, sub.id)}>{t('delete')}</button>
                     </div>
                   </li>
@@ -104,8 +142,27 @@ export default function ServicesPage() {
         </div>
       </Modal>
 
-      <Modal open={!!subModal} onClose={() => setSubModal(null)} title={t('subservice')}>
+      <Modal open={!!subModal} onClose={() => setSubModal(null)} title={subModal?.subId === 'new' ? t('addSubservice') : t('subservice')}>
         <div className="space-y-3 text-sm">
+          {subModal?.subId === 'new' ? (
+            <label className="block">
+              <span className="text-xs text-slate-300 font-medium">{t('service')}</span>
+              <select
+                className="admin-input mt-1"
+                value={subForm.serviceId}
+                onChange={(e) => onSubserviceParentChange(e.target.value)}
+              >
+                <option value="">{t('selectService')}</option>
+                {scoped.services.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <p className="text-xs text-slate-400">
+              {t('service')}: {scoped.services.find((s) => s.id === subModal?.serviceId)?.name || '—'}
+            </p>
+          )}
           <label className="block"><span className="text-xs text-slate-300 font-medium">{t('subserviceName')}</span><input className="admin-input mt-1" value={subForm.name} onChange={(e) => setSubForm({ ...subForm, name: e.target.value })} /></label>
           <label className="block"><span className="text-xs text-slate-300 font-medium">{t('price')}</span><input type="number" className="admin-input mt-1" value={subForm.price} onChange={(e) => setSubForm({ ...subForm, price: +e.target.value })} /></label>
           <label className="block"><span className="text-xs text-slate-300 font-medium">{t('gpCommission')}</span><input type="number" className="admin-input mt-1" value={subForm.gpCommission} onChange={(e) => setSubForm({ ...subForm, gpCommission: +e.target.value })} /></label>

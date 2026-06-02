@@ -442,6 +442,10 @@ export function ServiceProvider({ children }) {
       })),
     }
     const order = await api.createOrder(payload)
+    setOrders((prev) => {
+      const mapped = { ...order, kind: order.category === 'shop' ? 'shop' : 'service' }
+      return [mapped, ...prev.filter((o) => o.id !== order.id)]
+    })
     await refreshOrders()
     clearCart()
     setCheckoutDraft(null)
@@ -493,6 +497,10 @@ export function ServiceProvider({ children }) {
       lawnAreaSqm: data.lawnAreaSqm ? Number(data.lawnAreaSqm) : undefined,
     }
     const order = await api.createOrder(payload)
+    setOrders((prev) => {
+      const mapped = { ...order, kind: order.category === 'shop' ? 'shop' : 'service' }
+      return [mapped, ...prev.filter((o) => o.id !== order.id)]
+    })
     await refreshOrders()
     notify('Заявка отправлена! Партнёр увидит её в GP Partner.')
     return order
