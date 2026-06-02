@@ -188,7 +188,8 @@ export function PartnerProvider({ children }) {
     setFeedLoading(true)
     try {
       setFeed(await api.getSpecialistFeed())
-    } catch {
+    } catch (e) {
+      console.warn('[feed]', e?.message || e)
       setFeed([])
     } finally {
       setFeedLoading(false)
@@ -232,12 +233,13 @@ export function PartnerProvider({ children }) {
   const refreshAll = useCallback(async () => {
     await Promise.all([
       refreshOrders(),
+      refreshFeed(),
       refreshProducts(),
       refreshTransactions(),
       syncPartner(),
       refreshStores(),
     ])
-  }, [refreshOrders, refreshProducts, refreshTransactions, syncPartner, refreshStores])
+  }, [refreshOrders, refreshFeed, refreshProducts, refreshTransactions, syncPartner, refreshStores])
 
   useEffect(() => {
     if (!user?.id) return

@@ -24,6 +24,7 @@ import { SpecialistRequestNotificationsService } from './specialist-request-noti
 import { assertRequestStatusTransition } from './specialist-request.transitions';
 import { ModeratorSpecialistRequestsQueryDto } from './dto/moderator-list-query.dto';
 import { SUBSERVICE_TO_DIRECTION } from '../common/partner-offerings.util';
+import { requestStatusFromPartnerStatus } from '../user-status/request-status.mapper';
 
 const specialistInclude = {
   user: { select: { id: true, email: true, name: true, phone: true, regionId: true } },
@@ -357,16 +358,27 @@ export class SpecialistRequestsService {
     const approved = await this.prisma.specialistRequest.count({
       where: { userId, status: RequestStatus.APPROVED },
     });
-    if (approved < 1) {
-      const pending = await this.prisma.specialistRequest.findFirst({
-        where: { userId },
-        orderBy: { createdAt: 'desc' },
-        select: { status: true },
-      });
-      throw new ForbiddenException({
-        message: 'Your application is under moderation.\nPlease wait for review results.',
-        requestStatus: pending?.status ?? RequestStatus.PENDING,
-      });
+    if (approved >= 1) return;
+
+    // Legacy fallback: SpecialistRequest жоқ, бірақ PartnerProfile APPROVED
+    const profile = await this.prisma.partnerProfile.findUnique({
+      where: { userId },
+      select: { status: true, requestStatus: true },
+    });
+    if (profile) {
+      const effectiveRequest =
+        profile.requestStatus ?? requestStatusFromPartnerStatus(profile.status);
+      if (effectiveRequest === RequestStatus.APPROVED) return;
     }
+
+    const pending = await this.prisma.specialistRequest.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      select: { status: true },
+    });
+    throw new ForbiddenException({
+      message: 'Your application is under moderation.\nPlease wait for review results.',
+      requestStatus: pending?.status ?? RequestStatus.PENDING,
+    });
   }
 }
