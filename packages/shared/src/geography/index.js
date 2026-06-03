@@ -43,3 +43,25 @@ export function resolveCitySelection(store, cityId, lang = 'ru') {
 export function citiesForFranchise(store, franchiseId) {
   return activeCities(store).filter((c) => c.franchiseId === franchiseId)
 }
+
+/** Заявка/клиент city мәтінінен oblastId + cityId табу */
+export function inferCitySelection(store, { city, cityId, oblastId, franchiseId } = {}, lang = 'ru') {
+  if (cityId) {
+    const resolved = resolveCitySelection(store, cityId, lang)
+    if (resolved) return resolved
+  }
+  const cities = activeCities(store)
+  const byName = city
+    ? cities.find((c) => cityLabel(c, lang) === city || c.name === city)
+    : null
+  if (byName) return resolveCitySelection(store, byName.id, lang)
+  if (franchiseId) {
+    const byFr = cities.find((c) => c.franchiseId === franchiseId)
+    if (byFr) return resolveCitySelection(store, byFr.id, lang)
+  }
+  if (oblastId) {
+    const first = cities.find((c) => c.oblastId === oblastId)
+    if (first) return resolveCitySelection(store, first.id, lang)
+  }
+  return { oblastId: oblastId || '', cityId: cityId || '', city: city || '', franchiseId: franchiseId || null }
+}

@@ -6,6 +6,7 @@ import { api } from '@gp/shared/api'
 import { PREFERRED_TIME_SLOTS, SEPTIC_VOLUME_OPTIONS, calcServiceTotal } from '@gp/shared/constants'
 import { getServiceById } from '../../data/services'
 import { useService } from '../../context/ServiceContext'
+import CitySelector from '@gp/shared/components/CitySelector'
 import PaymentMethodPicker from '../../components/PaymentMethodPicker'
 import AddressPickerMap from '../../components/AddressPickerMap'
 import {
@@ -32,7 +33,7 @@ function statusToIndex(status) {
 
 export default function SepticOrderFlow() {
   const navigate = useNavigate()
-  const { placeServiceOrder, objects, profile, isLoggedIn, authReady, notify, refreshOrders } = useService()
+  const { placeServiceOrder, objects, profile, geoStore, isLoggedIn, authReady, notify, refreshOrders } = useService()
   const service = getServiceById('septic-pumping')
 
   const tomorrow = new Date()
@@ -60,6 +61,10 @@ export default function SepticOrderFlow() {
     septicVolume: 4,
     lat: 51.233,
     lng: 51.367,
+    oblastId: profile.oblastId || '',
+    cityId: profile.cityId || '',
+    city: profile.city || '',
+    franchiseId: profile.franchiseId || null,
   })
 
   useEffect(() => {
@@ -68,8 +73,12 @@ export default function SepticOrderFlow() {
       name: f.name || profile.name || '',
       phone: f.phone || profile.phone || '',
       objectId: f.objectId || objects[0]?.id || '',
+      oblastId: f.oblastId || profile.oblastId || '',
+      cityId: f.cityId || profile.cityId || '',
+      city: f.city || profile.city || '',
+      franchiseId: f.franchiseId || profile.franchiseId || null,
     }))
-  }, [profile.name, profile.phone, objects])
+  }, [profile.name, profile.phone, profile.oblastId, profile.cityId, profile.city, profile.franchiseId, objects])
 
   const total = useMemo(
     () => calcServiceTotal({ serviceId: 'septic-pumping', septicVolume: form.septicVolume }),
@@ -86,6 +95,7 @@ export default function SepticOrderFlow() {
     setProcessing(true)
     setError('')
     try {
+      if (!form.cityId) throw new Error('Выберите область и город')
       const order = await placeServiceOrder({
         serviceId: service.id,
         serviceName: service.name,
@@ -268,6 +278,23 @@ export default function SepticOrderFlow() {
 
       {step === 2 && (
         <div className="space-y-4">
+          {geoStore && (
+            <KaspiCard className="!p-4">
+              <p className="font-bold mb-3">Область и город</p>
+              <CitySelector
+                store={geoStore}
+                value={{ oblastId: form.oblastId, cityId: form.cityId }}
+                inputClassName="w-full mt-1 p-4 rounded-2xl border border-[var(--gp-border)] bg-[var(--gp-surface)]"
+                onChange={(sel) => setForm((f) => ({
+                  ...f,
+                  oblastId: sel.oblastId,
+                  cityId: sel.cityId,
+                  city: sel.city || f.city,
+                  franchiseId: sel.franchiseId || f.franchiseId,
+                }))}
+              />
+            </KaspiCard>
+          )}
           <KaspiCard className="!p-4">
             <p className="font-bold mb-2">Адрес</p>
             <select
@@ -311,6 +338,7 @@ export default function SepticOrderFlow() {
             <p className="text-3xl font-extrabold gp-text-gradient mt-1">{formatPrice(total)}</p>
             <ul className="mt-4 space-y-2 text-sm">
               <li className="flex justify-between"><span className="text-[var(--gp-text-muted)]">Объём</span><span className="font-semibold">{form.septicVolume} м³</span></li>
+              <li className="flex justify-between"><span className="text-[var(--gp-text-muted)]">Город</span><span className="font-semibold">{form.city || '—'}</span></li>
               <li className="flex justify-between"><span className="text-[var(--gp-text-muted)]">Дата</span><span className="font-semibold">{form.flexibleTime ? 'Любое время' : form.preferredDate}</span></li>
               <li className="flex justify-between"><span className="text-[var(--gp-text-muted)]">Адрес</span><span className="font-semibold text-right max-w-[55%]">{obj?.address}</span></li>
             </ul>

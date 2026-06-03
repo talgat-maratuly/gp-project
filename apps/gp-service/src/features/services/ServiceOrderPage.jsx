@@ -11,6 +11,8 @@ import {
 } from '@gp/shared/constants'
 import { getServiceById, getLawnPricing } from '../../data/services'
 import { useService } from '../../context/ServiceContext'
+import { useLanguage } from '../../i18n'
+import CitySelector from '@gp/shared/components/CitySelector'
 import PaymentMethodPicker from '../../components/PaymentMethodPicker'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
@@ -35,7 +37,8 @@ export default function ServiceOrderPage() {
 
 function GenericServiceOrder({ serviceId }) {
   const navigate = useNavigate()
-  const { placeServiceOrder, objects, profile, isLoggedIn, authReady } = useService()
+  const { t } = useLanguage()
+  const { placeServiceOrder, objects, profile, geoStore, isLoggedIn, authReady } = useService()
   const service = getServiceById(serviceId)
   const isSeptic = serviceId === 'septic-pumping'
   const isLawn = LAWN_SERVICE_IDS.includes(serviceId)
@@ -58,6 +61,10 @@ function GenericServiceOrder({ serviceId }) {
     paymentMethod: 'kaspi_partner',
     septicVolume: 4,
     lawnAreaSqm: '',
+    oblastId: profile.oblastId || '',
+    cityId: profile.cityId || '',
+    city: profile.city || '',
+    franchiseId: profile.franchiseId || null,
   })
   const [processing, setProcessing] = useState(false)
   const [error, setError] = useState('')
@@ -68,8 +75,12 @@ function GenericServiceOrder({ serviceId }) {
       name: f.name || profile.name || '',
       phone: f.phone || profile.phone || '',
       objectId: f.objectId || objects[0]?.id || '',
+      oblastId: f.oblastId || profile.oblastId || '',
+      cityId: f.cityId || profile.cityId || '',
+      city: f.city || profile.city || '',
+      franchiseId: f.franchiseId || profile.franchiseId || null,
     }))
-  }, [profile.name, profile.phone, objects])
+  }, [profile.name, profile.phone, profile.oblastId, profile.cityId, profile.city, profile.franchiseId, objects])
 
   const estimatedTotal = useMemo(() => {
     if (!serviceId) return 0
@@ -101,6 +112,11 @@ function GenericServiceOrder({ serviceId }) {
     }
     setProcessing(true)
     setError('')
+    if (!form.cityId) {
+      setError(t('selectCity'))
+      setProcessing(false)
+      return
+    }
     try {
       await placeServiceOrder({
         serviceId: service.id,
@@ -144,6 +160,20 @@ function GenericServiceOrder({ serviceId }) {
       <form onSubmit={submit} className="gp-card p-5 space-y-4">
         <Input label="Имя" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
         <Input label="Телефон" type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required />
+        {geoStore && (
+          <CitySelector
+            store={geoStore}
+            value={{ oblastId: form.oblastId, cityId: form.cityId }}
+            inputClassName="w-full mt-1 p-3 rounded-xl border border-[var(--gp-border)] bg-[var(--gp-surface)]"
+            onChange={(sel) => setForm((f) => ({
+              ...f,
+              oblastId: sel.oblastId,
+              cityId: sel.cityId,
+              city: sel.city || f.city,
+              franchiseId: sel.franchiseId || f.franchiseId,
+            }))}
+          />
+        )}
         <label className="block text-sm">
           <span className="font-medium">Адрес</span>
           <select value={form.objectId} onChange={(e) => setForm({ ...form, objectId: e.target.value })} className="w-full mt-1 p-3 rounded-xl border">

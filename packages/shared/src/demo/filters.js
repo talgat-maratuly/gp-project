@@ -30,6 +30,8 @@ export function mapOrderToService(o) {
     serviceName: o.subserviceName ? `${o.serviceName} · ${o.subserviceName}` : o.serviceName,
     address: o.address,
     city: o.city,
+    cityId: o.cityId || null,
+    oblastId: o.oblastId || null,
     total: o.amount,
     status:
       o.status === 'assigned' ? 'accepted'

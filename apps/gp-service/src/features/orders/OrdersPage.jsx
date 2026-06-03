@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { CheckCircle, Package, RefreshCw, Wrench, Pencil, X } from 'lucide-react'
 import { formatDate, formatPrice } from '@gp/shared/utils'
+import { inferCitySelection } from '@gp/shared/geography'
+import CitySelector from '@gp/shared/components/CitySelector'
 import { useLanguage } from '../../i18n'
 import { useService } from '../../context/ServiceContext'
 import { AsyncState } from '@gp/shared'
@@ -17,7 +19,7 @@ export default function OrdersPage() {
   const { t } = useLanguage()
   const {
     allOrders, refreshOrders, isLoggedIn, ordersLoading, ordersError, notify,
-    isDemoMode, cancelOrder, recreateOrder, confirmOrder, updateClientOrder,
+    isDemoMode, cancelOrder, recreateOrder, confirmOrder, updateClientOrder, geoStore,
   } = useService()
 
   const handleCancel = async (id) => {
@@ -36,7 +38,7 @@ export default function OrdersPage() {
   const [expanded, setExpanded] = useState(null)
   const [refreshing, setRefreshing] = useState(false)
   const [editId, setEditId] = useState(null)
-  const [editForm, setEditForm] = useState({ address: '', note: '' })
+  const [editForm, setEditForm] = useState({ address: '', note: '', oblastId: '', cityId: '', city: '', franchiseId: null })
 
   useEffect(() => {
     const id = params.get('success')
@@ -60,11 +62,25 @@ export default function OrdersPage() {
   }
 
   const openEdit = (o) => {
+    const geo = geoStore
+      ? inferCitySelection(geoStore, { city: o.city, cityId: o.cityId, oblastId: o.oblastId, franchiseId: o.franchiseId })
+      : { oblastId: o.oblastId || '', cityId: o.cityId || '', city: o.city || '', franchiseId: o.franchiseId || null }
     setEditId(o.id)
-    setEditForm({ address: o.address || '', note: o.note || '' })
+    setEditForm({
+      address: o.address || '',
+      note: o.note || '',
+      oblastId: geo.oblastId || '',
+      cityId: geo.cityId || '',
+      city: geo.city || o.city || '',
+      franchiseId: geo.franchiseId || o.franchiseId || null,
+    })
   }
 
   const saveEdit = async () => {
+    if (!editForm.cityId) {
+      notify(t('selectCity'), 'error')
+      return
+    }
     try {
       await updateClientOrder(editId, editForm)
       setEditId(null)
@@ -187,6 +203,20 @@ export default function OrdersPage() {
               <span className="text-xs text-[var(--gp-text-muted)]">{t('address')}</span>
               <input className="w-full mt-1 rounded-xl border px-3 py-2" value={editForm.address} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} />
             </label>
+            {geoStore && (
+              <CitySelector
+                store={geoStore}
+                value={{ oblastId: editForm.oblastId, cityId: editForm.cityId }}
+                inputClassName="w-full mt-1 rounded-xl border px-3 py-2 bg-[var(--gp-surface)]"
+                onChange={(sel) => setEditForm((f) => ({
+                  ...f,
+                  oblastId: sel.oblastId,
+                  cityId: sel.cityId,
+                  city: sel.city || f.city,
+                  franchiseId: sel.franchiseId || f.franchiseId,
+                }))}
+              />
+            )}
             <label className="block text-sm">
               <span className="text-xs text-[var(--gp-text-muted)]">{t('comment')}</span>
               <textarea className="w-full mt-1 rounded-xl border px-3 py-2" rows={2} value={editForm.note} onChange={(e) => setEditForm({ ...editForm, note: e.target.value })} />

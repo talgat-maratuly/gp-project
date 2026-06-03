@@ -4,6 +4,8 @@ import { useStore } from '../context/StoreContext'
 import { useAccess } from '../context/AccessContext'
 import { useLanguage, useOrderStatusLabel } from '../i18n/LanguageContext'
 import { resolveLocalizedName } from '@gp/shared/i18n'
+import { inferCitySelection } from '@gp/shared/geography'
+import CitySelector from '@gp/shared/components/CitySelector'
 import { ACTIONS } from '../lib/permissions'
 import Badge from '../components/ui/Badge'
 import Modal from '../components/ui/Modal'
@@ -24,7 +26,7 @@ const ORDER_TABS = [
 
 export default function OrdersPage() {
   const { scoped } = useAccess()
-  const { orderStatuses, updateOrder, assignPartner } = useStore()
+  const { orderStatuses, updateOrder, assignPartner, store } = useStore()
   const { can } = useAccess()
   const { t, lang } = useLanguage()
   const statusLabel = useOrderStatusLabel()
@@ -49,10 +51,19 @@ export default function OrdersPage() {
   const editOrder = editId ? scoped.orders.find((o) => o.id === editId) : null
 
   const openEdit = (o) => {
+    const geo = inferCitySelection(store, {
+      city: o.city,
+      cityId: o.cityId,
+      oblastId: o.oblastId,
+      franchiseId: o.franchiseId,
+    }, lang)
     setEditId(o.id)
     setForm({
       address: o.address,
-      city: o.city,
+      city: geo.city || o.city,
+      cityId: geo.cityId || '',
+      oblastId: geo.oblastId || '',
+      franchiseId: geo.franchiseId || o.franchiseId || null,
       scheduledAt: o.scheduledAt?.slice(0, 10) || '',
       rescheduleReason: '',
       amount: o.amount,
@@ -63,9 +74,16 @@ export default function OrdersPage() {
 
   const saveEdit = async () => {
     if (!editOrder) return
+    if (!form.cityId) {
+      setActionError(t('selectCity'))
+      return
+    }
     const patch = {
       address: form.address,
       city: form.city,
+      cityId: form.cityId,
+      oblastId: form.oblastId,
+      franchiseId: form.franchiseId || editOrder.franchiseId,
       note: form.note,
     }
     if (form.scheduledAt && form.scheduledAt !== editOrder.scheduledAt?.slice(0, 10)) {
@@ -219,7 +237,20 @@ export default function OrdersPage() {
             <p className="text-xs text-slate-500">{t('systemFieldReadonly')}</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <label className="block sm:col-span-2"><span className="text-xs text-slate-500">{t('address')}</span><input className="admin-input mt-1" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></label>
-              <label className="block"><span className="text-xs text-slate-500">{t('city')}</span><input className="admin-input mt-1" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} /></label>
+              <div className="sm:col-span-2">
+                <CitySelector
+                  store={store}
+                  value={{ oblastId: form.oblastId, cityId: form.cityId }}
+                  inputClassName="admin-input mt-1 w-full"
+                  onChange={(sel) => setForm((f) => ({
+                    ...f,
+                    oblastId: sel.oblastId,
+                    cityId: sel.cityId,
+                    city: sel.city || f.city,
+                    franchiseId: sel.franchiseId || f.franchiseId,
+                  }))}
+                />
+              </div>
               <label className="block"><span className="text-xs text-slate-500">{t('rescheduleDate')}</span><input type="date" className="admin-input mt-1" value={form.scheduledAt} onChange={(e) => setForm({ ...form, scheduledAt: e.target.value })} /></label>
               <label className="block sm:col-span-2"><span className="text-xs text-slate-500">{t('rescheduleReason')}</span><input className="admin-input mt-1" placeholder={t('rescheduleReasonHint')} value={form.rescheduleReason} onChange={(e) => setForm({ ...form, rescheduleReason: e.target.value })} /></label>
               <label className="block"><span className="text-xs text-slate-500">{t('amount')}</span><input type="number" className="admin-input mt-1" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} disabled={!can(ACTIONS.ORDER_EDIT)} /></label>

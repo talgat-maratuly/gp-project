@@ -462,8 +462,17 @@ export function ServiceProvider({ children }) {
 
   const placeServiceOrder = useCallback(async (data) => {
     requireAuth()
+    const geo = {
+      city: data.city || profile.city,
+      cityId: data.cityId || profile.cityId,
+      oblastId: data.oblastId || profile.oblastId,
+      franchiseId: data.franchiseId || profile.franchiseId,
+    }
+    const orderData = { ...data, ...geo }
     if (isDemoMode()) {
-      await demoApi.demoPlaceServiceOrder(data)
+      demoApi.updateDemoSession({ city: geo.city, franchiseId: geo.franchiseId })
+      setProfile((p) => ({ ...p, ...geo }))
+      await demoApi.demoPlaceServiceOrder(orderData)
       await refreshOrders()
       notify('Заявка отправлена! Партнёр увидит её в GP Partner.')
       return { id: 'demo' }
@@ -491,12 +500,13 @@ export function ServiceProvider({ children }) {
       category: apiCategory,
       serviceName: data.serviceName,
       serviceId: data.serviceId,
-      address: data.address || obj?.address || 'Уральск',
+      address: data.address || obj?.address || geo.city || 'Уральск',
       clientLat: Number(data.lat ?? data.clientLat) || 51.233,
       clientLng: Number(data.lng ?? data.clientLng) || 51.367,
       total,
       paymentMethod: PAYMENT_TO_API[data.paymentMethod] || 'CASH_ON_DELIVERY',
       comment: data.comment,
+      onBehalfCity: geo.city,
       septicVolume: isSeptic ? Number(data.septicVolume) : undefined,
       preferredDate: data.preferredDate || undefined,
       preferredTime: data.flexibleTime ? undefined : data.preferredTime,
@@ -511,7 +521,7 @@ export function ServiceProvider({ children }) {
     await refreshOrders()
     notify('Заявка отправлена! Партнёр увидит её в GP Partner.')
     return order
-  }, [objects, notify, refreshOrders, requireAuth])
+  }, [objects, notify, refreshOrders, requireAuth, profile])
 
   const submitPartnerLead = useCallback((data) => {
     const leads = load(KEYS.partnerLeads, [])
