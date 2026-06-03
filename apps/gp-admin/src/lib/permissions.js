@@ -18,6 +18,7 @@ export const NAV_ITEMS = [
     roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MANAGER', 'FINANCE', 'SUPPORT', 'MARKET_MANAGER', 'DELIVERY_MANAGER'],
   },
   { path: '/franchises', labelKey: 'franchises', icon: 'Building2', roles: ['SUPER_ADMIN'] },
+  { path: '/regions', labelKey: 'regions', icon: 'MapPin', roles: ['SUPER_ADMIN'] },
   { path: '/orders', labelKey: 'orders', icon: 'ClipboardList', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MANAGER'] },
   { path: '/clients', labelKey: 'clients', icon: 'Users', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MANAGER'] },
   { path: '/partners', labelKey: 'partners', icon: 'Briefcase', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MANAGER'] },
@@ -43,6 +44,7 @@ export const NAV_ITEMS = [
 export const PAGE_TITLE_KEYS = {
   '/': 'dashboard',
   '/franchises': 'franchises',
+  '/regions': 'regions',
   '/orders': 'orders',
   '/clients': 'clients',
   '/partners': 'partners',
@@ -73,6 +75,7 @@ export const ACTIONS = {
   FRANCHISE_CREATE: 'franchise:create',
   FRANCHISE_DELETE: 'franchise:delete',
   FRANCHISE_BLOCK: 'franchise:block',
+  GEOGRAPHY_CRUD: 'geography:crud',
   CLIENT_CRUD: 'client:crud',
   PARTNER_CRUD: 'partner:crud',
   PARTNER_MODERATE: 'partner:moderate',

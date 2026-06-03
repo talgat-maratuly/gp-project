@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { api, clearToken, getToken } from '@gp/shared/api'
-import { isDemoMode, subscribeGlobalStore, syncFromHub } from '@gp/shared/demo'
+import { isDemoMode, subscribeGlobalStore, syncFromHub, loadGlobalStore } from '@gp/shared/demo'
 import * as demoApi from '../lib/demoApi'
 import * as marketDemo from '../lib/marketDemoApi'
 import { subscribeGlobalOrderStatus, resetTrackingSocket } from '@gp/shared/api/trackingSocket'
@@ -49,9 +49,16 @@ export function ServiceProvider({ children }) {
   ]))
   const [profile, setProfile] = useState(() => load(KEYS.profile, {
     name: '', phone: '', email: '', city: 'Уральск',
+    oblastId: 'obl-batys', cityId: 'city-uralsk', franchiseId: 'fr-uralsk',
   }))
   const [checkoutDraft, setCheckoutDraft] = useState(() => load(KEYS.checkout, null))
   const [toast, setToast] = useState(null)
+  const [geoStore, setGeoStore] = useState(() => (isDemoMode() ? loadGlobalStore() : null))
+
+  useEffect(() => {
+    if (!isDemoMode()) return undefined
+    return subscribeGlobalStore(setGeoStore)
+  }, [])
 
   const notify = useCallback((message, type = 'success') => setToast({ message, type }), [])
 
@@ -531,6 +538,7 @@ export function ServiceProvider({ children }) {
     sendOtp, verifyOtp, submitPartnerApplication,
     isDemoMode: isDemoMode(),
     isTestMode: isTestModeActive(),
+    geoStore: isDemoMode() ? geoStore : null,
     demoFranchises: isDemoMode() ? demoApi.demoFranchises() : [],
     cancelOrder: async (orderId, cancelReason) => {
       requireAuth()

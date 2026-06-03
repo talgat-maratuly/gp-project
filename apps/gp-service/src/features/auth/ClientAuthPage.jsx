@@ -1,13 +1,14 @@
 import { useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useService } from '../../context/ServiceContext'
+import CitySelector from '@gp/shared/components/CitySelector'
 import { KaspiButton, KaspiCard } from '@gp/shared/ui/KaspiUI'
 
 export default function ClientAuthPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const from = location.state?.from || '/'
-  const { verifyOtp, sendOtp, submitPartnerApplication, logout, isLoggedIn } = useService()
+  const { verifyOtp, sendOtp, submitPartnerApplication, logout, isLoggedIn, geoStore } = useService()
   const [step, setStep] = useState(1)
   const [role, setRole] = useState('CLIENT')
   const [form, setForm] = useState({
@@ -16,6 +17,8 @@ export default function ClientAuthPage() {
     companyName: '',
     bin: '',
     city: '',
+    cityId: '',
+    oblastId: '',
     contactPhone: '',
     email: '',
     direction: '',
@@ -178,7 +181,16 @@ export default function ClientAuthPage() {
             <p className="text-sm font-semibold">Компания анкетасы ({roleLabel})</p>
             <input className={inputClass} placeholder="Компания атауы" value={form.companyName} onChange={(e) => setForm({ ...form, companyName: e.target.value })} />
             <input className={inputClass} placeholder="БИН / ИИН" value={form.bin} onChange={(e) => setForm({ ...form, bin: e.target.value })} />
-            <input className={inputClass} placeholder="Қала" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+            {geoStore ? (
+              <CitySelector
+                store={geoStore}
+                value={{ oblastId: form.oblastId, cityId: form.cityId }}
+                inputClassName={inputClass}
+                onChange={(sel) => setForm((f) => ({ ...f, oblastId: sel.oblastId, cityId: sel.cityId, city: sel.city || f.city }))}
+              />
+            ) : (
+              <input className={inputClass} placeholder="Қала" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+            )}
             <input className={inputClass} placeholder="Байланыс телефоны" value={form.contactPhone} onChange={(e) => setForm({ ...form, contactPhone: e.target.value })} />
             <input className={inputClass} placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
             <input className={inputClass} placeholder="Қызмет бағыты" value={form.direction} onChange={(e) => setForm({ ...form, direction: e.target.value })} />

@@ -7,6 +7,7 @@ import { ForgotPasswordScreen, ResetPasswordScreen } from '@gp/shared/auth/passw
 import Shell from '../layout/Shell'
 import DashboardPage from '../pages/DashboardPage'
 import FranchisesPage from '../pages/FranchisesPage'
+import RegionsPage from '../pages/RegionsPage'
 import ClientsPage from '../pages/ClientsPage'
 import PartnersPage from '../pages/PartnersPage'
 import PartnerModerationPage from '../pages/PartnerModerationPage'
@@ -53,6 +54,7 @@ export default function App() {
       <Route element={<Shell />}>
         <Route index element={<DashboardPage />} />
         <Route path="franchises" element={<FranchisesPage />} />
+        <Route path="regions" element={<RegionsPage />} />
         <Route path="orders" element={<OrdersPage />} />
         <Route path="clients" element={<ClientsPage />} />
         <Route path="partners" element={<PartnersPage />} />

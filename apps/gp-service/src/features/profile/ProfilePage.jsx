@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom'
 import { useService } from '../../context/ServiceContext'
 import { GP_CONTACTS, getAccountTypeLabel } from '@gp/shared/constants'
+import CitySelector from '@gp/shared/components/CitySelector'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 
 export default function ProfilePage() {
-  const { profile, setProfile, isLoggedIn, authUser, logout } = useService()
+  const { profile, setProfile, isLoggedIn, authUser, logout, geoStore } = useService()
   const set = (k) => (e) => setProfile({ ...profile, [k]: e.target.value })
 
   return (
@@ -43,7 +44,22 @@ export default function ProfilePage() {
         <Input label="Имя" value={profile.name} onChange={set('name')} />
         <Input label="Телефон" type="tel" value={profile.phone} onChange={set('phone')} />
         <Input label="Email" type="email" value={profile.email} onChange={set('email')} />
-        <Input label="Город" value={profile.city} onChange={set('city')} />
+        {geoStore ? (
+          <CitySelector
+            store={geoStore}
+            value={{ oblastId: profile.oblastId, cityId: profile.cityId }}
+            inputClassName="w-full rounded-xl border border-[var(--gp-border)] bg-[var(--gp-surface)] px-3 py-2.5 text-sm"
+            onChange={(sel) => setProfile((p) => ({
+              ...p,
+              oblastId: sel.oblastId,
+              cityId: sel.cityId,
+              city: sel.city || p.city,
+              franchiseId: sel.franchiseId || p.franchiseId,
+            }))}
+          />
+        ) : (
+          <Input label="Город" value={profile.city} onChange={set('city')} />
+        )}
         <Button type="submit" className="w-full">Сақтау (черновик)</Button>
         <p className="text-xs text-slate-500">
           Деректер тек осы құрылғыда сақталады және серверге жіберілмейді.

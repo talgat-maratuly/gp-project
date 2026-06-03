@@ -105,6 +105,66 @@ export function StoreProvider({ children }) {
     }))
   }, [persist])
 
+  const addOblast = useCallback((data) => {
+    const payload = withLocalizedName(data)
+    persist((s) => ({
+      ...s,
+      oblasts: [...(s.oblasts || []), { ...payload, id: uid('obl'), active: payload.active !== false }],
+    }))
+  }, [persist])
+
+  const updateOblast = useCallback((id, patch) => {
+    const payload = withLocalizedName(patch)
+    persist((s) => ({
+      ...s,
+      oblasts: (s.oblasts || []).map((o) => (o.id === id ? { ...o, ...payload } : o)),
+    }))
+  }, [persist])
+
+  const removeOblast = useCallback((id) => {
+    persist((s) => ({
+      ...s,
+      oblasts: (s.oblasts || []).filter((o) => o.id !== id),
+      cities: (s.cities || []).filter((c) => c.oblastId !== id),
+    }))
+  }, [persist])
+
+  const addCity = useCallback((data) => {
+    const payload = withLocalizedName(data)
+    persist((s) => {
+      const city = { ...payload, id: uid('city'), active: payload.active !== false }
+      let franchises = s.franchises
+      if (city.franchiseId) {
+        franchises = franchises.map((f) =>
+          f.id === city.franchiseId ? { ...f, cityId: city.id, city: city.name } : f,
+        )
+      }
+      return { ...s, cities: [...(s.cities || []), city], franchises }
+    })
+  }, [persist])
+
+  const updateCity = useCallback((id, patch) => {
+    const payload = withLocalizedName(patch)
+    persist((s) => {
+      const cities = (s.cities || []).map((c) => (c.id === id ? { ...c, ...payload } : c))
+      const updated = cities.find((c) => c.id === id)
+      let franchises = s.franchises
+      if (updated?.franchiseId) {
+        franchises = franchises.map((f) =>
+          f.id === updated.franchiseId ? { ...f, cityId: updated.id, city: updated.name } : f,
+        )
+      }
+      return { ...s, cities, franchises }
+    })
+  }, [persist])
+
+  const removeCity = useCallback((id) => {
+    persist((s) => ({
+      ...s,
+      cities: (s.cities || []).filter((c) => c.id !== id),
+    }))
+  }, [persist])
+
   const addClient = useCallback((data) => {
     persist((s) => ({
       ...s,
@@ -303,6 +363,12 @@ export function StoreProvider({ children }) {
       addFranchise,
       updateFranchise,
       removeFranchise,
+      addOblast,
+      updateOblast,
+      removeOblast,
+      addCity,
+      updateCity,
+      removeCity,
       addClient,
       updateClient,
       removeClient,
@@ -336,6 +402,12 @@ export function StoreProvider({ children }) {
       addFranchise,
       updateFranchise,
       removeFranchise,
+      addOblast,
+      updateOblast,
+      removeOblast,
+      addCity,
+      updateCity,
+      removeCity,
       addClient,
       updateClient,
       removeClient,

@@ -5,7 +5,7 @@ import { buildServiceProjectsSeed } from './serviceProjectsSeed.js'
 import { buildQrSeed } from './qrSeed.js'
 import { buildFurnitureExecutorSeed } from './furnitureExecutorSeed.js'
 
-export const STORE_VERSION = 7
+export const STORE_VERSION = 8
 
 export const FRANCHISE_STATUS = ['ACTIVE', 'INACTIVE', 'BLOCKED']
 
@@ -65,11 +65,27 @@ export const DEFAULT_SETTINGS = {
 }
 
 export const FRANCHISES_SEED = [
-  { id: 'fr-uralsk', name: 'GP Уральск', city: 'Уральск', ownerName: 'Нұрлан Бек', phone: '+77011110001', status: 'ACTIVE', createdAt: '2025-01-10' },
-  { id: 'fr-aktobe', name: 'GP Актобе', city: 'Актобе', ownerName: 'Айгүл Сәрсен', phone: '+77011110002', status: 'ACTIVE', createdAt: '2025-02-15' },
-  { id: 'fr-atyrau', name: 'GP Атырау', city: 'Атырау', ownerName: 'Ерлан Қасым', phone: '+77011110003', status: 'ACTIVE', createdAt: '2025-03-01' },
-  { id: 'fr-almaty', name: 'GP Алматы', city: 'Алматы', ownerName: 'Дана Оспан', phone: '+77011110004', status: 'ACTIVE', createdAt: '2025-04-20' },
-  { id: 'fr-astana', name: 'GP Астана', city: 'Астана', ownerName: 'Арман Жұма', phone: '+77011110005', status: 'INACTIVE', createdAt: '2025-05-01' },
+  { id: 'fr-uralsk', name: 'GP Уральск', city: 'Уральск', cityId: 'city-uralsk', ownerName: 'Нұрлан Бек', phone: '+77011110001', status: 'ACTIVE', createdAt: '2025-01-10' },
+  { id: 'fr-aktobe', name: 'GP Актобе', city: 'Актобе', cityId: 'city-aktobe', ownerName: 'Айгүл Сәрсен', phone: '+77011110002', status: 'ACTIVE', createdAt: '2025-02-15' },
+  { id: 'fr-atyrau', name: 'GP Атырау', city: 'Атырау', cityId: 'city-atyrau', ownerName: 'Ерлан Қасым', phone: '+77011110003', status: 'ACTIVE', createdAt: '2025-03-01' },
+  { id: 'fr-almaty', name: 'GP Алматы', city: 'Алматы', cityId: 'city-almaty', ownerName: 'Дана Оспан', phone: '+77011110004', status: 'ACTIVE', createdAt: '2025-04-20' },
+  { id: 'fr-astana', name: 'GP Астана', city: 'Астана', cityId: 'city-astana', ownerName: 'Арман Жұма', phone: '+77011110005', status: 'INACTIVE', createdAt: '2025-05-01' },
+]
+
+export const OBLASTS_SEED = [
+  { id: 'obl-batys', names: { ru: 'Западно-Казахстанская область', kk: 'Батыс Қазақстан облысы', en: 'West Kazakhstan Region' }, name: 'Западно-Казахстанская область', active: true },
+  { id: 'obl-atyrau', names: { ru: 'Атырауская область', kk: 'Атырау облысы', en: 'Atyrau Region' }, name: 'Атырауская область', active: true },
+  { id: 'obl-aktobe', names: { ru: 'Актобеская область', kk: 'Ақтobe облысы', en: 'Aktobe Region' }, name: 'Актобеская область', active: true },
+  { id: 'obl-almaty', names: { ru: 'Алматинская область', kk: 'Алматы облысы', en: 'Almaty Region' }, name: 'Алматинская область', active: true },
+  { id: 'obl-astana', names: { ru: 'г. Астана', kk: 'Астана қаласы', en: 'Astana city' }, name: 'г. Астана', active: true },
+]
+
+export const CITIES_SEED = [
+  { id: 'city-uralsk', oblastId: 'obl-batys', franchiseId: 'fr-uralsk', names: { ru: 'Уральск', kk: 'Орал', en: 'Uralsk' }, name: 'Уральск', active: true },
+  { id: 'city-atyrau', oblastId: 'obl-atyrau', franchiseId: 'fr-atyrau', names: { ru: 'Атырау', kk: 'Атырау', en: 'Atyrau' }, name: 'Атырау', active: true },
+  { id: 'city-aktobe', oblastId: 'obl-aktobe', franchiseId: 'fr-aktobe', names: { ru: 'Актобе', kk: 'Ақтobe', en: 'Aktobe' }, name: 'Актобе', active: true },
+  { id: 'city-almaty', oblastId: 'obl-almaty', franchiseId: 'fr-almaty', names: { ru: 'Алматы', kk: 'Алматы', en: 'Almaty' }, name: 'Алматы', active: true },
+  { id: 'city-astana', oblastId: 'obl-astana', franchiseId: 'fr-astana', names: { ru: 'Астана', kk: 'Астана', en: 'Astana' }, name: 'Астана', active: true },
 ]
 
 function subs(id, names, price, commission) {
@@ -182,6 +198,8 @@ export function createSeedState() {
   const state = {
     version: STORE_VERSION,
     settings: { ...DEFAULT_SETTINGS },
+    oblasts: OBLASTS_SEED.map((o) => ({ ...o })),
+    cities: CITIES_SEED.map((c) => ({ ...c })),
     franchises,
     services,
     clients,

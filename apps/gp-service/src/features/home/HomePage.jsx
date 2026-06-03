@@ -17,6 +17,8 @@ import { SERVICE_CATALOG } from '../../data/services'
 import ProductCard from '../shop/ProductCard'
 import { useService } from '../../context/ServiceContext'
 import * as demoApi from '../../lib/demoApi'
+import { subscribeGlobalStore } from '@gp/shared/demo'
+import CitySelector from '@gp/shared/components/CitySelector'
 import OrderMap from '../../components/OrderMap'
 
 const ICONS = { Droplets, Truck, Sprout, Zap }
@@ -51,7 +53,7 @@ export default function HomePage() {
   const navigate = useNavigate()
   const {
     recommendations, products, productsLoading, orders, ordersLoading, favorites, refreshOrders,
-    isDemoMode, demoFranchises, profile, setProfile, isLoggedIn,
+    isDemoMode, profile, setProfile, isLoggedIn, geoStore,
   } = useService()
 
   const quickServices = QUICK.map((id) => SERVICE_CATALOG.find((s) => s.id === id)).filter(Boolean)
@@ -63,22 +65,28 @@ export default function HomePage() {
 
   return (
     <div className="pb-4 gp-animate-in">
-      {isDemoMode && isLoggedIn && demoFranchises?.length > 0 && (
+      {isDemoMode && isLoggedIn && geoStore && (
         <div className="px-4 pt-3">
-          <label className="text-xs font-bold text-[var(--gp-text-muted)] block mb-1">Город / франшиза</label>
-          <select
-            className="w-full rounded-xl border border-[var(--gp-border)] bg-[var(--gp-surface)] px-3 py-2.5 text-sm"
-            value={profile.city}
-            onChange={(e) => {
-              const fr = demoFranchises.find((f) => f.city === e.target.value)
-              setProfile((p) => ({ ...p, city: e.target.value, franchiseId: fr?.id }))
-              demoApi.updateDemoSession({ city: e.target.value, franchiseId: fr?.id })
+          <CitySelector
+            store={geoStore}
+            value={{ oblastId: profile.oblastId, cityId: profile.cityId }}
+            inputClassName="w-full rounded-xl border border-[var(--gp-border)] bg-[var(--gp-surface)] px-3 py-2.5 text-sm"
+            onChange={(sel) => {
+              setProfile((p) => ({
+                ...p,
+                oblastId: sel.oblastId,
+                cityId: sel.cityId,
+                city: sel.city || p.city,
+                franchiseId: sel.franchiseId || p.franchiseId,
+              }))
+              demoApi.updateDemoSession({
+                oblastId: sel.oblastId,
+                cityId: sel.cityId,
+                city: sel.city,
+                franchiseId: sel.franchiseId,
+              })
             }}
-          >
-            {demoFranchises.map((f) => (
-              <option key={f.id} value={f.city}>{f.name}</option>
-            ))}
-          </select>
+          />
         </div>
       )}
       <section className="gp-gradient-kaspi text-white px-5 pt-6 pb-10 rounded-b-[1.75rem] shadow-[var(--gp-shadow-md)]">
