@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { api } from '@gp/shared/api'
+import { isDemoMode } from '@gp/shared/demo'
 import {
   PARTNER_TYPES,
   PARTNER_ROLE_LABELS,
@@ -8,9 +9,16 @@ import {
 } from '@gp/shared/constants'
 import { partnerStatusLabel, SERVICE_STATUS_SPEC } from '@gp/shared-core/statuses'
 import { useAccess } from '../context/AccessContext'
+import { useAdminToast } from '../context/AdminToastContext'
 import { ACTIONS } from '../lib/permissions'
 import { useLanguage } from '../i18n/LanguageContext'
 import { useAdminModerationLoad } from '../hooks/useAdminModerationLoad'
+import {
+  demoModerationList,
+  demoModerationPartner,
+  demoApprovePartner,
+  demoRejectPartner,
+} from '../lib/demoModeration'
 import AdminListFilters from './AdminListFilters'
 
 const TAB_IDS = ['PENDING_REVIEW', 'NEEDS_REVISION', 'APPROVED', 'REJECTED', 'SUSPENDED']
@@ -23,10 +31,11 @@ function resolveTypeLabel(id, t) {
 /**
  * @param {{ scope?: 'specialist' | 'shop', title: string, subtitle: string }} props
  */
-export default function PartnerModerationPanel({ scope, title, subtitle }) {
+export default function PartnerModerationPanel({ scope, title, subtitle, initialTab = 'PENDING_REVIEW', partnerTypeFilter }) {
   const { t } = useLanguage()
   const { can } = useAccess()
-  const [tab, setTab] = useState('PENDING_REVIEW')
+  const { showToast } = useAdminToast()
+  const [tab, setTab] = useState(initialTab)
   const [selected, setSelected] = useState(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [rejectModalOpen, setRejectModalOpen] = useState(false)
@@ -45,6 +54,11 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
     scope,
     listOpts,
     fetchList: api.adminModerationPartners,
+    fetchDemoList: (tabId, opts) => {
+      const rows = demoModerationList(tabId, opts)
+      if (!partnerTypeFilter) return rows
+      return rows.filter((r) => r.partnerType === partnerTypeFilter)
+    },
     demoBlockedMessage: t('moderationApiOnly'),
     onLoaded: (rows) => {
       const id = selectedIdRef.current
@@ -59,7 +73,7 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
 
   const openDetail = async (id) => {
     try {
-      const row = await api.adminModerationPartner(id)
+      const row = isDemoMode() ? demoModerationPartner(id) : await api.adminModerationPartner(id)
       setSelected(row)
       setIsDetailOpen(true)
       setRejectReason('')
@@ -69,11 +83,36 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
     }
   }
 
+  const approveById = async (id) => {
+    setActing(true)
+    setError('')
+    try {
+      if (isDemoMode()) {
+        demoApprovePartner(id)
+      } else {
+        await api.adminApprovePartner(id)
+      }
+      await load()
+    } catch (e) {
+      setError(e?.message || t('actionError'))
+    } finally {
+      setActing(false)
+    }
+  }
+
   const act = async (fn) => {
     if (!selected) return
     setActing(true)
     try {
-      const row = await fn(selected.id)
+      let row
+      if (isDemoMode() && fn === api.adminApprovePartner) {
+        row = demoApprovePartner(selected.id)
+      } else if (isDemoMode()) {
+        showToast(t('featureInDevelopment'))
+        return
+      } else {
+        row = await fn(selected.id)
+      }
       setSelected(row)
       await load()
     } catch (e) {
@@ -90,6 +129,10 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
   }, [selected])
 
   const actOffering = async (offeringId, status, moderationNote) => {
+    if (isDemoMode()) {
+      showToast(t('featureInDevelopment'))
+      return
+    }
     setActing(true)
     setError('')
     try {
@@ -153,16 +196,20 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
               {loading && !list.length ? (
                 <tr><td colSpan={6} className="text-slate-400">{t('loading')}</td></tr>
               ) : list.map((p) => (
-                <tr key={p.id} className={selected?.id === p.id ? 'bg-slate-800/60' : ''}>
+                <tr
+                  key={p.id}
+                  className={`cursor-pointer hover:bg-slate-800/40 ${selected?.id === p.id ? 'bg-slate-800/60' : ''}`}
+                  onClick={() => openDetail(p.id)}
+                >
                   <td className="font-medium">{p.companyName || p.company}</td>
                   <td>{PARTNER_ROLE_LABELS[p.partnerRole] || p.partnerRole || '—'}</td>
                   <td>{resolveTypeLabel(p.partnerType, t)}</td>
                   <td>{p.region?.name || p.city}</td>
                   <td>{p.user?.phone}</td>
                   <td>
-                    <div className="flex flex-wrap justify-end gap-2">
+                    <div className="flex flex-wrap justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                       <button type="button" className="text-sky-400 text-sm" onClick={() => openDetail(p.id)}>
-                        {t('card')}
+                        {t('open')}
                       </button>
                       {tab === 'PENDING_REVIEW' && (
                         <>
@@ -170,10 +217,7 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
                             type="button"
                             disabled={loading || acting}
                             className="text-emerald-400 text-sm disabled:opacity-50"
-                            onClick={async () => {
-                              await openDetail(p.id)
-                              await act(api.adminApprovePartner)
-                            }}
+                            onClick={() => approveById(p.id)}
                           >
                             {t('approve')}
                           </button>
@@ -358,6 +402,20 @@ export default function PartnerModerationPanel({ scope, title, subtitle }) {
                 type="button"
                 disabled={loading || acting || rejectReason.trim().length < 3}
                 onClick={async () => {
+                  if (isDemoMode()) {
+                    setActing(true)
+                    try {
+                      demoRejectPartner(selected.id, rejectReason.trim())
+                      setRejectModalOpen(false)
+                      setIsDetailOpen(false)
+                      await load()
+                    } catch (e) {
+                      setError(e?.message || t('actionError'))
+                    } finally {
+                      setActing(false)
+                    }
+                    return
+                  }
                   await act((id) => api.adminRejectPartner(id, rejectReason.trim()))
                   setRejectModalOpen(false)
                   setIsDetailOpen(false)

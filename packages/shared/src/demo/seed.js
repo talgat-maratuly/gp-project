@@ -159,6 +159,8 @@ export function createSeedState() {
     { id: 'p2', franchiseId: 'fr-uralsk', name: 'Асхат', company: 'AquaPro', phone: '+77019990011', serviceIds: [`irrigation_fr-uralsk`, `filter_fr-uralsk`], city: 'Уральск', active: true, blocked: false, rating: 4.6, completedOrders: 0, earnings: 0, gpCommissionPaid: 0 },
     { id: 'p3', franchiseId: 'fr-atyrau', name: 'Марат', company: 'Atyrau Service', phone: '+77012223344', serviceIds: [`septic_fr-atyrau`], city: 'Атырау', active: true, blocked: false, rating: 4.5, completedOrders: 0, earnings: 0, gpCommissionPaid: 0 },
     { id: 'p4', franchiseId: 'fr-aktobe', name: 'Динара', company: 'Aktobe Green', phone: '+77013332211', serviceIds: [`lawn_fr-aktobe`], city: 'Актобе', active: true, blocked: false, rating: 4.7, completedOrders: 0, earnings: 0, gpCommissionPaid: 0 },
+    { id: 'p-pending-1', franchiseId: 'fr-uralsk', name: 'Ерлан', company: 'Septic Pro Uralsk', phone: '+77016667788', serviceIds: [], city: 'Уральск', active: false, blocked: false, moderationStatus: 'PENDING_REVIEW', partnerType: 'septic', partnerRole: 'SPECIALIST', rating: 0, completedOrders: 0, earnings: 0, gpCommissionPaid: 0, createdAt: now - 86400000 },
+    { id: 'p-pending-legal', franchiseId: 'fr-atyrau', name: 'Қайрат', company: 'ИП Қайрат', phone: '+77018889900', serviceIds: [], city: 'Атырау', active: false, blocked: false, moderationStatus: 'PENDING_REVIEW', partnerType: 'legal', partnerRole: 'SPECIALIST', rating: 0, completedOrders: 0, earnings: 0, gpCommissionPaid: 0, createdAt: now - 43200000 },
   ]
 
   const septicUralsk = `septic_fr-uralsk`

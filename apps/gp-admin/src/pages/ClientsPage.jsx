@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Pencil, Trash2, History } from 'lucide-react'
+import { Plus, Pencil, Trash2, History, Eye } from 'lucide-react'
 import { useStore } from '../context/StoreContext'
 import { useAccess } from '../context/AccessContext'
 import { useAuth } from '../context/AuthContext'
@@ -8,6 +8,7 @@ import { ACTIONS } from '../lib/permissions'
 import Modal from '../components/ui/Modal'
 import AdminEmptyState from '../components/ui/AdminEmptyState'
 import FormActions from '../components/FormActions'
+import PageHeader from '../components/PageHeader'
 import { formatMoney } from '../lib/format'
 import { CLIENT_TYPES } from '../data/seedData'
 
@@ -19,6 +20,7 @@ export default function ClientsPage() {
   const { t } = useLanguage()
   const [modal, setModal] = useState(null)
   const [historyId, setHistoryId] = useState(null)
+  const [viewId, setViewId] = useState(null)
   const [form, setForm] = useState({ name: '', phone: '', address: '', city: '', type: 'house', gpIdBonus: 0, freeFifthOrder: false, discountPercent: 0 })
 
   const franchiseId = effectiveFranchiseId || user.franchiseId
@@ -37,8 +39,11 @@ export default function ClientsPage() {
 
   const clientHistory = historyId ? scoped.orders.filter((o) => o.clientId === historyId) : []
 
+  const viewClient = viewId ? scoped.clients.find((c) => c.id === viewId) : null
+
   return (
     <div className="space-y-4">
+      <PageHeader title={t('clients')} description={t('clients_page_desc')} />
       {can(ACTIONS.CLIENT_CRUD) && (
         <button type="button" onClick={openNew} className="admin-btn-primary">
           <Plus className="w-4 h-4" /> {t('addClient')}
@@ -62,7 +67,7 @@ export default function ClientsPage() {
             {!scoped.clients.length ? (
               <tr><td colSpan={8}><AdminEmptyState /></td></tr>
             ) : scoped.clients.map((c) => (
-              <tr key={c.id}>
+              <tr key={c.id} className="cursor-pointer hover:bg-slate-800/40" onClick={() => setViewId(c.id)}>
                 <td className="font-medium">{c.name}{c.freeFifthOrder ? ' 🎁' : ''}</td>
                 <td>{c.phone}</td>
                 <td>{c.city}</td>
@@ -71,7 +76,8 @@ export default function ClientsPage() {
                 <td>{formatMoney(c.totalSpent)}</td>
                 <td>{c.gpIdBonus} ({c.discountPercent}%)</td>
                 <td>
-                  <div className="flex gap-1">
+                  <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                    <button type="button" className="admin-btn-icon" onClick={() => setViewId(c.id)}><Eye className="w-4 h-4" /></button>
                     <button type="button" className="admin-btn-icon" onClick={() => setHistoryId(c.id)}><History className="w-4 h-4" /></button>
                     {can(ACTIONS.CLIENT_CRUD) && (
                       <>
@@ -102,6 +108,18 @@ export default function ClientsPage() {
           <label className="flex items-center gap-2"><input type="checkbox" checked={form.freeFifthOrder} onChange={(e) => setForm({ ...form, freeFifthOrder: e.target.checked })} />{t('freeFifthOrder')}</label>
           <FormActions onSave={save} onCancel={() => setModal(null)} />
         </div>
+      </Modal>
+
+      <Modal open={!!viewClient} onClose={() => setViewId(null)} title={viewClient?.name} wide>
+        {viewClient && (
+          <dl className="grid grid-cols-2 gap-3 text-sm">
+            <div><dt className="text-slate-500">{t('phone')}</dt><dd>{viewClient.phone}</dd></div>
+            <div><dt className="text-slate-500">{t('city')}</dt><dd>{viewClient.city}</dd></div>
+            <div><dt className="text-slate-500">{t('clientType')}</dt><dd>{t(`clientType_${viewClient.type}`)}</dd></div>
+            <div><dt className="text-slate-500">{t('ordersCount')}</dt><dd>{viewClient.orderIds?.length ?? 0}</dd></div>
+            <div className="col-span-2"><dt className="text-slate-500">{t('address')}</dt><dd>{viewClient.address}</dd></div>
+          </dl>
+        )}
       </Modal>
 
       <Modal open={!!historyId} onClose={() => setHistoryId(null)} title={t('orderHistory')} wide>

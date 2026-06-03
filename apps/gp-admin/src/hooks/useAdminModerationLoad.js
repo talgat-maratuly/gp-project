@@ -10,6 +10,7 @@ export function useAdminModerationLoad({
   scope,
   listOpts: listOptsProp,
   fetchList,
+  fetchDemoList,
   enabled = true,
   demoBlockedMessage = '',
   onLoaded,
@@ -22,14 +23,31 @@ export function useAdminModerationLoad({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const fetchRef = useRef(fetchList)
+  const fetchDemoRef = useRef(fetchDemoList)
   const onLoadedRef = useRef(onLoaded)
   const demoMsgRef = useRef(demoBlockedMessage)
   fetchRef.current = fetchList
+  fetchDemoRef.current = fetchDemoList
   onLoadedRef.current = onLoaded
   demoMsgRef.current = demoBlockedMessage
 
   const load = useCallback(async () => {
     if (!enabled) return
+    if (isDemoMode() && fetchDemoRef.current) {
+      setLoading(true)
+      setError('')
+      try {
+        const rows = fetchDemoRef.current(tab, listOpts)
+        const next = Array.isArray(rows) ? rows : []
+        setList(next)
+        onLoadedRef.current?.(next)
+      } catch (e) {
+        setError(e?.message || '')
+      } finally {
+        setLoading(false)
+      }
+      return
+    }
     if (isDemoMode() && !getToken()) {
       setList([])
       setError(demoMsgRef.current)

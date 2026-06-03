@@ -10,8 +10,7 @@ import FranchisesPage from '../pages/FranchisesPage'
 import RegionsPage from '../pages/RegionsPage'
 import ClientsPage from '../pages/ClientsPage'
 import PartnersPage from '../pages/PartnersPage'
-import PartnerModerationPage from '../pages/PartnerModerationPage'
-import SpecialistModerationPage from '../pages/SpecialistModerationPage'
+import ModerationPage from '../pages/ModerationPage'
 import OrdersPage from '../pages/OrdersPage'
 import ServicesPage from '../pages/ServicesPage'
 import DiscountsPage from '../pages/DiscountsPage'
@@ -21,7 +20,6 @@ import SettingsPage from '../pages/SettingsPage'
 import MarketDashboardPage from '../pages/MarketDashboardPage'
 import MarketShopsPage from '../pages/MarketShopsPage'
 import MarketProductsPage from '../pages/MarketProductsPage'
-import OfferingModerationPage from '../pages/OfferingModerationPage'
 import MarketOrdersPage from '../pages/MarketOrdersPage'
 import MarketDeliveryPage from '../pages/MarketDeliveryPage'
 import ServiceProjectsAdminPage from '../pages/ServiceProjectsAdminPage'
@@ -56,12 +54,13 @@ export default function App() {
         <Route path="franchises" element={<FranchisesPage />} />
         <Route path="regions" element={<RegionsPage />} />
         <Route path="orders" element={<OrdersPage />} />
+        <Route path="moderation" element={<ModerationPage />} />
         <Route path="clients" element={<ClientsPage />} />
         <Route path="partners" element={<PartnersPage />} />
-        <Route path="partners/moderation" element={<PartnerModerationPage />} />
-        <Route path="specialists/moderation" element={<SpecialistModerationPage />} />
-        <Route path="specialists/offerings" element={<Navigate to="/specialists/moderation?view=offerings" replace />} />
-        <Route path="services/moderation" element={<OfferingModerationPage />} />
+        <Route path="partners/moderation" element={<Navigate to="/moderation" replace />} />
+        <Route path="specialists/moderation" element={<Navigate to="/moderation?block=specialists" replace />} />
+        <Route path="specialists/offerings" element={<Navigate to="/moderation?block=offerings" replace />} />
+        <Route path="services/moderation" element={<Navigate to="/moderation?block=offerings" replace />} />
         <Route path="services" element={<ServicesPage />} />
         <Route path="services/hunter-irrigation" element={<ServiceProjectsAdminPage type="hunter_irrigation" />} />
         <Route path="services/furniture" element={<ServiceProjectsAdminPage type="furniture" />} />

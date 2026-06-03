@@ -86,18 +86,18 @@ export default function SpecialistRequestsModerationPanel({ title, subtitle }) {
     return <p className="text-slate-500">{t('noAccess')}</p>
   }
 
-  const photoLinks = (selected) => {
+  const photoLinks = (row) => {
     const links = []
-    if (selected.profilePhotoUrl) links.push({ label: 'Profile', url: selected.profilePhotoUrl })
-    if (selected.idCardFrontUrl) links.push({ label: 'ID front', url: selected.idCardFrontUrl })
-    if (selected.idCardBackUrl) links.push({ label: 'ID back', url: selected.idCardBackUrl })
-    const equip = selected.equipmentPhotoUrls || []
-    equip.forEach((url, i) => links.push({ label: `Tool ${i + 1}`, url }))
-    const v = selected.vehicleData
+    if (row.profilePhotoUrl) links.push({ label: t('photoProfile'), url: row.profilePhotoUrl })
+    if (row.idCardFrontUrl) links.push({ label: t('photoIdFront'), url: row.idCardFrontUrl })
+    if (row.idCardBackUrl) links.push({ label: t('photoIdBack'), url: row.idCardBackUrl })
+    const equip = row.equipmentPhotoUrls || []
+    equip.forEach((url, i) => links.push({ label: `${t('photoEquipment')} ${i + 1}`, url }))
+    const v = row.vehicleData
     if (v && typeof v === 'object') {
-      if (v.vehiclePhotoUrl) links.push({ label: 'Vehicle', url: v.vehiclePhotoUrl })
-      if (v.driverLicensePhotoUrl) links.push({ label: 'License', url: v.driverLicensePhotoUrl })
-      ;(v.registrationPhotoUrls || []).forEach((url, i) => links.push({ label: `Reg ${i + 1}`, url }))
+      if (v.vehiclePhotoUrl) links.push({ label: t('photoVehicle'), url: v.vehiclePhotoUrl })
+      if (v.driverLicensePhotoUrl) links.push({ label: t('photoLicense'), url: v.driverLicensePhotoUrl })
+      ;(v.registrationPhotoUrls || []).forEach((url, i) => links.push({ label: `${t('photoRegistration')} ${i + 1}`, url }))
     }
     return links
   }
@@ -113,18 +113,30 @@ export default function SpecialistRequestsModerationPanel({ title, subtitle }) {
       {(loading || acting) && <p className="text-sm text-slate-500">{t('loading')}</p>}
 
       <div className="flex flex-wrap gap-2">
-        {STATUS_TABS.map((id) => (
+        {STATUS_TABS.filter(Boolean).map((id) => (
           <button
-            key={id || 'all'}
+            key={id}
             type="button"
             onClick={() => { setTab(id); setSelected(null) }}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
               tab === id ? 'bg-sky-600 text-white' : 'bg-slate-800 text-slate-300'
             }`}
           >
-            {id || t('all')}
+            {t(`moderationStatus_${id}`)}
           </button>
         ))}
+        {STATUS_TABS.includes('') && (
+          <button
+            key="all"
+            type="button"
+            onClick={() => { setTab(''); setSelected(null) }}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
+              tab === '' ? 'bg-sky-600 text-white' : 'bg-slate-800 text-slate-300'
+            }`}
+          >
+            {t('all')}
+          </button>
+        )}
       </div>
 
       <div className="admin-table-wrap overflow-x-auto max-h-[50vh]">
@@ -135,21 +147,21 @@ export default function SpecialistRequestsModerationPanel({ title, subtitle }) {
               <th>{t('serviceType')}</th>
               <th>{t('region')}</th>
               <th>{t('phone')}</th>
-              <th>Status</th>
+              <th>{t('status')}</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             {list.map((r) => (
-              <tr key={r.id}>
+              <tr key={r.id} className="cursor-pointer hover:bg-slate-800/40" onClick={() => openDetail(r.id)}>
                 <td>{r.specialistName}</td>
                 <td>{r.primaryCategory || r.categoryId}</td>
                 <td>{r.region?.name || r.city}</td>
                 <td>{r.phoneNumber}</td>
-                <td>{r.status}</td>
-                <td>
+                <td>{t(`moderationStatus_${r.status}`) !== `moderationStatus_${r.status}` ? t(`moderationStatus_${r.status}`) : r.status}</td>
+                <td onClick={(e) => e.stopPropagation()}>
                   <button type="button" className="text-sky-400 text-sm" onClick={() => openDetail(r.id)}>
-                    {t('card')}
+                    {t('open')}
                   </button>
                 </td>
               </tr>
@@ -163,8 +175,12 @@ export default function SpecialistRequestsModerationPanel({ title, subtitle }) {
 
       {selected && (
         <div className="rounded-xl border border-slate-700 bg-slate-900 p-4 space-y-3">
-          <h2 className="font-bold text-lg">{selected.specialistName}</h2>
-          <p className="text-sm text-slate-400">{selected.status} · {selected.city}</p>
+          <h2 className="font-bold text-lg">{t('specialistOrder')}: {selected.specialistName}</h2>
+          <p className="text-sm text-slate-400">
+            {t(`moderationStatus_${selected.status}`) !== `moderationStatus_${selected.status}` ? t(`moderationStatus_${selected.status}`) : selected.status}
+            {' · '}
+            {selected.city}
+          </p>
           <p className="text-sm">Subs: {(selected.subserviceIds || []).join(', ')}</p>
           {selected.workExperience && <p className="text-sm text-slate-300">{selected.workExperience}</p>}
           {selected.rejectionReason && (

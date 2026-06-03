@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '@gp/shared/api'
+import { isDemoMode } from '@gp/shared/demo'
 import {
   getPartnerOfferingStatusLabel,
   getPartnerSubserviceLabel,
@@ -8,6 +9,7 @@ import {
 } from '@gp/shared/constants'
 import { SERVICE_STATUS_SPEC, partnerStatusLabel } from '@gp/shared-core/statuses'
 import { useAccess } from '../context/AccessContext'
+import { useAdminToast } from '../context/AdminToastContext'
 import { ACTIONS } from '../lib/permissions'
 import { useLanguage } from '../i18n/LanguageContext'
 import { useAdminModerationLoad } from '../hooks/useAdminModerationLoad'
@@ -20,6 +22,7 @@ const TAB_IDS = ['PENDING_MODERATION', 'ACTIVE', 'REJECTED', 'TEMPORARILY_BLOCKE
 export default function OfferingModerationPanel({ scope, title, subtitle, backTo }) {
   const { t } = useLanguage()
   const { can } = useAccess()
+  const { showToast } = useAdminToast()
   const [tab, setTab] = useState('PENDING_MODERATION')
   const [rejectNote, setRejectNote] = useState('')
   const [rejectId, setRejectId] = useState(null)
@@ -32,6 +35,10 @@ export default function OfferingModerationPanel({ scope, title, subtitle, backTo
   })
 
   const setStatus = async (id, status, moderationNote) => {
+    if (isDemoMode()) {
+      showToast(t('featureInDevelopment'))
+      return
+    }
     setError('')
     try {
       await api.adminUpdateOfferingStatus(id, {

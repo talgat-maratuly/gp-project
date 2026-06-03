@@ -3,6 +3,7 @@ import { PAGE_TITLE_KEYS } from './permissions.js'
 /** Заголовок страницы по pathname (включая вложенные маршруты). */
 export function resolvePageTitleKey(pathname) {
   if (PAGE_TITLE_KEYS[pathname]) return PAGE_TITLE_KEYS[pathname]
+  if (pathname.startsWith('/moderation')) return 'nav_moderation'
   if (pathname.startsWith('/market/products/new')) return 'market_product_create'
   if (pathname.startsWith('/market/products')) return 'market_products'
   if (pathname.startsWith('/qr/')) return 'qr_service'
