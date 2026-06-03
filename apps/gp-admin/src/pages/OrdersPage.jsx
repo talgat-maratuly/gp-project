@@ -3,6 +3,7 @@ import { Eye, UserPlus, RefreshCw, Pencil } from 'lucide-react'
 import { useStore } from '../context/StoreContext'
 import { useAccess } from '../context/AccessContext'
 import { useLanguage, useOrderStatusLabel } from '../i18n/LanguageContext'
+import { resolveLocalizedName } from '@gp/shared/i18n'
 import { ACTIONS } from '../lib/permissions'
 import Badge from '../components/ui/Badge'
 import Modal from '../components/ui/Modal'
@@ -16,7 +17,7 @@ export default function OrdersPage() {
   const { scoped } = useAccess()
   const { orderStatuses, updateOrder, assignPartner } = useStore()
   const { can } = useAccess()
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const statusLabel = useOrderStatusLabel()
   const [viewId, setViewId] = useState(null)
   const [assignId, setAssignId] = useState(null)
@@ -52,8 +53,8 @@ export default function OrdersPage() {
       ...form,
       amount: Number(form.amount),
       subserviceId: form.subserviceId || null,
-      subserviceName: sub?.name || null,
-      serviceName: svc?.name,
+      subserviceName: resolveLocalizedName(sub, lang) || null,
+      serviceName: resolveLocalizedName(svc, lang),
     })
     setEditId(null)
   }
@@ -133,14 +134,14 @@ export default function OrdersPage() {
             <label className="block"><span className="text-xs text-slate-500">{t('preferredServiceDate')}</span><input type="date" className="admin-input mt-1" value={form.scheduledAt} onChange={(e) => setForm({ ...form, scheduledAt: e.target.value })} /></label>
             <label className="block"><span className="text-xs text-slate-500">{t('service')}</span>
               <select className="admin-input mt-1" value={form.serviceId} onChange={(e) => setForm({ ...form, serviceId: e.target.value, subserviceId: '' })}>
-                {scoped.services.filter((s) => s.franchiseId === editOrder.franchiseId).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                {scoped.services.filter((s) => s.franchiseId === editOrder.franchiseId).map((s) => <option key={s.id} value={s.id}>{resolveLocalizedName(s, lang)}</option>)}
               </select>
             </label>
             <label className="block"><span className="text-xs text-slate-500">{t('subservice')}</span>
               <select className="admin-input mt-1" value={form.subserviceId} onChange={(e) => setForm({ ...form, subserviceId: e.target.value })}>
                 <option value="">{t('dash')}</option>
                 {(scoped.services.find((s) => s.id === form.serviceId)?.subservices || []).map((sub) => (
-                  <option key={sub.id} value={sub.id}>{sub.name}</option>
+                  <option key={sub.id} value={sub.id}>{resolveLocalizedName(sub, lang)}</option>
                 ))}
               </select>
             </label>

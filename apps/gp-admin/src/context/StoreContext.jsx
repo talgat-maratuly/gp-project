@@ -4,6 +4,7 @@ import { ADMIN_ORDER_UI_TO_PRISMA } from '@gp/shared-core/statuses'
 import { ORDER_STATUSES, recalcAggregates } from '../data/seedData'
 import { uid } from '../lib/id'
 import { fetchAdminStore } from '../lib/adminApiStore'
+import { withLocalizedName, resolveLocalizedName, DEFAULT_LANG } from '@gp/shared/i18n'
 import {
   isDemoMode,
   loadGlobalStore,
@@ -36,8 +37,8 @@ function syncOrderFromRefs(order, state) {
     clientName: client?.name ?? order.clientName,
     clientPhone: client?.phone ?? order.clientPhone,
     city: order.city || client?.city,
-    serviceName: svc?.name ?? order.serviceName,
-    subserviceName: sub?.name ?? order.subserviceName ?? null,
+    serviceName: resolveLocalizedName(svc, DEFAULT_LANG) || order.serviceName,
+    subserviceName: (resolveLocalizedName(sub, DEFAULT_LANG) || order.subserviceName) ?? null,
     partnerName: partner ? partner.company || partner.name : order.partnerName,
   }
 }
@@ -146,16 +147,18 @@ export function StoreProvider({ children }) {
   }, [persist])
 
   const addService = useCallback((data) => {
+    const payload = withLocalizedName(data)
     persist((s) => ({
       ...s,
-      services: [...s.services, { ...data, id: uid('svc'), templateId: data.templateId || uid('tpl'), subservices: data.subservices || [] }],
+      services: [...s.services, { ...payload, id: uid('svc'), templateId: payload.templateId || uid('tpl'), subservices: payload.subservices || [] }],
     }))
   }, [persist])
 
   const updateService = useCallback((serviceId, patch) => {
+    const payload = withLocalizedName(patch)
     persist((s) => ({
       ...s,
-      services: s.services.map((x) => (x.id === serviceId ? { ...x, ...patch } : x)),
+      services: s.services.map((x) => (x.id === serviceId ? { ...x, ...payload } : x)),
     }))
   }, [persist])
 
@@ -164,22 +167,24 @@ export function StoreProvider({ children }) {
   }, [persist])
 
   const addSubservice = useCallback((serviceId, data) => {
+    const payload = withLocalizedName(data)
     persist((s) => ({
       ...s,
       services: s.services.map((svc) =>
         svc.id === serviceId
-          ? { ...svc, subservices: [...(svc.subservices || []), { ...data, id: data.id || uid('sub'), active: data.active !== false }] }
+          ? { ...svc, subservices: [...(svc.subservices || []), { ...payload, id: payload.id || uid('sub'), active: payload.active !== false }] }
           : svc,
       ),
     }))
   }, [persist])
 
   const updateSubservice = useCallback((serviceId, subId, patch) => {
+    const payload = withLocalizedName(patch)
     persist((s) => ({
       ...s,
       services: s.services.map((svc) =>
         svc.id === serviceId
-          ? { ...svc, subservices: (svc.subservices || []).map((sub) => (sub.id === subId ? { ...sub, ...patch } : sub)) }
+          ? { ...svc, subservices: (svc.subservices || []).map((sub) => (sub.id === subId ? { ...sub, ...payload } : sub)) }
           : svc,
       ),
     }))

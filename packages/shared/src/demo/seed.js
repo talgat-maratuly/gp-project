@@ -5,7 +5,7 @@ import { buildServiceProjectsSeed } from './serviceProjectsSeed.js'
 import { buildQrSeed } from './qrSeed.js'
 import { buildFurnitureExecutorSeed } from './furnitureExecutorSeed.js'
 
-export const STORE_VERSION = 6
+export const STORE_VERSION = 7
 
 export const FRANCHISE_STATUS = ['ACTIVE', 'INACTIVE', 'BLOCKED']
 
@@ -72,16 +72,19 @@ export const FRANCHISES_SEED = [
   { id: 'fr-astana', name: 'GP Астана', city: 'Астана', ownerName: 'Арман Жұма', phone: '+77011110005', status: 'INACTIVE', createdAt: '2025-05-01' },
 ]
 
-function subs(id, name, price, commission) {
-  return { id, name, price, gpCommission: commission, active: true }
+function subs(id, names, price, commission) {
+  const n = typeof names === 'string' ? { ru: names, kk: names, en: names } : names
+  return { id, names: n, name: n.ru, price, gpCommission: commission, active: true }
 }
 
-function serviceTemplate(franchiseId, id, name, basePrice, gpCommission, active, subservices) {
+function serviceTemplate(franchiseId, id, names, basePrice, gpCommission, active, subservices) {
+  const n = typeof names === 'string' ? { ru: names, kk: names, en: names } : names
   return {
     id: `${id}_${franchiseId}`,
     templateId: id,
     franchiseId,
-    name,
+    names: n,
+    name: n.ru,
     basePrice,
     gpCommission,
     active,
@@ -91,28 +94,28 @@ function serviceTemplate(franchiseId, id, name, basePrice, gpCommission, active,
 
 function buildServicesForFranchise(franchiseId) {
   return [
-    serviceTemplate(franchiseId, 'septic', 'Откачка септика', 8000, 300, true, [
-      subs(`sub_3m_${franchiseId}`, '3 куба', 8000, 300),
-      subs(`sub_5m_${franchiseId}`, '5 кубов', 12000, 400),
-      subs(`sub_10m_${franchiseId}`, '10 кубов', 20000, 600),
-      subs(`sub_urgent_${franchiseId}`, 'Срочный вызов', 15000, 500),
-      subs(`sub_night_${franchiseId}`, 'Ночной вызов', 18000, 600),
+    serviceTemplate(franchiseId, 'septic', { ru: 'Откачка септика', kk: 'Септик сорғызу', en: 'Septic pumping' }, 8000, 300, true, [
+      subs(`sub_3m_${franchiseId}`, { ru: '3 куба', kk: '3 тек', en: '3 m³' }, 8000, 300),
+      subs(`sub_5m_${franchiseId}`, { ru: '5 кубов', kk: '5 тек', en: '5 m³' }, 12000, 400),
+      subs(`sub_10m_${franchiseId}`, { ru: '10 кубов', kk: '10 тек', en: '10 m³' }, 20000, 600),
+      subs(`sub_urgent_${franchiseId}`, { ru: 'Срочный вызов', kk: 'Шұғыл шақыру', en: 'Urgent call' }, 15000, 500),
+      subs(`sub_night_${franchiseId}`, { ru: 'Ночной вызов', kk: 'Түнгі шақыру', en: 'Night call' }, 18000, 600),
     ]),
-    serviceTemplate(franchiseId, 'lawn', 'Стрижка газона', 15000, 1000, true, [
-      subs(`sub_100_${franchiseId}`, 'до 100 м²', 12000, 800),
-      subs(`sub_500_${franchiseId}`, '100–500 м²', 18000, 1000),
-      subs(`sub_1000_${franchiseId}`, '500–1000 м²', 28000, 1500),
-      subs(`sub_mow_${franchiseId}`, 'Покос травы', 10000, 600),
-      subs(`sub_haul_${franchiseId}`, 'Вывоз травы', 8000, 400),
+    serviceTemplate(franchiseId, 'lawn', { ru: 'Стрижка газона', kk: 'Шөп шабу', en: 'Lawn mowing' }, 15000, 1000, true, [
+      subs(`sub_100_${franchiseId}`, { ru: 'до 100 м²', kk: '100 м² дейін', en: 'up to 100 m²' }, 12000, 800),
+      subs(`sub_500_${franchiseId}`, { ru: '100–500 м²', kk: '100–500 м²', en: '100–500 m²' }, 18000, 1000),
+      subs(`sub_1000_${franchiseId}`, { ru: '500–1000 м²', kk: '500–1000 м²', en: '500–1000 m²' }, 28000, 1500),
+      subs(`sub_mow_${franchiseId}`, { ru: 'Покос травы', kk: 'Шөп кесу', en: 'Grass mowing' }, 10000, 600),
+      subs(`sub_haul_${franchiseId}`, { ru: 'Вывоз травы', kk: 'Шөп тасымалдау', en: 'Grass removal' }, 8000, 400),
     ]),
-    serviceTemplate(franchiseId, 'filter', 'Замена фильтра', 6000, 1000, true, [
-      subs(`sub_std_${franchiseId}`, 'Стандарт', 6000, 1000),
-      subs(`sub_prem_${franchiseId}`, 'Премиум', 9000, 1200),
+    serviceTemplate(franchiseId, 'filter', { ru: 'Замена фильтра', kk: 'Сүзгі ауыстыру', en: 'Filter replacement' }, 6000, 1000, true, [
+      subs(`sub_std_${franchiseId}`, { ru: 'Стандарт', kk: 'Стандарт', en: 'Standard' }, 6000, 1000),
+      subs(`sub_prem_${franchiseId}`, { ru: 'Премиум', kk: 'Премиум', en: 'Premium' }, 9000, 1200),
     ]),
-    serviceTemplate(franchiseId, 'irrigation', 'Автополив', 20000, 1000, true, []),
-    serviceTemplate(franchiseId, 'cleaning', 'Клининг', 12000, 800, true, []),
-    serviceTemplate(franchiseId, 'landscape', 'Озеленение', 25000, 1500, true, []),
-    serviceTemplate(franchiseId, 'rental', 'Аренда оборудования', 10000, 500, false, []),
+    serviceTemplate(franchiseId, 'irrigation', { ru: 'Автополив', kk: 'Автосуарма', en: 'Auto irrigation' }, 20000, 1000, true, []),
+    serviceTemplate(franchiseId, 'cleaning', { ru: 'Клининг', kk: 'Тазалау', en: 'Cleaning' }, 12000, 800, true, []),
+    serviceTemplate(franchiseId, 'landscape', { ru: 'Озеленение', kk: 'Көгалдандыру', en: 'Landscaping' }, 25000, 1500, true, []),
+    serviceTemplate(franchiseId, 'rental', { ru: 'Аренда оборудования', kk: 'Жабдық жалдау', en: 'Equipment rental' }, 10000, 500, false, []),
   ]
 }
 

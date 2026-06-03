@@ -4,6 +4,7 @@ import { useStore } from '../context/StoreContext'
 import { useAccess } from '../context/AccessContext'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../i18n/LanguageContext'
+import { resolveLocalizedName } from '@gp/shared/i18n'
 import { ACTIONS } from '../lib/permissions'
 import Badge from '../components/ui/Badge'
 import Modal from '../components/ui/Modal'
@@ -16,7 +17,7 @@ export default function PartnersPage() {
   const { user } = useAuth()
   const { addPartner, updatePartner, removePartner } = useStore()
   const { can } = useAccess()
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const [modal, setModal] = useState(null)
   const [form, setForm] = useState({ name: '', company: '', phone: '', city: '', serviceIds: [], active: true, rating: 5 })
 
@@ -94,7 +95,7 @@ export default function PartnersPage() {
             <span className="text-xs text-slate-500">{t('assignServices')}</span>
             <div className="flex flex-wrap gap-2 mt-2">
               {franchiseServices.map((s) => (
-                <button key={s.id} type="button" onClick={() => toggleService(s.id)} className={`px-2 py-1 rounded-lg text-xs border ${form.serviceIds?.includes(s.id) ? 'border-sky-500 bg-sky-500/20' : 'border-white/10'}`}>{s.name}</button>
+                <button key={s.id} type="button" onClick={() => toggleService(s.id)} className={`px-2 py-1 rounded-lg text-xs border ${form.serviceIds?.includes(s.id) ? 'border-sky-500 bg-sky-500/20' : 'border-white/10'}`}>{resolveLocalizedName(s, lang)}</button>
               ))}
             </div>
           </div>
