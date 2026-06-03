@@ -199,7 +199,7 @@ export default function SepticOrderFlow() {
       <PageHeader
         title="Откачка септика"
         subtitle={step === 1 ? 'Объём и время' : step === 2 ? 'Адрес и оплата' : 'Подтверждение'}
-        onBack={() => (step > 1 ? setStep((s) => s - 1) : navigate('/services'))}
+        onBack={() => (step > 1 ? setStep((s) => s - 1) : navigate(-1))}
       />
       <StepBar step={step} />
 

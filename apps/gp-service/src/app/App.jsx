@@ -12,6 +12,7 @@ import ProductPage from '../features/shop/ProductPage'
 import CartPage from '../features/shop/CartPage'
 import CheckoutFlow from '../features/shop/CheckoutFlow'
 import ServicesPage from '../features/services/ServicesPage'
+import QuickOrderPage from '../features/services/QuickOrderPage'
 import ServiceOrderPage from '../features/services/ServiceOrderPage'
 import HunterServicePage from '../features/hunter-irrigation/HunterServicePage'
 import HunterProjectWizard from '../features/hunter-irrigation/HunterProjectWizard'
@@ -44,6 +45,7 @@ export default function App() {
         <Route path="profile" element={<ProfilePage />} />
         <Route path="login" element={<ClientAuthPage />} />
         <Route path="partner" element={<PartnerInfoPage />} />
+        <Route path="quick-order" element={<QuickOrderPage />} />
         <Route path="services" element={<ServicesPage />} />
         <Route path="services/hunter-irrigation" element={<HunterServicePage />} />
         <Route path="services/hunter-irrigation/new" element={<HunterProjectWizard />} />

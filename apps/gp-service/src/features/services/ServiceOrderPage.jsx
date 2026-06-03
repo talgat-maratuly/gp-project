@@ -14,6 +14,7 @@ import { useService } from '../../context/ServiceContext'
 import PaymentMethodPicker from '../../components/PaymentMethodPicker'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
+import { PageHeader } from '@gp/shared/ui/KaspiUI'
 
 const NEEDS_SCHEDULE = new Set([
   'septic-pumping',
@@ -29,6 +30,10 @@ const NEEDS_SCHEDULE = new Set([
 export default function ServiceOrderPage() {
   const { serviceId } = useParams()
   if (serviceId === 'septic-pumping') return <SepticOrderFlow />
+  return <GenericServiceOrder serviceId={serviceId} />
+}
+
+function GenericServiceOrder({ serviceId }) {
   const navigate = useNavigate()
   const { placeServiceOrder, objects, profile, isLoggedIn, authReady } = useService()
   const service = getServiceById(serviceId)
@@ -79,7 +84,7 @@ export default function ServiceOrderPage() {
     return (
       <div className="px-4 py-8 text-center">
         <p className="text-slate-500 mb-4">Услуга не найдена</p>
-        <Button onClick={() => navigate('/services')}>К списку услуг</Button>
+        <Button onClick={() => navigate(-1)}>Назад</Button>
       </div>
     )
   }
@@ -119,7 +124,7 @@ export default function ServiceOrderPage() {
 
   return (
     <div className="px-4 py-4">
-      <h1 className="text-xl font-bold mb-1">{service.name}</h1>
+      <PageHeader title={service.name} subtitle="Оформление заявки" onBack={() => navigate(-1)} />
       {service.priceNote && <p className="text-sm text-gp-green-700 font-semibold mb-1">{service.priceNote}</p>}
       <p className="text-gp-green-700 font-bold mb-2">от {formatPrice(service.priceFrom)}</p>
       {service.description && <p className="text-sm text-slate-500 mb-4">{service.description}</p>}

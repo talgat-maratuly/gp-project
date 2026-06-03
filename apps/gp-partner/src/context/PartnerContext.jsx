@@ -425,6 +425,12 @@ export function PartnerProvider({ children }) {
   const addPartnerOfferings = useCallback(
     async (subserviceIds) => {
       if (!subserviceIds?.length) throw new Error('Выберите хотя бы одну подуслугу')
+      if (isDemoMode()) {
+        const offerings = await demoApi.demoAddPartnerOfferings(user.partnerProfileId, subserviceIds)
+        setUser((u) => (u ? { ...u, serviceOfferings: offerings } : u))
+        notify('Жаңа қызмет түрлері модерацияға жіберілді')
+        return offerings
+      }
       const profile = await api.addPartnerOfferings(subserviceIds)
       setUser((u) => (u
         ? {
@@ -442,36 +448,61 @@ export function PartnerProvider({ children }) {
         : u))
       notify('Жаңа қызмет түрлері модерацияға жіберілді')
     },
-    [notify],
+    [notify, user?.partnerProfileId],
+  )
+
+  const saveCustomOffering = useCallback(
+    async (data) => {
+      if (!user?.partnerProfileId) throw new Error('auth_required')
+      if (isDemoMode()) {
+        const offering = await demoApi.demoSaveCustomOffering(user.partnerProfileId, data)
+        const offerings = demoApi.demoGetPartnerOfferings(user.partnerProfileId)
+        setUser((u) => (u ? { ...u, serviceOfferings: offerings } : u))
+        notify(data.id ? 'Қызмет жаңартылды' : 'Қызмет модерацияға жіберілді')
+        return offering
+      }
+      throw new Error('custom_offering_api_unavailable')
+    },
+    [notify, user?.partnerProfileId],
   )
 
   const acceptOrder = useCallback(async (orderId) => {
     if (isDemoMode()) {
-      await demoApi.demoUpdateStatus(orderId, 'accepted')
+      await demoApi.demoUpdateStatus(orderId, 'accepted', { partnerId: user?.partnerProfileId, assignedPartnerId: user?.partnerProfileId })
       setActiveOrderId(orderId)
       await refreshOrders()
-      notify('Заявка принята')
-      return
+      return orderId
     }
     await api.acceptPartnerOrder(orderId)
     setActiveOrderId(orderId)
     await refreshAll()
-    notify('Заявка принята')
-  }, [refreshAll, refreshOrders, notify])
+    return orderId
+  }, [refreshAll, refreshOrders, user?.partnerProfileId])
 
   // Приём заказа из общей ленты (пула). Race-protection — на бэкенде.
   const acceptFromFeed = useCallback(async (orderId) => {
     try {
+      if (isDemoMode()) {
+        await demoApi.demoPatchOrder(orderId, {
+          status: 'assigned',
+          partnerId: user?.partnerProfileId,
+          assignedPartnerId: user?.partnerProfileId,
+          partnerName: user?.company || user?.name,
+        })
+        setActiveOrderId(orderId)
+        await Promise.all([refreshOrders(), refreshFeed()])
+        return orderId
+      }
       await api.acceptOrderFromPool(orderId)
       setActiveOrderId(orderId)
       await Promise.all([refreshAll(), refreshFeed()])
-      notify('Заявка принята')
+      return orderId
     } catch (e) {
       await refreshFeed()
       notify(e?.message || 'Не удалось принять заказ')
       throw e
     }
-  }, [refreshAll, refreshFeed, notify])
+  }, [refreshAll, refreshFeed, refreshOrders, notify, user?.partnerProfileId, user?.company, user?.name])
 
   const advanceOrder = useCallback(async (orderId, uiStatus, location) => {
     if (isDemoMode()) {
@@ -567,8 +598,8 @@ export function PartnerProvider({ children }) {
     [orders, isMyOrder],
   )
   const activeOrders = useMemo(
-    () => orders.filter((o) => !['new', 'cancelled', 'client_confirmed', 'done'].includes(o.status)),
-    [orders],
+    () => orders.filter((o) => isMyOrder(o) && !['new', 'cancelled', 'client_confirmed', 'done', 'completed'].includes(o.status)),
+    [orders, isMyOrder],
   )
   const activeOrder = useMemo(() => orders.find((o) => o.id === activeOrderId) || activeOrders[0], [orders, activeOrderId, activeOrders])
 
@@ -577,7 +608,7 @@ export function PartnerProvider({ children }) {
     feed, feedLoading, refreshFeed, acceptFromFeed,
     products, productsLoading, productsError, transactions,
     loading, toast, activeOrderId, setActiveOrderId,
-    register, login, loginViaWhatsappOtp, logout, setOnline, addPartnerOfferings, acceptOrder, advanceOrder, cancelOrder,
+    register, login, loginViaWhatsappOtp, logout, setOnline, addPartnerOfferings, saveCustomOffering, acceptOrder, advanceOrder, cancelOrder,
     updateOrderStatus: (orderId, status) => advanceOrder(orderId, status),
     isDemoMode: isDemoMode(),
     refreshMarket: () => {},

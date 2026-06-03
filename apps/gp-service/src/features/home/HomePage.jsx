@@ -96,7 +96,7 @@ export default function HomePage() {
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={() => navigate('/services/septic-pumping')}
+            onClick={() => navigate('/quick-order')}
             className="flex-1 py-4 px-4 rounded-2xl bg-white text-emerald-700 font-bold text-sm shadow-lg active:scale-[0.98] transition"
           >
             <Droplets className="w-5 h-5 inline mr-1.5 -mt-0.5" />
@@ -216,7 +216,7 @@ export default function HomePage() {
           <KaspiCard className="!p-5 text-center">
             <Package className="w-8 h-8 mx-auto mb-2 text-[var(--gp-text-muted)]" />
             <p className="text-sm text-[var(--gp-text-muted)] mb-3">Пока нет заказов</p>
-            <KaspiButton size="md" onClick={() => navigate('/services/septic-pumping')}>
+            <KaspiButton size="md" onClick={() => navigate('/quick-order')}>
               Первый заказ
             </KaspiButton>
           </KaspiCard>

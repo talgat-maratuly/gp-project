@@ -137,7 +137,12 @@ export default function ProfilePage() {
                 key={o.id}
                 className="flex flex-col gap-0.5 rounded-xl border border-[var(--gp-border)] bg-[var(--gp-surface-2)] px-3 py-2.5"
               >
-                <span className="text-sm text-[var(--gp-text)]">{getPartnerSubserviceLabel(o.subserviceId)}</span>
+                <span className="text-sm text-[var(--gp-text)]">
+                  {o.custom && o.name ? o.name : getPartnerSubserviceLabel(o.subserviceId)}
+                </span>
+                {o.custom && o.price != null && (
+                  <span className="text-[11px] text-[var(--gp-text-muted)]">{Number(o.price).toLocaleString('ru-RU')} ₸</span>
+                )}
                 <span className="text-[11px] text-[var(--gp-text-muted)] font-mono">{o.subserviceId}</span>
                 <span className={`text-xs font-medium mt-1 ${
                   o.status === 'ACTIVE' ? 'text-emerald-600'
@@ -157,6 +162,9 @@ export default function ProfilePage() {
         ) : (
           <p className="text-xs text-[var(--gp-text-muted)]">Нет зарегистрированных подуслуг</p>
         )}
+        <Link to="/services" className="inline-block mt-3 text-xs font-bold text-emerald-600">
+          Управление услугами →
+        </Link>
       </div>
       )}
 
