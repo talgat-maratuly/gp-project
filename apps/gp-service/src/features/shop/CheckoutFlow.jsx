@@ -8,6 +8,7 @@ import {
   computeShopDeliveryFee,
   getShopDeliverySummary,
 } from '@gp/shared/constants'
+import OrderLocationFields from '@gp/shared/components/OrderLocationFields'
 import PaymentMethodPicker from '../../components/PaymentMethodPicker'
 import AddressPickerMap from '../../components/AddressPickerMap'
 import { useService } from '../../context/ServiceContext'
@@ -22,11 +23,20 @@ const STEPS = [
 
 export default function CheckoutFlow() {
   const navigate = useNavigate()
-  const { cartItems, cartTotal, placeShopOrder, setCheckoutDraft, checkoutDraft } = useService()
+  const { cartItems, cartTotal, placeShopOrder, setCheckoutDraft, checkoutDraft, profile, geoStore } = useService()
   const [step, setStep] = useState(1)
   const [form, setForm] = useState(checkoutDraft?.form || {
-    name: '', phone: '', address: '', lat: 51.233, lng: 51.367,
-    comment: '', paymentMethod: 'kaspi_partner',
+    name: profile.name || '',
+    phone: profile.phone || '',
+    address: '',
+    lat: 51.233,
+    lng: 51.367,
+    oblastId: profile.oblastId || '',
+    cityId: profile.cityId || '',
+    city: profile.city || '',
+    franchiseId: profile.franchiseId || null,
+    comment: '',
+    paymentMethod: 'kaspi_partner',
     deliveryMode: 'courier',
   })
   const [processing, setProcessing] = useState(false)
@@ -57,7 +67,7 @@ export default function CheckoutFlow() {
       setCheckoutDraft({ form, step: 2 })
       setStep(2)
     } else if (step === 2) {
-      if (!form.name || !form.phone || !form.address) return
+      if (!form.name || !form.phone || !form.address || !form.cityId) return
       setCheckoutDraft({ form, step: 3 })
       setStep(3)
     }
@@ -115,7 +125,12 @@ export default function CheckoutFlow() {
           <div className="space-y-3 mb-4">
             <Input label="Имя" value={form.name} onChange={set('name')} />
             <Input label="Телефон" type="tel" value={form.phone} onChange={set('phone')} placeholder="+7 7XX XXX XX XX" />
-            <Input label="Адрес" value={form.address} onChange={set('address')} placeholder="Уральск, ул. Мухит 112" />
+            <OrderLocationFields
+              store={geoStore}
+              profile={profile}
+              value={form}
+              onChange={(patch) => setForm((f) => ({ ...f, ...patch }))}
+            />
             <Input label="Комментарий" value={form.comment} onChange={set('comment')} />
           </div>
 
@@ -155,7 +170,7 @@ export default function CheckoutFlow() {
               <AddressPickerMap
                 lat={form.lat}
                 lng={form.lng}
-                onLocationChange={(lat, lng) => setForm((f) => ({ ...f, lat, lng }))}
+                onLocationChange={({ lat, lng }) => setForm((f) => ({ ...f, lat, lng }))}
               />
             </>
           )}

@@ -30,6 +30,8 @@
     "./i18n": "./src/i18n/index.js",
     "./geography": "./src/geography/index.js",
     "./components/CitySelector": "./src/components/CitySelector.jsx",
+    "./components/OrderLocationFields": "./src/components/OrderLocationFields.jsx",
+    "./hooks/useOrderLocation": "./src/hooks/useOrderLocation.js",
     "./components/LanguageSwitcher": "./src/components/LanguageSwitcher.jsx",
     "./auth/passwordRecovery": "./src/auth/passwordRecovery.jsx",
     "./auth/whatsappOtpLogin": "./src/auth/whatsappOtpLogin.jsx"

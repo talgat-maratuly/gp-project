@@ -38,7 +38,11 @@ export default function AddressPickerMap({ lat, lng, onLocationChange, className
     const marker = L.marker([clat, clng], { draggable: true, icon: pinIcon }).addTo(map)
     markerRef.current = marker
 
-    const emit = (la, ln) => onLocRef.current(Number(la.toFixed(5)), Number(ln.toFixed(5)))
+    const emit = (la, ln) => {
+      const lat = Number(la.toFixed(5))
+      const lng = Number(ln.toFixed(5))
+      onLocRef.current({ lat, lng })
+    }
 
     marker.on('dragend', () => {
       const p = marker.getLatLng()
@@ -77,7 +81,7 @@ export default function AddressPickerMap({ lat, lng, onLocationChange, className
           marker.setLatLng([la, ln])
           map.setView([la, ln], 15)
         }
-        onLocRef.current(Number(la.toFixed(5)), Number(ln.toFixed(5)))
+        onLocRef.current({ lat: Number(la.toFixed(5)), lng: Number(ln.toFixed(5)) })
       },
       () => {},
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },

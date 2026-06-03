@@ -81,11 +81,11 @@ export const OBLASTS_SEED = [
 ]
 
 export const CITIES_SEED = [
-  { id: 'city-uralsk', oblastId: 'obl-batys', franchiseId: 'fr-uralsk', names: { ru: 'Уральск', kk: 'Орал', en: 'Uralsk' }, name: 'Уральск', active: true },
-  { id: 'city-atyrau', oblastId: 'obl-atyrau', franchiseId: 'fr-atyrau', names: { ru: 'Атырау', kk: 'Атырау', en: 'Atyrau' }, name: 'Атырау', active: true },
-  { id: 'city-aktobe', oblastId: 'obl-aktobe', franchiseId: 'fr-aktobe', names: { ru: 'Актобе', kk: 'Ақтobe', en: 'Aktobe' }, name: 'Актобе', active: true },
-  { id: 'city-almaty', oblastId: 'obl-almaty', franchiseId: 'fr-almaty', names: { ru: 'Алматы', kk: 'Алматы', en: 'Almaty' }, name: 'Алматы', active: true },
-  { id: 'city-astana', oblastId: 'obl-astana', franchiseId: 'fr-astana', names: { ru: 'Астана', kk: 'Астана', en: 'Astana' }, name: 'Астана', active: true },
+  { id: 'city-uralsk', oblastId: 'obl-batys', franchiseId: 'fr-uralsk', lat: 51.233, lng: 51.367, names: { ru: 'Уральск', kk: 'Орал', en: 'Uralsk' }, name: 'Уральск', active: true },
+  { id: 'city-atyrau', oblastId: 'obl-atyrau', franchiseId: 'fr-atyrau', lat: 47.116, lng: 51.883, names: { ru: 'Атырау', kk: 'Атырау', en: 'Atyrau' }, name: 'Атырау', active: true },
+  { id: 'city-aktobe', oblastId: 'obl-aktobe', franchiseId: 'fr-aktobe', lat: 50.280, lng: 57.207, names: { ru: 'Актобе', kk: 'Ақтobe', en: 'Aktobe' }, name: 'Актобе', active: true },
+  { id: 'city-almaty', oblastId: 'obl-almaty', franchiseId: 'fr-almaty', lat: 43.238, lng: 76.945, names: { ru: 'Алматы', kk: 'Алматы', en: 'Almaty' }, name: 'Алматы', active: true },
+  { id: 'city-astana', oblastId: 'obl-astana', franchiseId: 'fr-astana', lat: 51.128, lng: 71.430, names: { ru: 'Астана', kk: 'Астана', en: 'Astana' }, name: 'Астана', active: true },
 ]
 
 function subs(id, names, price, commission) {

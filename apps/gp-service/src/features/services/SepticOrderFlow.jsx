@@ -6,7 +6,7 @@ import { api } from '@gp/shared/api'
 import { PREFERRED_TIME_SLOTS, SEPTIC_VOLUME_OPTIONS, calcServiceTotal } from '@gp/shared/constants'
 import { getServiceById } from '../../data/services'
 import { useService } from '../../context/ServiceContext'
-import CitySelector from '@gp/shared/components/CitySelector'
+import OrderLocationFields from '@gp/shared/components/OrderLocationFields'
 import PaymentMethodPicker from '../../components/PaymentMethodPicker'
 import AddressPickerMap from '../../components/AddressPickerMap'
 import {
@@ -65,6 +65,7 @@ export default function SepticOrderFlow() {
     cityId: profile.cityId || '',
     city: profile.city || '',
     franchiseId: profile.franchiseId || null,
+    address: objects[0]?.address || '',
   })
 
   useEffect(() => {
@@ -96,13 +97,14 @@ export default function SepticOrderFlow() {
     setError('')
     try {
       if (!form.cityId) throw new Error('Выберите область и город')
+      if (!form.address?.trim() && !obj?.address) throw new Error('Укажите адрес')
       const order = await placeServiceOrder({
         serviceId: service.id,
         serviceName: service.name,
         priceFrom: service.priceFrom,
         total,
         ...form,
-        address: obj?.address,
+        address: form.address || obj?.address,
       })
       setPlacedOrder(order)
       setPhase('tracking')
@@ -278,39 +280,24 @@ export default function SepticOrderFlow() {
 
       {step === 2 && (
         <div className="space-y-4">
-          {geoStore && (
-            <KaspiCard className="!p-4">
-              <p className="font-bold mb-3">Область и город</p>
-              <CitySelector
-                store={geoStore}
-                value={{ oblastId: form.oblastId, cityId: form.cityId }}
-                inputClassName="w-full mt-1 p-4 rounded-2xl border border-[var(--gp-border)] bg-[var(--gp-surface)]"
-                onChange={(sel) => setForm((f) => ({
-                  ...f,
-                  oblastId: sel.oblastId,
-                  cityId: sel.cityId,
-                  city: sel.city || f.city,
-                  franchiseId: sel.franchiseId || f.franchiseId,
-                }))}
-              />
-            </KaspiCard>
-          )}
           <KaspiCard className="!p-4">
-            <p className="font-bold mb-2">Адрес</p>
-            <select
-              value={form.objectId}
-              onChange={(e) => setForm({ ...form, objectId: e.target.value })}
-              className="w-full p-4 rounded-2xl border border-[var(--gp-border)] bg-[var(--gp-surface)] mb-3"
-            >
-              {objects.map((o) => (
-                <option key={o.id} value={o.id}>{o.name}</option>
-              ))}
-            </select>
-            <AddressPickerMap
-              lat={form.lat}
-              lng={form.lng}
-              onLocationChange={({ lat, lng }) => setForm((f) => ({ ...f, lat, lng }))}
-              className="h-40 rounded-2xl overflow-hidden"
+            <p className="font-bold mb-3">Область, город и адрес</p>
+            <OrderLocationFields
+              store={geoStore}
+              profile={profile}
+              objects={objects}
+              value={form}
+              onChange={(patch) => setForm((f) => ({ ...f, ...patch }))}
+              showObjectPicker
+              showMap
+              mapSlot={(
+                <AddressPickerMap
+                  lat={form.lat}
+                  lng={form.lng}
+                  onLocationChange={({ lat, lng }) => setForm((f) => ({ ...f, lat, lng }))}
+                  className="h-40 rounded-2xl overflow-hidden"
+                />
+              )}
             />
           </KaspiCard>
           <KaspiCard className="!p-4">

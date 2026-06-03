@@ -65,3 +65,12 @@ export function inferCitySelection(store, { city, cityId, oblastId, franchiseId 
   }
   return { oblastId: oblastId || '', cityId: cityId || '', city: city || '', franchiseId: franchiseId || null }
 }
+
+export {
+  findNearestCity,
+  requestBrowserLocation,
+  reverseGeocodeAddress,
+  cityCoords,
+} from './geoLocation.js'
+
+export { createStaticGeoStore, STATIC_GEO_STORE } from './staticStore.js'

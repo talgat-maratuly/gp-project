@@ -12,7 +12,7 @@ import {
 import { getServiceById, getLawnPricing } from '../../data/services'
 import { useService } from '../../context/ServiceContext'
 import { useLanguage } from '../../i18n'
-import CitySelector from '@gp/shared/components/CitySelector'
+import OrderLocationFields from '@gp/shared/components/OrderLocationFields'
 import PaymentMethodPicker from '../../components/PaymentMethodPicker'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
@@ -65,6 +65,9 @@ function GenericServiceOrder({ serviceId }) {
     cityId: profile.cityId || '',
     city: profile.city || '',
     franchiseId: profile.franchiseId || null,
+    address: objects[0]?.address || '',
+    lat: 51.233,
+    lng: 51.367,
   })
   const [processing, setProcessing] = useState(false)
   const [error, setError] = useState('')
@@ -79,6 +82,8 @@ function GenericServiceOrder({ serviceId }) {
       cityId: f.cityId || profile.cityId || '',
       city: f.city || profile.city || '',
       franchiseId: f.franchiseId || profile.franchiseId || null,
+      objectId: f.objectId || objects[0]?.id || '',
+      address: f.address || objects.find((o) => o.id === (f.objectId || objects[0]?.id))?.address || '',
     }))
   }, [profile.name, profile.phone, profile.oblastId, profile.cityId, profile.city, profile.franchiseId, objects])
 
@@ -117,13 +122,20 @@ function GenericServiceOrder({ serviceId }) {
       setProcessing(false)
       return
     }
+    if (!form.address?.trim()) {
+      setError(t('address'))
+      setProcessing(false)
+      return
+    }
     try {
+      const obj = objects.find((o) => o.id === form.objectId)
       await placeServiceOrder({
         serviceId: service.id,
         serviceName: service.name,
         priceFrom: service.priceFrom,
         total: estimatedTotal,
         ...form,
+        address: form.address || obj?.address,
         lawnAreaSqm: form.lawnAreaSqm ? Number(form.lawnAreaSqm) : undefined,
       })
       navigate('/orders')
@@ -160,26 +172,14 @@ function GenericServiceOrder({ serviceId }) {
       <form onSubmit={submit} className="gp-card p-5 space-y-4">
         <Input label="Имя" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
         <Input label="Телефон" type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required />
-        {geoStore && (
-          <CitySelector
-            store={geoStore}
-            value={{ oblastId: form.oblastId, cityId: form.cityId }}
-            inputClassName="w-full mt-1 p-3 rounded-xl border border-[var(--gp-border)] bg-[var(--gp-surface)]"
-            onChange={(sel) => setForm((f) => ({
-              ...f,
-              oblastId: sel.oblastId,
-              cityId: sel.cityId,
-              city: sel.city || f.city,
-              franchiseId: sel.franchiseId || f.franchiseId,
-            }))}
-          />
-        )}
-        <label className="block text-sm">
-          <span className="font-medium">Адрес</span>
-          <select value={form.objectId} onChange={(e) => setForm({ ...form, objectId: e.target.value })} className="w-full mt-1 p-3 rounded-xl border">
-            {objects.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-          </select>
-        </label>
+        <OrderLocationFields
+          store={geoStore}
+          profile={profile}
+          objects={objects}
+          value={form}
+          onChange={(patch) => setForm((f) => ({ ...f, ...patch }))}
+          showObjectPicker
+        />
 
         {isSeptic && (
           <label className="block text-sm">

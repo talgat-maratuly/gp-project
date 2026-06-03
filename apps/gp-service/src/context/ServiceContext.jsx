@@ -17,6 +17,7 @@ import {
   logoutTestMode,
   registerTestClient,
 } from '@gp/shared/testMode'
+import { STATIC_GEO_STORE } from '@gp/shared/geography'
 import { SERVICE_CATALOG, getServiceOrderCategory } from '../data/services'
 
 const KEYS = {
@@ -441,6 +442,7 @@ export function ServiceProvider({ children }) {
       total: orderTotal,
       paymentMethod: PAYMENT_TO_API[data.paymentMethod] || 'CASH_ON_DELIVERY',
       comment: commentParts.join('\n'),
+      onBehalfCity: data.city || profile.city,
       items: cartItems.map((i) => ({
         productId: i.product.id,
         name: i.product.name,
@@ -458,7 +460,7 @@ export function ServiceProvider({ children }) {
     setCheckoutDraft(null)
     notify('Заказ оформлен! Оплата — партнёру напрямую.')
     return order
-  }, [cartItems, cartTotal, clearCart, notify, refreshOrders, requireAuth])
+  }, [cartItems, cartTotal, clearCart, notify, refreshOrders, requireAuth, profile])
 
   const placeServiceOrder = useCallback(async (data) => {
     requireAuth()
@@ -548,7 +550,7 @@ export function ServiceProvider({ children }) {
     sendOtp, verifyOtp, submitPartnerApplication,
     isDemoMode: isDemoMode(),
     isTestMode: isTestModeActive(),
-    geoStore: isDemoMode() ? geoStore : null,
+    geoStore: isDemoMode() && geoStore?.cities?.length ? geoStore : STATIC_GEO_STORE,
     demoFranchises: isDemoMode() ? demoApi.demoFranchises() : [],
     cancelOrder: async (orderId, cancelReason) => {
       requireAuth()
