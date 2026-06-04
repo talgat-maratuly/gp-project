@@ -7,7 +7,6 @@ import {
   SEPTIC_VOLUME_OPTIONS,
   LAWN_SERVICE_IDS,
   CONSULTATION_SERVICE_IDS,
-  calcServiceTotal,
 } from '@gp/shared/constants'
 import { getServiceById, getLawnPricing } from '../../data/services'
 import { useService } from '../../context/ServiceContext'
@@ -37,9 +36,18 @@ export default function ServiceOrderPage() {
 
 function GenericServiceOrder({ serviceId }) {
   const navigate = useNavigate()
-  const { t } = useLanguage()
-  const { placeServiceOrder, objects, profile, geoStore, isLoggedIn, authReady } = useService()
-  const service = getServiceById(serviceId)
+  const { t, lang } = useLanguage()
+  const {
+    placeServiceOrder, objects, profile, geoStore, isLoggedIn, authReady,
+    getCityCatalog, isServiceAvailable, calcOrderTotal,
+  } = useService()
+  const baseService = getServiceById(serviceId)
+  const cityService = useMemo(() => {
+    const list = getCityCatalog(baseService ? [baseService] : [], lang)
+    return list[0] || baseService
+  }, [getCityCatalog, baseService, lang, profile.franchiseId])
+  const service = cityService
+  const available = isServiceAvailable(serviceId)
   const isSeptic = serviceId === 'septic-pumping'
   const isLawn = LAWN_SERVICE_IDS.includes(serviceId)
   const isConsultation = CONSULTATION_SERVICE_IDS.has(serviceId)
@@ -89,14 +97,14 @@ function GenericServiceOrder({ serviceId }) {
 
   const estimatedTotal = useMemo(() => {
     if (!serviceId) return 0
-    return calcServiceTotal({
+    return calcOrderTotal({
       serviceId,
       septicVolume: isSeptic ? form.septicVolume : undefined,
       lawnAreaSqm: isLawn && form.lawnAreaSqm ? Number(form.lawnAreaSqm) : undefined,
-    })
-  }, [serviceId, isSeptic, isLawn, form.septicVolume, form.lawnAreaSqm])
+    }, lang)
+  }, [serviceId, isSeptic, isLawn, form.septicVolume, form.lawnAreaSqm, calcOrderTotal, lang])
 
-  if (!service) {
+  if (!baseService) {
     return (
       <div className="px-4 py-8 text-center">
         <p className="text-slate-500 mb-4">{t('serviceNotFound')}</p>
@@ -105,9 +113,15 @@ function GenericServiceOrder({ serviceId }) {
     )
   }
 
-  const septicOption = SEPTIC_VOLUME_OPTIONS.find(
-    (o) => o.volumes?.includes(form.septicVolume) || o.value === form.septicVolume,
-  )
+  if (!available || !service) {
+    return (
+      <div className="px-4 py-8 text-center">
+        <p className="text-slate-500 mb-4">{t('serviceUnavailableInCity')}</p>
+        {profile.city && <p className="text-xs text-slate-400 mb-4">{profile.city}</p>}
+        <Button onClick={() => navigate('/services')}>{t('nav_services')}</Button>
+      </div>
+    )
+  }
 
   const submit = async (e) => {
     e.preventDefault()

@@ -18,6 +18,12 @@ import {
   registerTestClient,
 } from '@gp/shared/testMode'
 import { STATIC_GEO_STORE } from '@gp/shared/geography'
+import {
+  calcServiceTotalWithCity,
+  filterCatalogForCity,
+  getSepticVolumeOptionsForCity,
+  isServiceActiveInCity,
+} from '@gp/shared/services/cityCatalog'
 import { SERVICE_CATALOG, getServiceOrderCategory } from '../data/services'
 
 const KEYS = {
@@ -538,6 +544,33 @@ export function ServiceProvider({ children }) {
     [products],
   )
 
+  const catalogStore = isDemoMode() ? geoStore : null
+
+  const getCityCatalog = useCallback((items, lang = 'ru') => {
+    const fid = profile.franchiseId
+    if (!catalogStore?.services?.length || !fid) return items
+    return filterCatalogForCity(items, catalogStore, fid, lang)
+  }, [catalogStore, profile.franchiseId])
+
+  const getSepticOptions = useCallback((lang = 'ru') => {
+    const fid = profile.franchiseId
+    if (!catalogStore?.services?.length || !fid) return null
+    return getSepticVolumeOptionsForCity(catalogStore, fid, lang)
+  }, [catalogStore, profile.franchiseId])
+
+  const isServiceAvailable = useCallback((serviceId) => {
+    const fid = profile.franchiseId
+    if (!catalogStore?.services?.length || !fid) return true
+    return isServiceActiveInCity(catalogStore, fid, serviceId)
+  }, [catalogStore, profile.franchiseId])
+
+  const calcOrderTotal = useCallback((params, lang = 'ru') => calcServiceTotalWithCity({
+    store: catalogStore,
+    franchiseId: profile.franchiseId,
+    lang,
+    ...params,
+  }), [catalogStore, profile.franchiseId])
+
   const value = {
     authUser, authReady, isLoggedIn: !!authUser,
     products, productsLoading, productsError, refreshProducts, cart, cartItems, cartTotal, cartCount, favorites, favoriteProducts,
@@ -551,6 +584,11 @@ export function ServiceProvider({ children }) {
     isDemoMode: isDemoMode(),
     isTestMode: isTestModeActive(),
     geoStore: isDemoMode() && geoStore?.cities?.length ? geoStore : STATIC_GEO_STORE,
+    catalogStore,
+    getCityCatalog,
+    getSepticOptions,
+    isServiceAvailable,
+    calcOrderTotal,
     demoFranchises: isDemoMode() ? demoApi.demoFranchises() : [],
     cancelOrder: async (orderId, cancelReason) => {
       requireAuth()

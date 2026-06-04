@@ -32,6 +32,7 @@
     "./components/CitySelector": "./src/components/CitySelector.jsx",
     "./components/OrderLocationFields": "./src/components/OrderLocationFields.jsx",
     "./hooks/useOrderLocation": "./src/hooks/useOrderLocation.js",
+    "./services/cityCatalog": "./src/services/cityCatalog.js",
     "./components/LanguageSwitcher": "./src/components/LanguageSwitcher.jsx",
     "./auth/passwordRecovery": "./src/auth/passwordRecovery.jsx",
     "./auth/whatsappOtpLogin": "./src/auth/whatsappOtpLogin.jsx"

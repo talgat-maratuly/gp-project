@@ -24,10 +24,11 @@ const emptySubForm = (serviceId = '') => ({
   names: { ...EMPTY_NAMES },
   price: 0,
   gpCommission: 0,
+  active: true,
 })
 
 export default function ServicesPage() {
-  const { scoped, effectiveFranchiseId, can } = useAccess()
+  const { scoped, effectiveFranchiseId, can, currentFranchise } = useAccess()
   const { user } = useAuth()
   const { addService, updateService, removeService, addSubservice, updateSubservice, removeSubservice } = useStore()
   const { t, lang } = useLanguage()
@@ -79,6 +80,7 @@ export default function ServicesPage() {
       names: normalizeNames(sub),
       price: sub.price,
       gpCommission: sub.gpCommission,
+      active: sub.active !== false,
     })
   }
 
@@ -121,6 +123,7 @@ export default function ServicesPage() {
       names: subForm.names,
       price: subForm.price,
       gpCommission: subForm.gpCommission,
+      active: subForm.active,
     })
     if (subModal.subId === 'new') {
       if (!subForm.serviceId) return
@@ -136,6 +139,12 @@ export default function ServicesPage() {
 
   return (
     <div className="space-y-4">
+      {currentFranchise && (
+        <p className="text-sm admin-muted">
+          {t('franchise')}: <span className="font-semibold admin-heading">{currentFranchise.city}</span>
+          <span className="text-xs ml-2 opacity-70">— {t('servicesCityHint')}</span>
+        </p>
+      )}
       <div className="flex flex-wrap gap-2">
         <button type="button" onClick={openAddService} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-600 text-sm font-semibold">
           <Plus className="w-4 h-4" /> {t('addService')}
@@ -177,7 +186,10 @@ export default function ServicesPage() {
               <ul className="space-y-2">
                 {(s.subservices || []).map((sub) => (
                   <li key={sub.id} className="flex justify-between items-center px-3 py-2 rounded-lg bg-white/5 text-sm">
-                    <span>{label(sub)} — {formatMoney(sub.price)}</span>
+                    <span className="flex items-center gap-2 flex-wrap">
+                      {label(sub)} — {formatMoney(sub.price)}
+                      {sub.active === false && <Badge color="slate">{t('inactiveF')}</Badge>}
+                    </span>
                     <div className="flex gap-1">
                       <button type="button" className="text-xs text-sky-400" onClick={() => openEditSubservice(s.id, sub)}>{t('edit')}</button>
                       <button type="button" className="text-xs text-red-400" onClick={() => removeSubservice(s.id, sub.id)}>{t('delete')}</button>
@@ -225,6 +237,7 @@ export default function ServicesPage() {
           <LocalizedNameFields names={subForm.names} onChange={(names) => setSubForm({ ...subForm, names })} />
           <label className="block"><span className="text-xs text-slate-300 font-medium">{t('price')}</span><input type="number" className="admin-input mt-1" value={subForm.price} onChange={(e) => setSubForm({ ...subForm, price: +e.target.value })} /></label>
           <label className="block"><span className="text-xs text-slate-300 font-medium">{t('gpCommission')}</span><input type="number" className="admin-input mt-1" value={subForm.gpCommission} onChange={(e) => setSubForm({ ...subForm, gpCommission: +e.target.value })} /></label>
+          <label className="flex items-center gap-2"><input type="checkbox" checked={subForm.active} onChange={(e) => setSubForm({ ...subForm, active: e.target.checked })} />{t('activeF')}</label>
           {formError && <p className="text-xs text-red-400">{formError}</p>}
           <FormActions onSave={saveSub} onCancel={() => { setSubModal(null); setFormError('') }} />
         </div>

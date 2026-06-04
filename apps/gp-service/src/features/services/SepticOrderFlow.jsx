@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { Camera, Star } from 'lucide-react'
 import { formatPrice } from '@gp/shared/utils'
 import { api } from '@gp/shared/api'
-import { PREFERRED_TIME_SLOTS, SEPTIC_VOLUME_OPTIONS, calcServiceTotal } from '@gp/shared/constants'
+import { PREFERRED_TIME_SLOTS, SEPTIC_VOLUME_OPTIONS } from '@gp/shared/constants'
 import { getServiceById } from '../../data/services'
 import { useService } from '../../context/ServiceContext'
+import { useLanguage } from '../../i18n'
 import OrderLocationFields from '@gp/shared/components/OrderLocationFields'
 import PaymentMethodPicker from '../../components/PaymentMethodPicker'
 import AddressPickerMap from '../../components/AddressPickerMap'
@@ -33,8 +34,23 @@ function statusToIndex(status) {
 
 export default function SepticOrderFlow() {
   const navigate = useNavigate()
-  const { placeServiceOrder, objects, profile, geoStore, isLoggedIn, authReady, notify, refreshOrders } = useService()
-  const service = getServiceById('septic-pumping')
+  const { t, lang } = useLanguage()
+  const {
+    placeServiceOrder, objects, profile, geoStore, isLoggedIn, authReady, notify, refreshOrders,
+    getSepticOptions, calcOrderTotal, isServiceAvailable, getCityCatalog,
+  } = useService()
+  const baseService = getServiceById('septic-pumping')
+  const service = useMemo(() => {
+    const list = getCityCatalog(baseService ? [baseService] : [], lang)
+    return list[0] || baseService
+  }, [getCityCatalog, baseService, lang, profile.franchiseId])
+  const available = isServiceAvailable('septic-pumping')
+
+  const volumeOptions = useMemo(() => {
+    const cityOpts = getSepticOptions(lang)
+    if (cityOpts?.length) return cityOpts
+    return SEPTIC_VOLUME_OPTIONS
+  }, [getSepticOptions, lang, profile.franchiseId])
 
   const tomorrow = new Date()
   tomorrow.setDate(tomorrow.getDate() + 1)
@@ -81,9 +97,19 @@ export default function SepticOrderFlow() {
     }))
   }, [profile.name, profile.phone, profile.oblastId, profile.cityId, profile.city, profile.franchiseId, objects])
 
+  useEffect(() => {
+    if (!volumeOptions.length) return
+    const hasCurrent = volumeOptions.some(
+      (o) => o.volumes?.includes(form.septicVolume) || o.value === form.septicVolume,
+    )
+    if (!hasCurrent) {
+      setForm((f) => ({ ...f, septicVolume: volumeOptions[0].value }))
+    }
+  }, [volumeOptions, form.septicVolume])
+
   const total = useMemo(
-    () => calcServiceTotal({ serviceId: 'septic-pumping', septicVolume: form.septicVolume }),
-    [form.septicVolume],
+    () => calcOrderTotal({ serviceId: 'septic-pumping', septicVolume: form.septicVolume }, lang),
+    [calcOrderTotal, form.septicVolume, lang, profile.franchiseId],
   )
 
   const obj = objects.find((o) => o.id === form.objectId)
@@ -206,6 +232,17 @@ export default function SepticOrderFlow() {
     )
   }
 
+  if (!available || !volumeOptions.length) {
+    return (
+      <div className="px-4 py-8 text-center gp-animate-in">
+        <PageHeader title={service?.name || t('nav_services')} onBack={() => navigate(-1)} />
+        <p className="text-slate-500 mb-4">{t('serviceUnavailableInCity')}</p>
+        {profile.city && <p className="text-xs text-slate-400 mb-4">{profile.city}</p>}
+        <KaspiButton onClick={() => navigate('/services')}>{t('nav_services')}</KaspiButton>
+      </div>
+    )
+  }
+
   return (
     <div className="px-4 py-4 gp-animate-in">
       <PageHeader
@@ -229,7 +266,7 @@ export default function SepticOrderFlow() {
           <KaspiCard className="!p-4">
             <p className="font-bold mb-3">Объём септика</p>
             <div className="grid grid-cols-2 gap-2">
-              {SEPTIC_VOLUME_OPTIONS.map((o) => (
+              {volumeOptions.map((o) => (
                 <Chip
                   key={o.label}
                   active={form.septicVolume === o.value}

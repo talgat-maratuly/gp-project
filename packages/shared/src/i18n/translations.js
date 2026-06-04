@@ -393,6 +393,7 @@ const ru = {
   gpCommissionTenge: 'Комиссия GP (₸)',
   forClient: 'для клиента',
   serviceActive: 'Услуга активна',
+  servicesCityHint: 'услуги и цены для этого города',
 
   dateFrom: 'С',
   dateTo: 'По',
@@ -798,6 +799,7 @@ const kk = {
   gpCommissionTenge: 'GP комиссиясы (₸)',
   forClient: 'клиентке',
   serviceActive: 'Қызмет белсенді',
+  servicesCityHint: 'осы қала үшін қызметтер мен бағалар',
 
   dateFrom: 'Бастап',
   dateTo: 'Дейін',
@@ -1203,6 +1205,7 @@ const en = {
   gpCommissionTenge: 'GP commission (₸)',
   forClient: 'for client',
   serviceActive: 'Service active',
+  servicesCityHint: 'services and prices for this city',
 
   dateFrom: 'From',
   dateTo: 'To',

@@ -41,10 +41,10 @@ function statusToLiveIndex(status) {
 
 export default function HomePage() {
   const navigate = useNavigate()
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const {
     recommendations, products, productsLoading, orders, ordersLoading, favorites, refreshOrders,
-    isDemoMode, profile, setProfile, isLoggedIn, geoStore,
+    isDemoMode, profile, setProfile, isLoggedIn, geoStore, getCityCatalog,
   } = useService()
 
   const demoQrLinks = useMemo(() => [
@@ -52,7 +52,12 @@ export default function HomePage() {
     { code: 'QR-IRRIGATION-001', label: t('demoQrIrrigation') },
   ], [t])
 
-  const quickServices = QUICK.map((id) => SERVICE_CATALOG.find((s) => s.id === id)).filter(Boolean)
+  const cityCatalog = useMemo(
+    () => getCityCatalog(SERVICE_CATALOG, lang),
+    [getCityCatalog, lang, profile.franchiseId],
+  )
+  const catalogById = useMemo(() => Object.fromEntries(cityCatalog.map((s) => [s.id, s])), [cityCatalog])
+  const quickServices = QUICK.map((id) => catalogById[id]).filter(Boolean)
   const activeOrder = useMemo(
     () => orders.find((o) => !['completed', 'expired', 'canceled_by_client', 'canceled_by_spec', 'no_show'].includes(o.status)),
     [orders],

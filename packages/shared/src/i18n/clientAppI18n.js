@@ -60,6 +60,7 @@ export const clientRu = {
   checkoutOrderFallback: 'заказ',
 
   serviceNotFound: 'Услуга не найдена',
+  serviceUnavailableInCity: 'Эта услуга недоступна в вашем городе',
   orderFormSubtitle: 'Оформление заявки',
   loginAsClient: 'Войдите как клиент',
   loginRequiredOrders: 'Войдите, чтобы оформлять заказы',
@@ -169,6 +170,7 @@ export const clientKk = {
   checkoutOrderFallback: 'тапсырыс',
 
   serviceNotFound: 'Қызмет табылмады',
+  serviceUnavailableInCity: 'Бұл қызмет сіздің қалаңызда қолжетімсіз',
   orderFormSubtitle: 'Өтінім рәсімдеу',
   loginAsClient: 'Клиент ретінде кіріңіз',
   loginRequiredOrders: 'Тапсырыс беру үшін кіріңіз',
@@ -278,6 +280,7 @@ export const clientEn = {
   checkoutOrderFallback: 'order',
 
   serviceNotFound: 'Service not found',
+  serviceUnavailableInCity: 'This service is not available in your city',
   orderFormSubtitle: 'Place order',
   loginAsClient: 'Sign in as client',
   loginRequiredOrders: 'Sign in to place orders',
