@@ -168,6 +168,9 @@ export const api = {
       { auth: false },
     ),
 
+  getSpecialistOnboardingMainServices: (cityId) =>
+    get(`/specialist/onboarding/main-services?cityId=${encodeURIComponent(cityId)}`, { auth: false }),
+
   getSpecialistApplications: () => get('/specialist/applications'),
 
   getSpecialistApplication: (id) => get(`/specialist/applications/${id}`),

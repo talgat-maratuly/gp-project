@@ -11,6 +11,14 @@ const MAIN_SERVICE_TO_CODE: Record<string, string> = {
   OTHER: 'other',
 };
 
+const SERVICE_CODE_TO_MAIN: Record<string, string> = {
+  septic: 'SEPTIC',
+  lawn: 'LAWN',
+  irrigation: 'AUTOWATERING',
+  filter: 'FILTERS',
+  other: 'OTHER',
+};
+
 /** Клиент/demo store форматына аудару — cityCatalog.js үйлесімді */
 @Injectable()
 export class CatalogBuilderService {
@@ -27,11 +35,15 @@ export class CatalogBuilderService {
 
   async buildForCity(cityId: string, franchiseId?: string) {
     const prices = await this.prisma.cityServicePrice.findMany({
-      where: { cityId },
+      where: {
+        cityId,
+        active: true,
+        serviceType: { active: true },
+        subserviceTypeId: { not: null },
+        subserviceType: { active: true },
+      },
       include: {
-        serviceType: {
-          include: { subserviceTypes: { orderBy: { sortOrder: 'asc' } } },
-        },
+        serviceType: true,
         subserviceType: true,
       },
       orderBy: [{ priority: 'asc' }, { volumeStart: 'asc' }],
@@ -49,52 +61,32 @@ export class CatalogBuilderService {
     const services: Array<Record<string, unknown>> = [];
     for (const [, rows] of byService) {
       const st = rows[0].serviceType;
+      if (!st.active) continue;
       const names = assertLocalizedNames(st.names);
-      const activeRows = rows.filter((r) => r.active);
-      const active = st.active && activeRows.length > 0;
 
-      const subMap = new Map<string, (typeof rows)[0]>();
-      for (const r of rows) {
-        if (r.subserviceTypeId) subMap.set(r.subserviceTypeId, r);
-      }
-
-      const subservices: Array<{
-        id: string;
-        subserviceTypeId: string;
-        code: string;
-        names: ReturnType<typeof assertLocalizedNames>;
-        name: string;
-        price: number;
-        gpCommission: number;
-        active: boolean;
-        volumeStart: number | null;
-        volumeEnd: number | null;
-        priority: number;
-      }> = [];
-
-      for (const subType of st.subserviceTypes) {
-        const priceRow = subMap.get(subType.id);
-        if (!priceRow) continue;
-        const subNames = assertLocalizedNames(subType.names);
-        subservices.push({
-          id: priceRow.id,
-          subserviceTypeId: subType.id,
-          code: subType.code,
-          names: subNames,
-          name: subNames.ru,
-          price: priceRow.price,
-          gpCommission: priceRow.gpCommission,
-          active: priceRow.active && subType.active,
-          volumeStart: priceRow.volumeStart,
-          volumeEnd: priceRow.volumeEnd,
-          priority: priceRow.priority,
+      const subservices = rows
+        .filter((priceRow) => priceRow.subserviceType?.active)
+        .map((priceRow) => {
+          const subType = priceRow.subserviceType!;
+          const subNames = assertLocalizedNames(subType.names);
+          return {
+            id: priceRow.id,
+            subserviceTypeId: subType.id,
+            code: subType.code,
+            names: subNames,
+            name: subNames.ru,
+            price: priceRow.price,
+            gpCommission: priceRow.gpCommission,
+            active: true,
+            volumeStart: priceRow.volumeStart,
+            volumeEnd: priceRow.volumeEnd,
+            priority: priceRow.priority,
+          };
         });
-      }
 
-      const activeSubs = subservices.filter((s) => s.active !== false);
-      const minPrice = activeSubs.length
-        ? Math.min(...activeSubs.map((s) => s.price))
-        : 0;
+      if (!subservices.length) continue;
+
+      const minPrice = Math.min(...subservices.map((s) => s.price));
 
       services.push({
         id: `${st.code}_${franchiseId || cityId}`,
@@ -105,12 +97,33 @@ export class CatalogBuilderService {
         name: names.ru,
         basePrice: Number.isFinite(minPrice) ? minPrice : 0,
         gpCommission: subservices[0]?.gpCommission ?? 0,
-        active,
+        active: true,
         subservices,
       });
     }
 
     return services;
+  }
+
+  /** Қалада active негізгі қызмет идентификаторлары (SEPTIC, LAWN, …) */
+  async getOnboardingMainServices(cityId: string) {
+    if (!cityId?.trim()) return [];
+    const prices = await this.prisma.cityServicePrice.findMany({
+      where: {
+        cityId: cityId.trim(),
+        active: true,
+        subserviceTypeId: { not: null },
+        subserviceType: { active: true },
+        serviceType: { active: true },
+      },
+      include: { serviceType: { select: { code: true } } },
+    });
+    const mains = new Set<string>();
+    for (const p of prices) {
+      const main = SERVICE_CODE_TO_MAIN[p.serviceType.code];
+      if (main) mains.add(main);
+    }
+    return [...mains];
   }
 
   /** Маман тіркелу: қалада active подуслугалар */

@@ -19,7 +19,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SpecialistRequestNotificationsService } from '../specialist-requests/specialist-request-notifications.service';
 import { SubmitOnboardingApplicationDto } from './dto/submit-onboarding-application.dto';
 import { validateOnboardingPayload } from './specialist-onboarding.validation';
-import { ONBOARDING_CATALOG, subservicesForMain } from './specialist-onboarding.catalog';
+import { ONBOARDING_CATALOG } from './specialist-onboarding.catalog';
 import { CatalogBuilderService } from '../service-catalog/catalog-builder.service';
 import {
   assertCanResubmit,
@@ -47,11 +47,11 @@ export class SpecialistOnboardingService {
   }
 
   async getSubservicesForCity(cityId: string, mainServiceId: string) {
-    const fromDb = await this.catalogBuilder.getOnboardingSubservices(cityId, mainServiceId);
-    if (fromDb.length) return fromDb;
-    return subservicesForMain(mainServiceId as import('./specialist-onboarding.catalog').MainServiceId).map(
-      (s) => ({ id: s.id, label: s.label, price: null }),
-    );
+    return this.catalogBuilder.getOnboardingSubservices(cityId, mainServiceId);
+  }
+
+  async getMainServicesForCity(cityId: string) {
+    return this.catalogBuilder.getOnboardingMainServices(cityId);
   }
 
   private async resolveAllowedSubserviceIds(dto: SubmitOnboardingApplicationDto) {
@@ -59,11 +59,12 @@ export class SpecialistOnboardingService {
       dto.cityId?.trim() ||
       (await this.catalogBuilder.resolveCityId(null, dto.city, null));
     if (!cityId) {
-      return subservicesForMain(dto.mainServiceId as import('./specialist-onboarding.catalog').MainServiceId).map(
-        (s) => s.id,
-      );
+      throw new BadRequestException('cityId is required for subservice validation');
     }
     const subs = await this.getSubservicesForCity(cityId, dto.mainServiceId);
+    if (!subs.length) {
+      throw new BadRequestException('No active subservices in this city for the selected service');
+    }
     return subs.map((s) => s.id);
   }
 

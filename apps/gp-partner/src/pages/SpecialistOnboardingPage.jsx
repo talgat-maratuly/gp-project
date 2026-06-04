@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   MAIN_SERVICES,
-  subservicesForMain,
   mainServiceRequiresVehicle,
   mainServiceRequiresWorkTools,
 } from '@gp/shared-core/specialist-onboarding'
@@ -13,8 +12,8 @@ import { PhotoUploadField, PhotoUploadList } from '../components/PhotoUploadFiel
 import { usePartner } from '../context/PartnerContext'
 
 const STEPS = [
-  'Қызмет',
   'Аймақ',
+  'Қызмет',
   'Подуслуги',
   'Деректер',
   'Фото және ID',
@@ -44,7 +43,7 @@ export default function SpecialistOnboardingPage() {
   const [regions, setRegions] = useState([])
   const [existingApps, setExistingApps] = useState([])
 
-  const [mainServiceId, setMainServiceId] = useState('LAWN')
+  const [mainServiceId, setMainServiceId] = useState('SEPTIC')
   const [subserviceIds, setSubserviceIds] = useState(() => new Set())
   const [regionId, setRegionId] = useState('')
   const [cityId, setCityId] = useState('city-uralsk')
@@ -53,6 +52,8 @@ export default function SpecialistOnboardingPage() {
   const [district, setDistrict] = useState('')
   const [citySubs, setCitySubs] = useState([])
   const [subsLoading, setSubsLoading] = useState(false)
+  const [availableMainServices, setAvailableMainServices] = useState([])
+  const [mainsLoading, setMainsLoading] = useState(false)
   const [fullName, setFullName] = useState(user?.name || '')
   const [phone, setPhone] = useState(user?.phone || '')
   const [profilePhotoUrl, setProfilePhotoUrl] = useState('')
@@ -67,10 +68,11 @@ export default function SpecialistOnboardingPage() {
     () => location.state?.resubmitRequestId || '',
   )
 
-  const subs = useMemo(() => {
-    if (citySubs.length) return citySubs
-    return subservicesForMain(mainServiceId)
-  }, [citySubs, mainServiceId])
+  const subs = citySubs
+  const mainServicesForCity = useMemo(
+    () => MAIN_SERVICES.filter((m) => availableMainServices.includes(m.id)),
+    [availableMainServices],
+  )
   const needsVehicle = mainServiceRequiresVehicle(mainServiceId)
   const needsTools = mainServiceRequiresWorkTools(mainServiceId)
 
@@ -89,6 +91,31 @@ export default function SpecialistOnboardingPage() {
       if (!resubmitRequestId && rejected) setResubmitRequestId(rejected.id)
     }).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (!cityId) {
+      setAvailableMainServices([])
+      return undefined
+    }
+    let cancelled = false
+    setMainsLoading(true)
+    api.getSpecialistOnboardingMainServices(cityId)
+      .then((list) => {
+        if (cancelled) return
+        const ids = Array.isArray(list) ? list : []
+        setAvailableMainServices(ids)
+        if (ids.length && !ids.includes(mainServiceId)) {
+          setMainServiceId(ids[0])
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setAvailableMainServices([])
+      })
+      .finally(() => {
+        if (!cancelled) setMainsLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [cityId])
 
   useEffect(() => {
     if (!cityId || !mainServiceId) {
@@ -124,10 +151,14 @@ export default function SpecialistOnboardingPage() {
   }
 
   const validateStep = () => {
-    if (step === 0 && !mainServiceId) return 'Қызметті таңдаңыз'
-    if (step === 1) {
+    if (step === 0) {
       if (!regions.length) return 'Аймақ тізімі жүктелмеді — API байланысын тексеріңіз'
       if (!regionId || !cityId || !city.trim()) return 'Аймақ пен қала'
+    }
+    if (step === 1) {
+      if (mainsLoading) return 'Қызметтер жүктелуде…'
+      if (!mainServicesForCity.length) return 'Бұл қалада белсенді қызмет жоқ'
+      if (!mainServiceId || !availableMainServices.includes(mainServiceId)) return 'Қызметті таңдаңыз'
     }
     if (step === 2) {
       if (subsLoading) return 'Подуслугалар жүктелуде…'
@@ -275,23 +306,6 @@ export default function SpecialistOnboardingPage() {
       )}
 
       {step === 0 && (
-        <div className="flex flex-wrap gap-2">
-          {MAIN_SERVICES.map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              onClick={() => setMainServiceId(m.id)}
-              className={`px-3 py-2 rounded-xl text-sm font-bold ${
-                mainServiceId === m.id ? 'gp-gradient-kaspi text-white' : 'bg-[var(--gp-surface-2)]'
-              }`}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {step === 1 && (
         <>
           <div className="gp-form-field">
             <label className="gp-form-label">Регион</label>
@@ -329,6 +343,31 @@ export default function SpecialistOnboardingPage() {
             <input className="gp-input-kaspi" value={district} onChange={(e) => setDistrict(e.target.value)} />
           </div>
         </>
+      )}
+
+      {step === 1 && (
+        <div className="space-y-2">
+          {mainsLoading && <p className="text-sm text-[var(--gp-text-muted)]">Қызметтер жүктелуде…</p>}
+          {!mainsLoading && !mainServicesForCity.length && (
+            <p className="text-sm text-amber-700 bg-amber-500/10 rounded-xl px-3 py-2">
+              {city} қаласында белсенді қызмет табылмады.
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            {mainServicesForCity.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => setMainServiceId(m.id)}
+                className={`px-3 py-2 rounded-xl text-sm font-bold ${
+                  mainServiceId === m.id ? 'gp-gradient-kaspi text-white' : 'bg-[var(--gp-surface-2)]'
+                }`}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
       {step === 2 && (

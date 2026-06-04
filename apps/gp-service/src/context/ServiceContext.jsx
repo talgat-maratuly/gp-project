@@ -534,6 +534,10 @@ export function ServiceProvider({ children }) {
   const getCityCatalog = useCallback((items, lang = 'ru', franchiseId) => {
     const fid = franchiseId || profile.franchiseId
     const store = catalogStoreFor(fid)
+    if (!isDemoMode()) {
+      if (!store?.services?.length || !fid) return []
+      return filterCatalogForCity(items, store, fid, lang)
+    }
     if (!store?.services?.length || !fid) return items
     return filterCatalogForCity(items, store, fid, lang)
   }, [catalogStoreFor, profile.franchiseId])

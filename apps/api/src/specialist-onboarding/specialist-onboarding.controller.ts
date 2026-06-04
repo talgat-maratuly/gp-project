@@ -27,6 +27,12 @@ export class SpecialistOnboardingPublicController {
   ) {
     return this.onboarding.getSubservicesForCity(cityId, mainServiceId);
   }
+
+  @Get('main-services')
+  @ApiQuery({ name: 'cityId', required: true })
+  getMainServices(@Query('cityId') cityId: string) {
+    return this.onboarding.getMainServicesForCity(cityId);
+  }
 }
 
 @ApiTags('specialist-onboarding')
