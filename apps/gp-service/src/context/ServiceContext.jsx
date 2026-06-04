@@ -61,11 +61,30 @@ export function ServiceProvider({ children }) {
   const [checkoutDraft, setCheckoutDraft] = useState(() => load(KEYS.checkout, null))
   const [toast, setToast] = useState(null)
   const [geoStore, setGeoStore] = useState(() => (isDemoMode() ? loadGlobalStore() : null))
+  const [apiCatalogServices, setApiCatalogServices] = useState([])
 
   useEffect(() => {
     if (!isDemoMode()) return undefined
     return subscribeGlobalStore(setGeoStore)
   }, [])
+
+  useEffect(() => {
+    if (isDemoMode()) return undefined
+    const fid = profile.franchiseId
+    if (!fid) {
+      setApiCatalogServices([])
+      return undefined
+    }
+    let cancelled = false
+    api.getServiceCatalog(fid)
+      .then((list) => {
+        if (!cancelled) setApiCatalogServices(Array.isArray(list) ? list : [])
+      })
+      .catch(() => {
+        if (!cancelled) setApiCatalogServices([])
+      })
+    return () => { cancelled = true }
+  }, [profile.franchiseId])
 
   const notify = useCallback((message, type = 'success') => setToast({ message, type }), [])
 
@@ -544,7 +563,11 @@ export function ServiceProvider({ children }) {
     [products],
   )
 
-  const catalogStore = isDemoMode() ? geoStore : null
+  const catalogStore = useMemo(() => {
+    if (isDemoMode()) return geoStore
+    if (!apiCatalogServices.length) return null
+    return { services: apiCatalogServices }
+  }, [geoStore, apiCatalogServices])
 
   const getCityCatalog = useCallback((items, lang = 'ru') => {
     const fid = profile.franchiseId

@@ -18,6 +18,7 @@ import { expandDirectionsToSubservices } from '../src/common/partner-offerings.u
 import { FURNITURE_EXECUTOR_ACCESS_IDS } from '../src/common/furniture-executor.util';
 import { MARKET_REGIONS } from './market-regions';
 import { SHOP_CATALOG, toProductSeedRow } from './shop-catalog';
+import { seedFranchiseCatalog } from './service-catalog.seed';
 
 const prisma = new PrismaClient();
 
@@ -31,8 +32,13 @@ async function main() {
       create: r,
     });
   }
-  const uralskRegion = await prisma.region.findUniqueOrThrow({ where: { code: 'uralsk' } });
-  const atyrauRegion = await prisma.region.findUniqueOrThrow({ where: { code: 'atyrau' } });
+  const regionByCode: Record<string, { id: string }> = {};
+  for (const r of MARKET_REGIONS) {
+    regionByCode[r.code] = await prisma.region.findUniqueOrThrow({ where: { code: r.code } });
+  }
+  await seedFranchiseCatalog(prisma, regionByCode);
+  const uralskRegion = regionByCode.uralsk;
+  const atyrauRegion = regionByCode.atyrau;
 
   const admin = await prisma.user.upsert({
     where: { email: 'admin@gp.kz' },

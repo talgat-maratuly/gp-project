@@ -140,20 +140,23 @@ function mapQrOrder(o) {
 
 export async function fetchAdminStore() {
   const seed = loadGlobalStore()
-  const [clients, partners, orders, qrStats, qrObjects, qrOrders] = await Promise.all([
+  const [clients, partners, orders, qrStats, qrObjects, qrOrders, services, franchises] = await Promise.all([
     api.adminClients(),
     api.adminPartners(),
     api.adminOrders(),
     api.adminQrStats(),
     api.adminQrObjects(),
     api.adminQrOrders(),
+    api.adminServices().catch(() => []),
+    api.adminFranchises().catch(() => []),
   ])
 
   const objectsActive = (qrObjects || []).filter((o) => o.status === 'active').length
 
   return {
     ...seed,
-    franchises: [DEFAULT_FRANCHISE],
+    franchises: franchises?.length ? franchises : seed.franchises,
+    services: Array.isArray(services) ? services : seed.services,
     clients: clients.map(mapClient),
     partners: partners.map(mapPartner),
     orders: orders.map(mapOrder),

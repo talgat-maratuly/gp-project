@@ -289,15 +289,55 @@ model UserComplaint {
 model Franchise {
   id        String   @id @default(uuid())
   name      String
+  city      String?
+  cityId    String?
   regionId  String?
   region    Region?  @relation(fields: [regionId], references: [id])
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users User[]
+  users    User[]
+  services FranchiseService[]
 
   @@index([regionId])
+}
+
+/// Қызмет түрі — франшиза/қала бойынша (3 тіл, баға, active)
+model FranchiseService {
+  id           String   @id @default(uuid())
+  franchiseId  String
+  franchise    Franchise @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
+  templateId   String
+  cityId       String?
+  names        Json
+  basePrice    Int      @default(0)
+  gpCommission Int      @default(0)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  subservices FranchiseSubservice[]
+
+  @@unique([franchiseId, templateId])
+  @@index([franchiseId])
+}
+
+/// Подуслуга — франшиза қызметі ішінде (3 тіл, баға, active)
+model FranchiseSubservice {
+  id                 String           @id @default(uuid())
+  franchiseServiceId String
+  franchiseService   FranchiseService @relation(fields: [franchiseServiceId], references: [id], onDelete: Cascade)
+  externalId         String?
+  names              Json
+  price              Int              @default(0)
+  gpCommission       Int              @default(0)
+  active             Boolean          @default(true)
+  sortOrder          Int              @default(0)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@index([franchiseServiceId])
 }
 
 model ClientProfile {

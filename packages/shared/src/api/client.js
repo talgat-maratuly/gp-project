@@ -357,6 +357,32 @@ export const api = {
   patchQrPartnerOrderStatus: (orderId, status) =>
     patch(`/qr/partner/orders/${orderId}/status`, { status }),
 
+  getServiceCatalog: (franchiseId) =>
+    get(`/services/catalog?franchiseId=${encodeURIComponent(franchiseId)}`, { auth: false }),
+
+  listServiceFranchises: () => get('/services/franchises', { auth: false }),
+
+  adminFranchises: () => get('/admin/services/franchises'),
+
+  adminServices: (franchiseId) => {
+    const q = franchiseId ? `?franchiseId=${encodeURIComponent(franchiseId)}` : ''
+    return get(`/admin/services${q}`)
+  },
+
+  adminCreateService: (body) => post('/admin/services', body),
+
+  adminUpdateService: (serviceId, body) => patch(`/admin/services/${serviceId}`, body),
+
+  adminRemoveService: (serviceId) => del(`/admin/services/${serviceId}`),
+
+  adminAddSubservice: (serviceId, body) => post(`/admin/services/${serviceId}/subservices`, body),
+
+  adminUpdateSubservice: (serviceId, subId, body) =>
+    patch(`/admin/services/${serviceId}/subservices/${subId}`, body),
+
+  adminRemoveSubservice: (serviceId, subId) =>
+    del(`/admin/services/${serviceId}/subservices/${subId}`),
+
   healthFull: async () => {
     const url = `${getApiRootUrl()}/health/full`
     const res = await fetch(url)

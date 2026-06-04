@@ -206,28 +206,66 @@ export function StoreProvider({ children }) {
     persist((s) => ({ ...s, partners: s.partners.filter((p) => p.id !== id) }))
   }, [persist])
 
-  const addService = useCallback((data) => {
+  const addService = useCallback(async (data) => {
     const payload = withLocalizedName(data)
+    if (apiMode) {
+      await api.adminCreateService({
+        franchiseId: data.franchiseId,
+        templateId: payload.templateId,
+        cityId: data.cityId,
+        names: payload.names,
+        basePrice: payload.basePrice,
+        gpCommission: payload.gpCommission,
+        active: payload.active !== false,
+      })
+      await refreshFromApi()
+      return
+    }
     persist((s) => ({
       ...s,
       services: [...s.services, { ...payload, id: uid('svc'), templateId: payload.templateId || uid('tpl'), subservices: payload.subservices || [] }],
     }))
-  }, [persist])
+  }, [apiMode, persist, refreshFromApi])
 
-  const updateService = useCallback((serviceId, patch) => {
+  const updateService = useCallback(async (serviceId, patch) => {
     const payload = withLocalizedName(patch)
+    if (apiMode) {
+      await api.adminUpdateService(serviceId, {
+        names: payload.names,
+        basePrice: payload.basePrice,
+        gpCommission: payload.gpCommission,
+        active: payload.active,
+      })
+      await refreshFromApi()
+      return
+    }
     persist((s) => ({
       ...s,
       services: s.services.map((x) => (x.id === serviceId ? { ...x, ...payload } : x)),
     }))
-  }, [persist])
+  }, [apiMode, persist, refreshFromApi])
 
-  const removeService = useCallback((serviceId) => {
+  const removeService = useCallback(async (serviceId) => {
+    if (apiMode) {
+      await api.adminRemoveService(serviceId)
+      await refreshFromApi()
+      return
+    }
     persist((s) => ({ ...s, services: s.services.filter((x) => x.id !== serviceId) }))
-  }, [persist])
+  }, [apiMode, persist, refreshFromApi])
 
-  const addSubservice = useCallback((serviceId, data) => {
+  const addSubservice = useCallback(async (serviceId, data) => {
     const payload = withLocalizedName(data)
+    if (apiMode) {
+      await api.adminAddSubservice(serviceId, {
+        names: payload.names,
+        price: payload.price,
+        gpCommission: payload.gpCommission,
+        active: payload.active !== false,
+      })
+      await refreshFromApi()
+      return
+    }
     persist((s) => ({
       ...s,
       services: s.services.map((svc) =>
@@ -236,10 +274,20 @@ export function StoreProvider({ children }) {
           : svc,
       ),
     }))
-  }, [persist])
+  }, [apiMode, persist, refreshFromApi])
 
-  const updateSubservice = useCallback((serviceId, subId, patch) => {
+  const updateSubservice = useCallback(async (serviceId, subId, patch) => {
     const payload = withLocalizedName(patch)
+    if (apiMode) {
+      await api.adminUpdateSubservice(serviceId, subId, {
+        names: payload.names,
+        price: payload.price,
+        gpCommission: payload.gpCommission,
+        active: payload.active,
+      })
+      await refreshFromApi()
+      return
+    }
     persist((s) => ({
       ...s,
       services: s.services.map((svc) =>
@@ -248,16 +296,21 @@ export function StoreProvider({ children }) {
           : svc,
       ),
     }))
-  }, [persist])
+  }, [apiMode, persist, refreshFromApi])
 
-  const removeSubservice = useCallback((serviceId, subId) => {
+  const removeSubservice = useCallback(async (serviceId, subId) => {
+    if (apiMode) {
+      await api.adminRemoveSubservice(serviceId, subId)
+      await refreshFromApi()
+      return
+    }
     persist((s) => ({
       ...s,
       services: s.services.map((svc) =>
         svc.id === serviceId ? { ...svc, subservices: (svc.subservices || []).filter((sub) => sub.id !== subId) } : svc,
       ),
     }))
-  }, [persist])
+  }, [apiMode, persist, refreshFromApi])
 
   const addOrder = useCallback((data) => {
     persist((s) => {

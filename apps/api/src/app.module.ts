@@ -24,6 +24,7 @@ import { RbacModule } from './rbac/rbac.module';
 import { UserStatusModule } from './user-status/user-status.module';
 import { SpecialistRequestsModule } from './specialist-requests/specialist-requests.module';
 import { SpecialistOnboardingModule } from './specialist-onboarding/specialist-onboarding.module';
+import { FranchiseCatalogModule } from './franchise-catalog/franchise-catalog.module';
 import { UploadsModule } from './uploads/uploads.module';
 
 @Module({
@@ -47,6 +48,7 @@ import { UploadsModule } from './uploads/uploads.module';
     SpecialistRequestsModule,
     SpecialistOnboardingModule,
     UploadsModule,
+    FranchiseCatalogModule,
     AuthModule,
     RegionsModule,
     PartnersModule,
