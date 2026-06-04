@@ -8,6 +8,7 @@ import { getServiceById } from '../../data/services'
 import { useService } from '../../context/ServiceContext'
 import { useLanguage } from '../../i18n'
 import OrderLocationFields from '@gp/shared/components/OrderLocationFields'
+import CitySelector from '@gp/shared/components/CitySelector'
 import PaymentMethodPicker from '../../components/PaymentMethodPicker'
 import AddressPickerMap from '../../components/AddressPickerMap'
 import {
@@ -37,20 +38,9 @@ export default function SepticOrderFlow() {
   const { t, lang } = useLanguage()
   const {
     placeServiceOrder, objects, profile, geoStore, isLoggedIn, authReady, notify, refreshOrders,
-    getSepticOptions, calcOrderTotal, isServiceAvailable, getCityCatalog,
+    getSepticOptions, calcOrderTotal, isServiceAvailable, getCityCatalog, ensureCatalog,
+    catalogLoadingFranchise,
   } = useService()
-  const baseService = getServiceById('septic-pumping')
-  const service = useMemo(() => {
-    const list = getCityCatalog(baseService ? [baseService] : [], lang)
-    return list[0] || baseService
-  }, [getCityCatalog, baseService, lang, profile.franchiseId])
-  const available = isServiceAvailable('septic-pumping')
-
-  const volumeOptions = useMemo(() => {
-    const cityOpts = getSepticOptions(lang)
-    if (cityOpts?.length) return cityOpts
-    return SEPTIC_VOLUME_OPTIONS
-  }, [getSepticOptions, lang, profile.franchiseId])
 
   const tomorrow = new Date()
   tomorrow.setDate(tomorrow.getDate() + 1)
@@ -84,6 +74,19 @@ export default function SepticOrderFlow() {
     address: objects[0]?.address || '',
   })
 
+  const baseService = getServiceById('septic-pumping')
+  const service = useMemo(() => {
+    const list = getCityCatalog(baseService ? [baseService] : [], lang, form.franchiseId)
+    return list[0] || baseService
+  }, [getCityCatalog, baseService, lang, form.franchiseId])
+  const available = isServiceAvailable('septic-pumping', form.franchiseId)
+
+  const volumeOptions = useMemo(() => {
+    const cityOpts = getSepticOptions(lang, form.franchiseId)
+    if (cityOpts?.length) return cityOpts
+    return SEPTIC_VOLUME_OPTIONS
+  }, [getSepticOptions, lang, form.franchiseId])
+
   useEffect(() => {
     setForm((f) => ({
       ...f,
@@ -98,6 +101,11 @@ export default function SepticOrderFlow() {
   }, [profile.name, profile.phone, profile.oblastId, profile.cityId, profile.city, profile.franchiseId, objects])
 
   useEffect(() => {
+    if (!form.franchiseId) return
+    ensureCatalog(form.franchiseId)
+  }, [form.franchiseId, ensureCatalog])
+
+  useEffect(() => {
     if (!volumeOptions.length) return
     const hasCurrent = volumeOptions.some(
       (o) => o.volumes?.includes(form.septicVolume) || o.value === form.septicVolume,
@@ -108,8 +116,12 @@ export default function SepticOrderFlow() {
   }, [volumeOptions, form.septicVolume])
 
   const total = useMemo(
-    () => calcOrderTotal({ serviceId: 'septic-pumping', septicVolume: form.septicVolume }, lang),
-    [calcOrderTotal, form.septicVolume, lang, profile.franchiseId],
+    () => calcOrderTotal({ serviceId: 'septic-pumping', septicVolume: form.septicVolume }, lang, form.franchiseId),
+    [calcOrderTotal, form.septicVolume, lang, form.franchiseId],
+  )
+
+  const selectedVolume = volumeOptions.find(
+    (o) => o.volumes?.includes(form.septicVolume) || o.value === form.septicVolume,
   )
 
   const obj = objects.find((o) => o.id === form.objectId)
@@ -233,6 +245,15 @@ export default function SepticOrderFlow() {
   }
 
   if (!available || !volumeOptions.length) {
+    const loadingCatalog = form.franchiseId && catalogLoadingFranchise === form.franchiseId
+    if (loadingCatalog) {
+      return (
+        <div className="px-4 py-8 text-center gp-animate-in">
+          <PageHeader title={service?.name || t('nav_services')} onBack={() => navigate(-1)} />
+          <p className="text-slate-500">{t('loading') || 'Жүктелуде…'}</p>
+        </div>
+      )
+    }
     return (
       <div className="px-4 py-8 text-center gp-animate-in">
         <PageHeader title={service?.name || t('nav_services')} onBack={() => navigate(-1)} />
@@ -264,6 +285,27 @@ export default function SepticOrderFlow() {
       {step === 1 && (
         <div className="space-y-4">
           <KaspiCard className="!p-4">
+            <p className="font-bold mb-3">{t('city') || 'Қала'}</p>
+            <CitySelector
+              store={geoStore}
+              value={{ oblastId: form.oblastId, cityId: form.cityId }}
+              onChange={(sel) => setForm((f) => ({
+                ...f,
+                oblastId: sel.oblastId,
+                cityId: sel.cityId,
+                city: sel.city || f.city,
+                franchiseId: sel.franchiseId ?? f.franchiseId,
+                lat: sel.lat ?? f.lat,
+                lng: sel.lng ?? f.lng,
+              }))}
+            />
+            {form.city && (
+              <p className="text-xs text-[var(--gp-text-muted)] mt-2">
+                {t('priceForCity') || 'Бағалар'}: {form.city}
+              </p>
+            )}
+          </KaspiCard>
+          <KaspiCard className="!p-4">
             <p className="font-bold mb-3">Объём септика</p>
             <div className="grid grid-cols-2 gap-2">
               {volumeOptions.map((o) => (
@@ -278,6 +320,12 @@ export default function SepticOrderFlow() {
               ))}
             </div>
           </KaspiCard>
+          {selectedVolume && (
+            <KaspiCard className="!p-4 flex justify-between items-center">
+              <span className="text-sm text-[var(--gp-text-muted)]">{form.city || t('city')}</span>
+              <span className="text-xl font-extrabold gp-text-gradient">{formatPrice(total)}</span>
+            </KaspiCard>
+          )}
           <KaspiCard className="!p-4">
             <label className="block font-bold mb-2">Дата</label>
             <input
@@ -311,7 +359,9 @@ export default function SepticOrderFlow() {
               </div>
             )}
           </KaspiCard>
-          <KaspiButton onClick={() => setStep(2)}>Далее</KaspiButton>
+          <KaspiButton onClick={() => setStep(2)} disabled={!form.cityId}>
+            Далее
+          </KaspiButton>
         </div>
       )}
 
@@ -361,7 +411,7 @@ export default function SepticOrderFlow() {
             <p className="text-sm text-[var(--gp-text-muted)]">К оплате партнёру</p>
             <p className="text-3xl font-extrabold gp-text-gradient mt-1">{formatPrice(total)}</p>
             <ul className="mt-4 space-y-2 text-sm">
-              <li className="flex justify-between"><span className="text-[var(--gp-text-muted)]">Объём</span><span className="font-semibold">{form.septicVolume} м³</span></li>
+              <li className="flex justify-between"><span className="text-[var(--gp-text-muted)]">Объём</span><span className="font-semibold">{selectedVolume?.label || `${form.septicVolume} м³`}</span></li>
               <li className="flex justify-between"><span className="text-[var(--gp-text-muted)]">Город</span><span className="font-semibold">{form.city || '—'}</span></li>
               <li className="flex justify-between"><span className="text-[var(--gp-text-muted)]">Дата</span><span className="font-semibold">{form.flexibleTime ? 'Любое время' : form.preferredDate}</span></li>
               <li className="flex justify-between"><span className="text-[var(--gp-text-muted)]">Адрес</span><span className="font-semibold text-right max-w-[55%]">{obj?.address}</span></li>

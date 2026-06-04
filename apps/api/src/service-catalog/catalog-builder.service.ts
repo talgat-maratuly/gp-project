@@ -2,6 +2,15 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { assertLocalizedNames } from './service-catalog.types';
 
+
+const MAIN_SERVICE_TO_CODE: Record<string, string> = {
+  SEPTIC: 'septic',
+  LAWN: 'lawn',
+  AUTOWATERING: 'irrigation',
+  FILTERS: 'filter',
+  OTHER: 'other',
+};
+
 /** Клиент/demo store форматына аудару — cityCatalog.js үйлесімді */
 @Injectable()
 export class CatalogBuilderService {
@@ -102,5 +111,58 @@ export class CatalogBuilderService {
     }
 
     return services;
+  }
+
+  /** Маман тіркелу: қалада active подуслугалар */
+  async getOnboardingSubservices(cityId: string, mainServiceId: string) {
+    const serviceCode = MAIN_SERVICE_TO_CODE[mainServiceId];
+    if (!serviceCode || !cityId?.trim()) return [];
+
+    const prices = await this.prisma.cityServicePrice.findMany({
+      where: {
+        cityId: cityId.trim(),
+        active: true,
+        subserviceTypeId: { not: null },
+        subserviceType: { active: true },
+        serviceType: { code: serviceCode, active: true },
+      },
+      include: {
+        subserviceType: true,
+        serviceType: true,
+      },
+      orderBy: [{ priority: 'asc' }, { volumeStart: 'asc' }],
+    });
+
+    return prices
+      .filter((p) => p.subserviceType)
+      .map((p) => {
+        const sub = p.subserviceType!;
+        const names = assertLocalizedNames(sub.names);
+        return {
+          id: sub.code,
+          subserviceTypeId: sub.id,
+          serviceCode,
+          label: names.ru,
+          names,
+          price: p.price,
+          volumeStart: p.volumeStart,
+          volumeEnd: p.volumeEnd,
+        };
+      });
+  }
+
+  async resolveCityId(cityId?: string | null, cityName?: string | null, franchiseId?: string | null) {
+    if (cityId?.trim()) return cityId.trim();
+    if (franchiseId) {
+      const fr = await this.prisma.franchise.findUnique({ where: { id: franchiseId } });
+      if (fr?.cityId) return fr.cityId;
+    }
+    if (cityName?.trim()) {
+      const fr = await this.prisma.franchise.findFirst({
+        where: { city: { equals: cityName.trim(), mode: 'insensitive' } },
+      });
+      if (fr?.cityId) return fr.cityId;
+    }
+    return null;
   }
 }

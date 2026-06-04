@@ -6,9 +6,16 @@ import {
 } from './specialist-onboarding.catalog';
 import { SubmitOnboardingApplicationDto } from './dto/submit-onboarding-application.dto';
 
-export function validateOnboardingPayload(dto: SubmitOnboardingApplicationDto) {
+export function validateOnboardingPayload(
+  dto: SubmitOnboardingApplicationDto,
+  allowedSubserviceIds?: string[],
+) {
   const main = dto.mainServiceId as MainServiceId;
-  const allowed = new Set(subservicesForMain(main).map((s) => s.id));
+  const allowed = new Set(
+    allowedSubserviceIds?.length
+      ? allowedSubserviceIds
+      : subservicesForMain(main).map((s) => s.id),
+  );
   const invalid = dto.subserviceIds.filter((id) => !allowed.has(id));
   if (invalid.length) {
     throw new BadRequestException({

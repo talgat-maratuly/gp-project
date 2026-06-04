@@ -162,6 +162,12 @@ export const api = {
   getSpecialistOnboardingCatalog: () =>
     get('/specialist/onboarding/catalog', { auth: false }),
 
+  getSpecialistOnboardingSubservices: (cityId, mainServiceId) =>
+    get(
+      `/specialist/onboarding/subservices?cityId=${encodeURIComponent(cityId)}&mainServiceId=${encodeURIComponent(mainServiceId)}`,
+      { auth: false },
+    ),
+
   getSpecialistApplications: () => get('/specialist/applications'),
 
   getSpecialistApplication: (id) => get(`/specialist/applications/${id}`),

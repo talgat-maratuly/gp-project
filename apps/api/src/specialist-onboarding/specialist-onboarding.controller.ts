@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -16,6 +16,16 @@ export class SpecialistOnboardingPublicController {
   @Get('catalog')
   getCatalog() {
     return this.onboarding.getCatalog();
+  }
+
+  @Get('subservices')
+  @ApiQuery({ name: 'cityId', required: true })
+  @ApiQuery({ name: 'mainServiceId', required: true })
+  getSubservices(
+    @Query('cityId') cityId: string,
+    @Query('mainServiceId') mainServiceId: string,
+  ) {
+    return this.onboarding.getSubservicesForCity(cityId, mainServiceId);
   }
 }
 

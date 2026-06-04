@@ -5,11 +5,14 @@ const packagesRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), 
 
 /** Vite/Rolldown monorepo aliases — package.json subpath exports sometimes fail in production build */
 export function gpViteResolve(appDir) {
+  const sharedSrc = path.resolve(packagesRoot, 'shared/src')
   return {
     alias: {
       '@': path.resolve(appDir, './src'),
       // Rolldown (Vite 8) sometimes misses package.json "exports" subpaths for shared-core
       '@gp/shared-core': path.resolve(packagesRoot, 'shared-core/src'),
+      // Vite 8 dev: "./geography" export resolution fails under import/browser conditions
+      '@gp/shared/geography': path.resolve(sharedSrc, 'geography/index.js'),
     },
   }
 }

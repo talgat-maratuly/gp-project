@@ -1,11 +1,11 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { api, clearToken, getToken } from '@gp/shared/api'
 import { isDemoMode, subscribeGlobalStore, syncFromHub, loadGlobalStore } from '@gp/shared/demo'
 import * as demoApi from '../lib/demoApi'
 import * as marketDemo from '../lib/marketDemoApi'
 import { subscribeGlobalOrderStatus, resetTrackingSocket } from '@gp/shared/api/trackingSocket'
 import { CATEGORY_TO_API, PAYMENT_TO_API } from '@gp/shared/api/mappers'
-import { calcServiceTotal, computeShopDeliveryFee, LAWN_SERVICE_IDS } from '@gp/shared/constants'
+import { computeShopDeliveryFee, LAWN_SERVICE_IDS } from '@gp/shared/constants'
 import { buildTestClientCredentials } from '@gp/shared/utils'
 import {
   activateTestMode,
@@ -61,30 +61,44 @@ export function ServiceProvider({ children }) {
   const [checkoutDraft, setCheckoutDraft] = useState(() => load(KEYS.checkout, null))
   const [toast, setToast] = useState(null)
   const [geoStore, setGeoStore] = useState(() => (isDemoMode() ? loadGlobalStore() : null))
-  const [apiCatalogServices, setApiCatalogServices] = useState([])
+  const [catalogByFranchise, setCatalogByFranchise] = useState({})
+  const [catalogLoadingFranchise, setCatalogLoadingFranchise] = useState(null)
+  const catalogByFranchiseRef = useRef(catalogByFranchise)
+  catalogByFranchiseRef.current = catalogByFranchise
 
   useEffect(() => {
     if (!isDemoMode()) return undefined
     return subscribeGlobalStore(setGeoStore)
   }, [])
 
+  const ensureCatalog = useCallback(async (franchiseId) => {
+    if (isDemoMode()) return geoStore
+    const fid = franchiseId?.trim()
+    if (!fid) return null
+    const cached = catalogByFranchiseRef.current[fid]
+    if (cached?.length) {
+      return { services: cached }
+    }
+    setCatalogLoadingFranchise(fid)
+    try {
+      const list = await api.getServiceCatalog(fid)
+      const services = Array.isArray(list) ? list : []
+      setCatalogByFranchise((prev) => ({ ...prev, [fid]: services }))
+      return services.length ? { services } : null
+    } catch {
+      return null
+    } finally {
+      setCatalogLoadingFranchise((cur) => (cur === fid ? null : cur))
+    }
+  }, [geoStore])
+
   useEffect(() => {
     if (isDemoMode()) return undefined
     const fid = profile.franchiseId
-    if (!fid) {
-      setApiCatalogServices([])
-      return undefined
-    }
-    let cancelled = false
-    api.getServiceCatalog(fid)
-      .then((list) => {
-        if (!cancelled) setApiCatalogServices(Array.isArray(list) ? list : [])
-      })
-      .catch(() => {
-        if (!cancelled) setApiCatalogServices([])
-      })
-    return () => { cancelled = true }
-  }, [profile.franchiseId])
+    if (!fid) return undefined
+    ensureCatalog(fid)
+    return undefined
+  }, [profile.franchiseId, ensureCatalog])
 
   const notify = useCallback((message, type = 'success') => setToast({ message, type }), [])
 
@@ -487,6 +501,51 @@ export function ServiceProvider({ children }) {
     return order
   }, [cartItems, cartTotal, clearCart, notify, refreshOrders, requireAuth, profile])
 
+  const catalogStoreFor = useCallback((franchiseId) => {
+    if (isDemoMode()) return geoStore
+    const fid = franchiseId || profile.franchiseId
+    if (!fid) return null
+    const services = catalogByFranchise[fid]
+    if (!services?.length) return null
+    return { services }
+  }, [geoStore, catalogByFranchise, profile.franchiseId])
+
+  const catalogStore = useMemo(
+    () => catalogStoreFor(profile.franchiseId),
+    [catalogStoreFor, profile.franchiseId],
+  )
+
+  const getCityCatalog = useCallback((items, lang = 'ru', franchiseId) => {
+    const fid = franchiseId || profile.franchiseId
+    const store = catalogStoreFor(fid)
+    if (!store?.services?.length || !fid) return items
+    return filterCatalogForCity(items, store, fid, lang)
+  }, [catalogStoreFor, profile.franchiseId])
+
+  const getSepticOptions = useCallback((lang = 'ru', franchiseId) => {
+    const fid = franchiseId || profile.franchiseId
+    const store = catalogStoreFor(fid)
+    if (!store?.services?.length || !fid) return null
+    return getSepticVolumeOptionsForCity(store, fid, lang)
+  }, [catalogStoreFor, profile.franchiseId])
+
+  const isServiceAvailable = useCallback((serviceId, franchiseId) => {
+    const fid = franchiseId || profile.franchiseId
+    const store = catalogStoreFor(fid)
+    if (!store?.services?.length || !fid) return true
+    return isServiceActiveInCity(store, fid, serviceId)
+  }, [catalogStoreFor, profile.franchiseId])
+
+  const calcOrderTotal = useCallback((params, lang = 'ru', franchiseId) => {
+    const fid = franchiseId || profile.franchiseId
+    return calcServiceTotalWithCity({
+      store: catalogStoreFor(fid),
+      franchiseId: fid,
+      lang,
+      ...params,
+    })
+  }, [catalogStoreFor, profile.franchiseId])
+
   const placeServiceOrder = useCallback(async (data) => {
     requireAuth()
     const geo = {
@@ -517,10 +576,13 @@ export function ServiceProvider({ children }) {
       throw new Error('Укажите площадь участка в м²')
     }
     const total =
-      calcServiceTotal({
+      calcServiceTotalWithCity({
+        store: catalogStoreFor(data.franchiseId || profile.franchiseId),
+        franchiseId: data.franchiseId || profile.franchiseId,
         serviceId: data.serviceId,
         septicVolume: isSeptic ? Number(data.septicVolume) : undefined,
         lawnAreaSqm: data.lawnAreaSqm ? Number(data.lawnAreaSqm) : undefined,
+        lang: 'ru',
       }) || Number(data.total) || 0
 
     const payload = {
@@ -548,7 +610,7 @@ export function ServiceProvider({ children }) {
     await refreshOrders()
     notify('Заявка отправлена! Партнёр увидит её в GP Partner.')
     return order
-  }, [objects, notify, refreshOrders, requireAuth, profile])
+  }, [objects, notify, refreshOrders, requireAuth, profile, catalogStoreFor])
 
   const submitPartnerLead = useCallback((data) => {
     const leads = load(KEYS.partnerLeads, [])
@@ -562,37 +624,6 @@ export function ServiceProvider({ children }) {
     () => [...products].sort((a, b) => (b.popularity || 0) - (a.popularity || 0)).slice(0, 8),
     [products],
   )
-
-  const catalogStore = useMemo(() => {
-    if (isDemoMode()) return geoStore
-    if (!apiCatalogServices.length) return null
-    return { services: apiCatalogServices }
-  }, [geoStore, apiCatalogServices])
-
-  const getCityCatalog = useCallback((items, lang = 'ru') => {
-    const fid = profile.franchiseId
-    if (!catalogStore?.services?.length || !fid) return items
-    return filterCatalogForCity(items, catalogStore, fid, lang)
-  }, [catalogStore, profile.franchiseId])
-
-  const getSepticOptions = useCallback((lang = 'ru') => {
-    const fid = profile.franchiseId
-    if (!catalogStore?.services?.length || !fid) return null
-    return getSepticVolumeOptionsForCity(catalogStore, fid, lang)
-  }, [catalogStore, profile.franchiseId])
-
-  const isServiceAvailable = useCallback((serviceId) => {
-    const fid = profile.franchiseId
-    if (!catalogStore?.services?.length || !fid) return true
-    return isServiceActiveInCity(catalogStore, fid, serviceId)
-  }, [catalogStore, profile.franchiseId])
-
-  const calcOrderTotal = useCallback((params, lang = 'ru') => calcServiceTotalWithCity({
-    store: catalogStore,
-    franchiseId: profile.franchiseId,
-    lang,
-    ...params,
-  }), [catalogStore, profile.franchiseId])
 
   const value = {
     authUser, authReady, isLoggedIn: !!authUser,
@@ -608,6 +639,8 @@ export function ServiceProvider({ children }) {
     isTestMode: isTestModeActive(),
     geoStore: isDemoMode() && geoStore?.cities?.length ? geoStore : STATIC_GEO_STORE,
     catalogStore,
+    ensureCatalog,
+    catalogLoadingFranchise,
     getCityCatalog,
     getSepticOptions,
     isServiceAvailable,

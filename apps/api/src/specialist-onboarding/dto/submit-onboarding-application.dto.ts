@@ -76,6 +76,12 @@ export class SubmitOnboardingApplicationDto {
   @MaxLength(128)
   city: string;
 
+  @ApiPropertyOptional({ description: 'City id from catalog (e.g. city-uralsk)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  cityId?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()

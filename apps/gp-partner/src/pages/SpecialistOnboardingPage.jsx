@@ -7,13 +7,15 @@ import {
   mainServiceRequiresWorkTools,
 } from '@gp/shared-core/specialist-onboarding'
 import { api } from '@gp/shared/api'
+import { STATIC_GEO_STORE } from '@gp/shared/geography'
+import CitySelector from '@gp/shared/components/CitySelector'
 import { PhotoUploadField, PhotoUploadList } from '../components/PhotoUploadField'
 import { usePartner } from '../context/PartnerContext'
 
 const STEPS = [
   'Қызмет',
-  'Подуслуги',
   'Аймақ',
+  'Подуслуги',
   'Деректер',
   'Фото және ID',
   'Техника / құрал',
@@ -45,8 +47,12 @@ export default function SpecialistOnboardingPage() {
   const [mainServiceId, setMainServiceId] = useState('LAWN')
   const [subserviceIds, setSubserviceIds] = useState(() => new Set())
   const [regionId, setRegionId] = useState('')
+  const [cityId, setCityId] = useState('city-uralsk')
+  const [cityOblastId, setCityOblastId] = useState('obl-batys')
   const [city, setCity] = useState(user?.city || 'Уральск')
   const [district, setDistrict] = useState('')
+  const [citySubs, setCitySubs] = useState([])
+  const [subsLoading, setSubsLoading] = useState(false)
   const [fullName, setFullName] = useState(user?.name || '')
   const [phone, setPhone] = useState(user?.phone || '')
   const [profilePhotoUrl, setProfilePhotoUrl] = useState('')
@@ -61,7 +67,10 @@ export default function SpecialistOnboardingPage() {
     () => location.state?.resubmitRequestId || '',
   )
 
-  const subs = useMemo(() => subservicesForMain(mainServiceId), [mainServiceId])
+  const subs = useMemo(() => {
+    if (citySubs.length) return citySubs
+    return subservicesForMain(mainServiceId)
+  }, [citySubs, mainServiceId])
   const needsVehicle = mainServiceRequiresVehicle(mainServiceId)
   const needsTools = mainServiceRequiresWorkTools(mainServiceId)
 
@@ -82,8 +91,28 @@ export default function SpecialistOnboardingPage() {
   }, [])
 
   useEffect(() => {
+    if (!cityId || !mainServiceId) {
+      setCitySubs([])
+      return undefined
+    }
+    let cancelled = false
+    setSubsLoading(true)
+    api.getSpecialistOnboardingSubservices(cityId, mainServiceId)
+      .then((list) => {
+        if (!cancelled) setCitySubs(Array.isArray(list) ? list : [])
+      })
+      .catch(() => {
+        if (!cancelled) setCitySubs([])
+      })
+      .finally(() => {
+        if (!cancelled) setSubsLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [cityId, mainServiceId])
+
+  useEffect(() => {
     setSubserviceIds(new Set())
-  }, [mainServiceId])
+  }, [mainServiceId, cityId])
 
   const toggleSub = (id) => {
     setSubserviceIds((prev) => {
@@ -96,10 +125,14 @@ export default function SpecialistOnboardingPage() {
 
   const validateStep = () => {
     if (step === 0 && !mainServiceId) return 'Қызметті таңдаңыз'
-    if (step === 1 && subserviceIds.size < 1) return 'Кем дегенде бір подуслуга'
-    if (step === 2) {
+    if (step === 1) {
       if (!regions.length) return 'Аймақ тізімі жүктелмеді — API байланысын тексеріңіз'
-      if (!regionId || !city.trim()) return 'Аймақ пен қала'
+      if (!regionId || !cityId || !city.trim()) return 'Аймақ пен қала'
+    }
+    if (step === 2) {
+      if (subsLoading) return 'Подуслугалар жүктелуде…'
+      if (!subs.length) return 'Бұл қалада белсенді подуслуга жоқ'
+      if (subserviceIds.size < 1) return 'Кем дегенде бір подуслуга'
     }
     if (step === 3 && (!fullName.trim() || !phone.trim())) return 'Аты және телефон'
     if (step === 4) {
@@ -147,6 +180,7 @@ export default function SpecialistOnboardingPage() {
       mainServiceId,
       subserviceIds: [...subserviceIds],
       regionId,
+      cityId,
       city: city.trim(),
       district: district.trim() || undefined,
       fullName: fullName.trim(),
@@ -258,23 +292,6 @@ export default function SpecialistOnboardingPage() {
       )}
 
       {step === 1 && (
-        <div className="flex flex-wrap gap-2">
-          {subs.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => toggleSub(s.id)}
-              className={`px-2 py-1 rounded-lg text-xs ${
-                subserviceIds.has(s.id) ? 'bg-emerald-600 text-white' : 'border bg-white text-black'
-              }`}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {step === 2 && (
         <>
           <div className="gp-form-field">
             <label className="gp-form-label">Регион</label>
@@ -296,13 +313,48 @@ export default function SpecialistOnboardingPage() {
           </div>
           <div className="gp-form-field">
             <label className="gp-form-label">Қала</label>
-            <input className="gp-input-kaspi" value={city} onChange={(e) => setCity(e.target.value)} required />
+            <CitySelector
+              store={STATIC_GEO_STORE}
+              value={{ oblastId: cityOblastId, cityId }}
+              onChange={(sel) => {
+                setCityOblastId(sel.oblastId || cityOblastId)
+                setCityId(sel.cityId || '')
+                setCity(sel.city || '')
+              }}
+              inputClassName="gp-input-kaspi"
+            />
           </div>
           <div className="gp-form-field">
             <label className="gp-form-label">Аудан (міндетті емес)</label>
             <input className="gp-input-kaspi" value={district} onChange={(e) => setDistrict(e.target.value)} />
           </div>
         </>
+      )}
+
+      {step === 2 && (
+        <div className="space-y-2">
+          {subsLoading && <p className="text-sm text-[var(--gp-text-muted)]">Подуслугалар жүктелуде…</p>}
+          {!subsLoading && !subs.length && (
+            <p className="text-sm text-amber-700 bg-amber-500/10 rounded-xl px-3 py-2">
+              {city} қалasında белсенді подуслуга табылмады.
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            {subs.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => toggleSub(s.id)}
+                className={`px-2 py-1 rounded-lg text-xs ${
+                  subserviceIds.has(s.id) ? 'bg-emerald-600 text-white' : 'border bg-white text-black'
+                }`}
+              >
+                {s.label}
+                {s.price != null && <span className="opacity-80"> · {s.price} ₸</span>}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
       {step === 3 && (
@@ -411,7 +463,7 @@ export default function SpecialistOnboardingPage() {
       {step === 8 && (
         <dl className="text-sm space-y-2 bg-[var(--gp-surface-2)] rounded-xl p-4">
           <div><dt className="text-[var(--gp-text-muted)]">Қызмет</dt><dd>{MAIN_SERVICES.find((m) => m.id === mainServiceId)?.label}</dd></div>
-          <div><dt className="text-[var(--gp-text-muted)]">Подуслуги</dt><dd>{[...subserviceIds].join(', ')}</dd></div>
+          <div><dt className="text-[var(--gp-text-muted)]">Подуслуги</dt><dd>{subs.filter((s) => subserviceIds.has(s.id)).map((s) => s.label).join(', ') || '—'}</dd></div>
           <div><dt className="text-[var(--gp-text-muted)]">Қала</dt><dd>{city}</dd></div>
           <div><dt className="text-[var(--gp-text-muted)]">Аты</dt><dd>{fullName}</dd></div>
           {resubmitRequestId && <div><dt className="text-[var(--gp-text-muted)]">Қайта жіберу</dt><dd className="text-xs break-all">{resubmitRequestId}</dd></div>}

@@ -19,7 +19,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SpecialistRequestNotificationsService } from '../specialist-requests/specialist-request-notifications.service';
 import { SubmitOnboardingApplicationDto } from './dto/submit-onboarding-application.dto';
 import { validateOnboardingPayload } from './specialist-onboarding.validation';
-import { ONBOARDING_CATALOG } from './specialist-onboarding.catalog';
+import { ONBOARDING_CATALOG, subservicesForMain } from './specialist-onboarding.catalog';
+import { CatalogBuilderService } from '../service-catalog/catalog-builder.service';
 import {
   assertCanResubmit,
   assertRequestStatusTransition,
@@ -38,10 +39,32 @@ export class SpecialistOnboardingService {
   constructor(
     private prisma: PrismaService,
     private notifications: SpecialistRequestNotificationsService,
+    private catalogBuilder: CatalogBuilderService,
   ) {}
 
   getCatalog() {
     return ONBOARDING_CATALOG;
+  }
+
+  async getSubservicesForCity(cityId: string, mainServiceId: string) {
+    const fromDb = await this.catalogBuilder.getOnboardingSubservices(cityId, mainServiceId);
+    if (fromDb.length) return fromDb;
+    return subservicesForMain(mainServiceId as import('./specialist-onboarding.catalog').MainServiceId).map(
+      (s) => ({ id: s.id, label: s.label, price: null }),
+    );
+  }
+
+  private async resolveAllowedSubserviceIds(dto: SubmitOnboardingApplicationDto) {
+    const cityId =
+      dto.cityId?.trim() ||
+      (await this.catalogBuilder.resolveCityId(null, dto.city, null));
+    if (!cityId) {
+      return subservicesForMain(dto.mainServiceId as import('./specialist-onboarding.catalog').MainServiceId).map(
+        (s) => s.id,
+      );
+    }
+    const subs = await this.getSubservicesForCity(cityId, dto.mainServiceId);
+    return subs.map((s) => s.id);
   }
 
   async listMyApplications(userId: string) {
@@ -74,7 +97,8 @@ export class SpecialistOnboardingService {
 
   async submit(userId: string, dto: SubmitOnboardingApplicationDto) {
     await this.assertActiveRegion(dto.regionId);
-    const { primaryCategory } = validateOnboardingPayload(dto);
+    const allowedSubs = await this.resolveAllowedSubserviceIds(dto);
+    const { primaryCategory } = validateOnboardingPayload(dto, allowedSubs);
     const profile = await this.ensurePartnerProfile(userId);
 
     if (dto.resubmitRequestId) {
