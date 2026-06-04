@@ -109,6 +109,24 @@ export class UpdateSubserviceTypeDto {
   @IsOptional()
   @IsInt()
   sortOrder?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  serviceTypeId?: string;
+}
+
+/** POST /admin/subservices — қызмет таңдаумен */
+export class CreateStandaloneSubserviceDto extends CreateSubserviceTypeDto {
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  serviceTypeId?: string;
+
+  @ApiProperty({ required: false, example: 'septic' })
+  @IsOptional()
+  @IsString()
+  serviceCode?: string;
 }
 
 export class CreateCityPriceDto {

@@ -7,6 +7,7 @@ export function resolvePageTitleKey(pathname) {
   if (pathname.startsWith('/market/products/new')) return 'market_product_create'
   if (pathname.startsWith('/market/products')) return 'market_products'
   if (pathname.startsWith('/qr/')) return 'qr_service'
+  if (pathname.startsWith('/services/subservices')) return 'nav_subservice_types'
   if (pathname.startsWith('/services/septic-pricing')) return 'nav_septic_pricing'
   if (pathname.startsWith('/services/hunter')) return 'admin_hunter'
   if (pathname.startsWith('/services/furniture')) return 'admin_furniture'

@@ -58,7 +58,7 @@ export class ServiceTypesAdminController {
 
   @Post(':serviceTypeId/subservices')
   addSub(@Param('serviceTypeId') serviceTypeId: string, @Body() dto: CreateSubserviceTypeDto) {
-    return this.types.addSubservice(serviceTypeId, dto);
+    return this.types.addSubservice(serviceTypeId, dto).then((id) => this.types.get(serviceTypeId));
   }
 
   @Patch(':serviceTypeId/subservices/:subId')
@@ -67,11 +67,11 @@ export class ServiceTypesAdminController {
     @Param('subId') subId: string,
     @Body() dto: UpdateSubserviceTypeDto,
   ) {
-    return this.types.updateSubservice(serviceTypeId, subId, dto);
+    return this.types.updateSubserviceById(subId, dto);
   }
 
   @Delete(':serviceTypeId/subservices/:subId')
   removeSub(@Param('serviceTypeId') serviceTypeId: string, @Param('subId') subId: string) {
-    return this.types.removeSubservice(serviceTypeId, subId);
+    return this.types.removeSubserviceById(subId);
   }
 }

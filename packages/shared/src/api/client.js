@@ -403,6 +403,19 @@ export const api = {
   adminRemoveSubserviceType: (serviceTypeId, subId) =>
     del(`/admin/service-types/${serviceTypeId}/subservices/${subId}`),
 
+  adminSubservices: (serviceCode) => {
+    const q = serviceCode ? `?serviceCode=${encodeURIComponent(serviceCode)}` : ''
+    return get(`/admin/subservices${q}`)
+  },
+
+  adminGetSubservice: (id) => get(`/admin/subservices/${id}`),
+
+  adminCreateSubservice: (body) => post('/admin/subservices', body),
+
+  adminUpdateSubservice: (id, body) => patch(`/admin/subservices/${id}`, body),
+
+  adminRemoveSubservice: (id) => del(`/admin/subservices/${id}`),
+
   adminCityPrices: (opts = {}) => {
     const params = new URLSearchParams()
     if (opts.serviceCode) params.set('serviceCode', opts.serviceCode)

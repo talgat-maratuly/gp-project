@@ -159,9 +159,14 @@ export default function ServiceTypesPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm admin-muted">{t('serviceTypesHint')}</p>
-        <Link to="/services/septic-pricing" className="text-sm text-sky-400 font-semibold hover:underline">
-          {t('nav_septic_pricing')} →
-        </Link>
+        <div className="flex flex-wrap gap-3">
+          <Link to="/services/subservices" className="text-sm text-sky-400 font-semibold hover:underline">
+            {t('nav_subservice_types')} →
+          </Link>
+          <Link to="/services/septic-pricing" className="text-sm text-sky-400 font-semibold hover:underline">
+            {t('nav_septic_pricing')} →
+          </Link>
+        </div>
       </div>
       <div className="flex flex-wrap gap-2">
         <button type="button" onClick={openAddType} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-600 text-sm font-semibold">

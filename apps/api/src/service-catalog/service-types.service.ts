@@ -110,7 +110,7 @@ export class ServiceTypesService {
       throw new BadRequestException('names.ru, names.kk, names.en are required');
     }
     const count = await this.prisma.subserviceType.count({ where: { serviceTypeId } });
-    await this.prisma.subserviceType.create({
+    const created = await this.prisma.subserviceType.create({
       data: {
         serviceTypeId,
         code,
@@ -119,7 +119,7 @@ export class ServiceTypesService {
         sortOrder: dto.sortOrder ?? count,
       },
     });
-    return this.get(serviceTypeId);
+    return created.id;
   }
 
   async updateSubservice(serviceTypeId: string, subId: string, dto: UpdateSubserviceTypeDto) {
@@ -149,6 +149,61 @@ export class ServiceTypesService {
     if (!sub) throw new NotFoundException('Subservice type not found');
     await this.prisma.subserviceType.delete({ where: { id: subId } });
     return this.get(serviceTypeId);
+  }
+
+  listSubservices(serviceCode?: string) {
+    return this.prisma.subserviceType
+      .findMany({
+        where: serviceCode ? { serviceType: { code: serviceCode } } : undefined,
+        include: { serviceType: { select: { id: true, code: true, names: true } } },
+        orderBy: [{ serviceType: { code: 'asc' } }, { sortOrder: 'asc' }],
+      })
+      .then((rows) => rows.map(mapSubserviceTypeRecord));
+  }
+
+  async getSubservice(subId: string) {
+    const row = await this.prisma.subserviceType.findUnique({
+      where: { id: subId },
+      include: { serviceType: { select: { id: true, code: true, names: true } } },
+    });
+    if (!row) throw new NotFoundException('Subservice type not found');
+    return mapSubserviceTypeRecord(row);
+  }
+
+  private async resolveServiceTypeId(dto: { serviceTypeId?: string; serviceCode?: string }) {
+    if (dto.serviceTypeId) return dto.serviceTypeId;
+    const code = dto.serviceCode?.trim().toLowerCase();
+    if (!code) throw new BadRequestException('serviceTypeId or serviceCode required');
+    const st = await this.prisma.serviceType.findUnique({ where: { code } });
+    if (!st) throw new BadRequestException(`Service type "${code}" not found`);
+    return st.id;
+  }
+
+  async createSubservice(dto: CreateSubserviceTypeDto & { serviceTypeId?: string; serviceCode?: string }) {
+    const serviceTypeId = await this.resolveServiceTypeId(dto);
+    const subId = await this.addSubservice(serviceTypeId, dto);
+    return this.getSubservice(subId);
+  }
+
+  async updateSubserviceById(subId: string, dto: UpdateSubserviceTypeDto) {
+    const sub = await this.prisma.subserviceType.findUnique({ where: { id: subId } });
+    if (!sub) throw new NotFoundException('Subservice type not found');
+    const serviceTypeId = dto.serviceTypeId ?? sub.serviceTypeId;
+    if (dto.serviceTypeId && dto.serviceTypeId !== sub.serviceTypeId) {
+      await this.prisma.subserviceType.update({
+        where: { id: subId },
+        data: { serviceTypeId: dto.serviceTypeId },
+      });
+    }
+    await this.updateSubservice(serviceTypeId, subId, dto);
+    return this.getSubservice(subId);
+  }
+
+  async removeSubserviceById(subId: string) {
+    const sub = await this.prisma.subserviceType.findUnique({ where: { id: subId } });
+    if (!sub) throw new NotFoundException('Subservice type not found');
+    await this.prisma.subserviceType.delete({ where: { id: subId } });
+    return { ok: true };
   }
 }
 

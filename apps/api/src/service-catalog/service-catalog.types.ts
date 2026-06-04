@@ -48,8 +48,12 @@ export function mapSubserviceTypeRecord(sub: {
   names: unknown;
   active: boolean;
   sortOrder: number;
+  serviceTypeId?: string;
+  serviceType?: { id: string; code: string; names: unknown };
 }) {
   const names = assertLocalizedNames(sub.names);
+  const parent = sub.serviceType;
+  const parentNames = parent ? assertLocalizedNames(parent.names) : null;
   return {
     id: sub.id,
     code: sub.code,
@@ -57,6 +61,9 @@ export function mapSubserviceTypeRecord(sub: {
     name: names.ru,
     active: sub.active,
     sortOrder: sub.sortOrder,
+    serviceTypeId: sub.serviceTypeId ?? parent?.id ?? null,
+    serviceCode: parent?.code ?? null,
+    serviceName: parentNames?.ru ?? null,
   };
 }
 

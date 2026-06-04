@@ -13,6 +13,7 @@ import PartnersPage from '../pages/PartnersPage'
 import ModerationPage from '../pages/ModerationPage'
 import OrdersPage from '../pages/OrdersPage'
 import ServiceTypesPage from '../pages/ServiceTypesPage'
+import SubserviceTypesPage from '../pages/SubserviceTypesPage'
 import SepticCityPricingPage from '../pages/SepticCityPricingPage'
 import DiscountsPage from '../pages/DiscountsPage'
 import FinancePage from '../pages/FinancePage'
@@ -63,6 +64,7 @@ export default function App() {
         <Route path="specialists/offerings" element={<Navigate to="/moderation?block=offerings" replace />} />
         <Route path="services/moderation" element={<Navigate to="/moderation?block=offerings" replace />} />
         <Route path="services/septic-pricing" element={<SepticCityPricingPage />} />
+        <Route path="services/subservices" element={<SubserviceTypesPage />} />
         <Route path="services" element={<ServiceTypesPage />} />
         <Route path="services/hunter-irrigation" element={<ServiceProjectsAdminPage type="hunter_irrigation" />} />
         <Route path="services/furniture" element={<ServiceProjectsAdminPage type="furniture" />} />
