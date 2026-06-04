@@ -74,18 +74,19 @@ function GenericServiceOrder({ serviceId }) {
   const [processing, setProcessing] = useState(false)
   const [error, setError] = useState('')
 
-  const cityService = useMemo(() => {
-    const list = getCityCatalog(baseService ? [baseService] : [], lang, form.franchiseId)
-    if (list[0]) return list[0]
-    return isDemoMode ? baseService : null
-  }, [getCityCatalog, baseService, lang, form.franchiseId, isDemoMode])
-  const service = cityService
-  const available = isServiceAvailable(serviceId, form.franchiseId)
+  const available = isServiceAvailable(serviceId, form.franchiseId, form.cityId)
 
   useEffect(() => {
     if (!form.franchiseId && !form.cityId) return
     ensureCatalog({ franchiseId: form.franchiseId, cityId: form.cityId })
   }, [form.franchiseId, form.cityId, ensureCatalog])
+
+  const cityService = useMemo(() => {
+    const list = getCityCatalog(baseService ? [baseService] : [], lang, form.franchiseId, form.cityId)
+    if (list[0]) return list[0]
+    return isDemoMode ? baseService : null
+  }, [getCityCatalog, baseService, lang, form.franchiseId, form.cityId, isDemoMode])
+  const service = cityService
 
   useEffect(() => {
     setForm((f) => ({
@@ -108,8 +109,8 @@ function GenericServiceOrder({ serviceId }) {
       serviceId,
       septicVolume: isSeptic ? form.septicVolume : undefined,
       lawnAreaSqm: isLawn && form.lawnAreaSqm ? Number(form.lawnAreaSqm) : undefined,
-    }, lang, form.franchiseId)
-  }, [serviceId, isSeptic, isLawn, form.septicVolume, form.lawnAreaSqm, form.franchiseId, calcOrderTotal, lang])
+    }, lang, form.franchiseId, form.cityId)
+  }, [serviceId, isSeptic, isLawn, form.septicVolume, form.lawnAreaSqm, form.franchiseId, form.cityId, calcOrderTotal, lang])
 
   if (!baseService) {
     return (

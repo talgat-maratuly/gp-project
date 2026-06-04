@@ -39,7 +39,7 @@ export default function SepticOrderFlow() {
   const {
     placeServiceOrder, objects, profile, geoStore, isLoggedIn, authReady, notify, refreshOrders,
     getSepticOptions, getApiSepticService, calcOrderTotal, isServiceAvailable, getCityCatalog,
-    ensureCatalog, catalogLoadingFranchise, isDemoMode: demoMode,
+    ensureCatalog, isCatalogLoading, isCatalogFetched, isDemoMode: demoMode,
   } = useService()
 
   const tomorrow = new Date()
@@ -74,27 +74,28 @@ export default function SepticOrderFlow() {
     address: objects[0]?.address || '',
   })
 
-  const catalogLoadKey = form.franchiseId || (form.cityId ? `city:${form.cityId}` : '')
-
   const service = useMemo(() => {
     if (demoMode) {
       const base = getServiceById('septic-pumping')
-      const list = getCityCatalog(base ? [base] : [], lang, form.franchiseId)
+      const list = getCityCatalog(base ? [base] : [], lang, form.franchiseId, form.cityId)
       return list[0] || base
     }
-    return getApiSepticService(lang, form.franchiseId)
-  }, [demoMode, getApiSepticService, getCityCatalog, lang, form.franchiseId])
+    return getApiSepticService(lang, form.franchiseId, form.cityId)
+  }, [demoMode, getApiSepticService, getCityCatalog, lang, form.franchiseId, form.cityId])
 
-  const available = isServiceAvailable('septic-pumping', form.franchiseId)
+  const available = isServiceAvailable('septic-pumping', form.franchiseId, form.cityId)
 
   const volumeOptions = useMemo(() => {
-    const cityOpts = getSepticOptions(lang, form.franchiseId)
+    const cityOpts = getSepticOptions(lang, form.franchiseId, form.cityId)
     if (demoMode) {
       if (cityOpts?.length) return cityOpts
       return SEPTIC_VOLUME_OPTIONS
     }
     return cityOpts || []
-  }, [getSepticOptions, lang, form.franchiseId, demoMode])
+  }, [getSepticOptions, lang, form.franchiseId, form.cityId, demoMode])
+
+  const catalogLoading = !demoMode && isCatalogLoading(form.franchiseId, form.cityId)
+  const catalogFetched = demoMode || isCatalogFetched(form.franchiseId, form.cityId)
 
   useEffect(() => {
     setForm((f) => ({
@@ -110,9 +111,10 @@ export default function SepticOrderFlow() {
   }, [profile.name, profile.phone, profile.oblastId, profile.cityId, profile.city, profile.franchiseId, objects])
 
   useEffect(() => {
+    if (demoMode) return
     if (!form.franchiseId && !form.cityId) return
     ensureCatalog({ franchiseId: form.franchiseId, cityId: form.cityId })
-  }, [form.franchiseId, form.cityId, ensureCatalog])
+  }, [form.franchiseId, form.cityId, ensureCatalog, demoMode])
 
   useEffect(() => {
     if (!volumeOptions.length) return
@@ -130,8 +132,8 @@ export default function SepticOrderFlow() {
 
   const total = useMemo(() => {
     if (selectedVolume?.price != null) return Number(selectedVolume.price)
-    return calcOrderTotal({ serviceId: 'septic-pumping', septicVolume: form.septicVolume }, lang, form.franchiseId)
-  }, [calcOrderTotal, form.septicVolume, lang, form.franchiseId, selectedVolume?.price])
+    return calcOrderTotal({ serviceId: 'septic-pumping', septicVolume: form.septicVolume }, lang, form.franchiseId, form.cityId)
+  }, [calcOrderTotal, form.septicVolume, lang, form.franchiseId, form.cityId, selectedVolume?.price])
 
   const obj = objects.find((o) => o.id === form.objectId)
 
@@ -254,16 +256,24 @@ export default function SepticOrderFlow() {
     )
   }
 
-  if (!available || !volumeOptions.length) {
-    const isLoadingCatalog = !demoMode && catalogLoadKey && catalogLoadingFranchise === catalogLoadKey
-    if (isLoadingCatalog) {
+  if (!catalogFetched || catalogLoading) {
+    if (!form.cityId && !form.franchiseId) {
       return (
         <div className="px-4 py-8 text-center gp-animate-in">
-          <PageHeader title={service?.name || t('nav_services')} onBack={() => navigate(-1)} />
-          <p className="text-slate-500">{t('loading') || 'Жүктелуде…'}</p>
+          <PageHeader title={t('nav_services')} onBack={() => navigate(-1)} />
+          <p className="text-slate-500 mb-4">{t('selectCity') || 'Қала таңдаңыз'}</p>
         </div>
       )
     }
+    return (
+      <div className="px-4 py-8 text-center gp-animate-in">
+        <PageHeader title={service?.name || t('nav_services')} onBack={() => navigate(-1)} />
+        <p className="text-slate-500">{t('loading') || 'Жүктелуде…'}</p>
+      </div>
+    )
+  }
+
+  if (!available || !volumeOptions.length) {
     return (
       <div className="px-4 py-8 text-center gp-animate-in">
         <PageHeader title={service?.name || t('nav_services')} onBack={() => navigate(-1)} />
@@ -305,8 +315,6 @@ export default function SepticOrderFlow() {
                 cityId: sel.cityId,
                 city: sel.city || f.city,
                 franchiseId: sel.franchiseId ?? f.franchiseId,
-                lat: sel.lat ?? f.lat,
-                lng: sel.lng ?? f.lng,
               }))}
             />
             {form.city && (
@@ -424,7 +432,7 @@ export default function SepticOrderFlow() {
               <li className="flex justify-between"><span className="text-[var(--gp-text-muted)]">Объём</span><span className="font-semibold">{selectedVolume?.label || `${form.septicVolume} м³`}</span></li>
               <li className="flex justify-between"><span className="text-[var(--gp-text-muted)]">Город</span><span className="font-semibold">{form.city || '—'}</span></li>
               <li className="flex justify-between"><span className="text-[var(--gp-text-muted)]">Дата</span><span className="font-semibold">{form.flexibleTime ? 'Любое время' : form.preferredDate}</span></li>
-              <li className="flex justify-between"><span className="text-[var(--gp-text-muted)]">Адрес</span><span className="font-semibold text-right max-w-[55%]">{obj?.address}</span></li>
+              <li className="flex justify-between"><span className="text-[var(--gp-text-muted)]">Адрес</span><span className="font-semibold text-right max-w-[55%]">{form.address || obj?.address || '—'}</span></li>
             </ul>
           </KaspiCard>
           {error && <p className="text-red-600 text-sm text-center">{error}</p>}

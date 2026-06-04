@@ -64,8 +64,27 @@ export function ServiceProvider({ children }) {
   const [geoStore, setGeoStore] = useState(() => (isDemoMode() ? loadGlobalStore() : null))
   const [catalogByFranchise, setCatalogByFranchise] = useState({})
   const [catalogLoadingFranchise, setCatalogLoadingFranchise] = useState(null)
+  const [catalogFetchedKeys, setCatalogFetchedKeys] = useState(() => new Set())
   const catalogByFranchiseRef = useRef(catalogByFranchise)
   catalogByFranchiseRef.current = catalogByFranchise
+
+  const catalogCacheKey = useCallback((franchiseId, cityId) => {
+    const fid = franchiseId?.trim()
+    const cid = cityId?.trim()
+    return fid || (cid ? `city:${cid}` : '')
+  }, [])
+
+  const resolveCatalogStore = useCallback((franchiseId, cityId) => {
+    if (isDemoMode()) return geoStore
+    const fid = franchiseId || profile.franchiseId
+    const cid = cityId || profile.cityId
+    const services =
+      (fid && catalogByFranchise[fid]) ||
+      (cid && catalogByFranchise[`city:${cid}`]) ||
+      null
+    if (!services?.length) return null
+    return { services }
+  }, [geoStore, catalogByFranchise, profile.franchiseId, profile.cityId])
 
   useEffect(() => {
     if (!isDemoMode()) return undefined
@@ -105,9 +124,20 @@ export function ServiceProvider({ children }) {
     } catch {
       return null
     } finally {
+      setCatalogFetchedKeys((prev) => new Set(prev).add(cacheKey))
       setCatalogLoadingFranchise((cur) => (cur === cacheKey ? null : cur))
     }
   }, [geoStore])
+
+  const isCatalogLoading = useCallback((franchiseId, cityId) => {
+    const key = catalogCacheKey(franchiseId, cityId)
+    return Boolean(key && catalogLoadingFranchise === key)
+  }, [catalogCacheKey, catalogLoadingFranchise])
+
+  const isCatalogFetched = useCallback((franchiseId, cityId) => {
+    const key = catalogCacheKey(franchiseId, cityId)
+    return Boolean(key && catalogFetchedKeys.has(key))
+  }, [catalogCacheKey, catalogFetchedKeys])
 
   useEffect(() => {
     if (isDemoMode()) return undefined
@@ -517,67 +547,61 @@ export function ServiceProvider({ children }) {
     return order
   }, [cartItems, cartTotal, clearCart, notify, refreshOrders, requireAuth, profile])
 
-  const catalogStoreFor = useCallback((franchiseId) => {
-    if (isDemoMode()) return geoStore
-    const fid = franchiseId || profile.franchiseId
-    if (!fid) return null
-    const services = catalogByFranchise[fid]
-    if (!services?.length) return null
-    return { services }
-  }, [geoStore, catalogByFranchise, profile.franchiseId])
+  const catalogStoreFor = useCallback((franchiseId, cityId) => {
+    return resolveCatalogStore(franchiseId, cityId)
+  }, [resolveCatalogStore])
 
   const catalogStore = useMemo(
-    () => catalogStoreFor(profile.franchiseId),
-    [catalogStoreFor, profile.franchiseId],
+    () => catalogStoreFor(profile.franchiseId, profile.cityId),
+    [catalogStoreFor, profile.franchiseId, profile.cityId],
   )
 
-  const getCityCatalog = useCallback((items, lang = 'ru', franchiseId) => {
-    const fid = franchiseId || profile.franchiseId
-    const store = catalogStoreFor(fid)
+  const getCityCatalog = useCallback((items, lang = 'ru', franchiseId, cityId) => {
+    const store = resolveCatalogStore(franchiseId, cityId)
+    const fid = franchiseId || profile.franchiseId || store?.services?.[0]?.franchiseId
     if (!isDemoMode()) {
       if (!store?.services?.length || !fid) return []
       return filterCatalogForCity(items, store, fid, lang)
     }
     if (!store?.services?.length || !fid) return items
     return filterCatalogForCity(items, store, fid, lang)
-  }, [catalogStoreFor, profile.franchiseId])
+  }, [resolveCatalogStore, profile.franchiseId, profile.cityId])
 
-  const getSepticOptions = useCallback((lang = 'ru', franchiseId) => {
-    const fid = franchiseId || profile.franchiseId
-    const store = catalogStoreFor(fid)
+  const getSepticOptions = useCallback((lang = 'ru', franchiseId, cityId) => {
+    const store = resolveCatalogStore(franchiseId, cityId)
+    const fid = franchiseId || profile.franchiseId || store?.services?.[0]?.franchiseId
     if (!store?.services?.length || !fid) return isDemoMode() ? null : []
     return getSepticVolumeOptionsForCity(store, fid, lang)
-  }, [catalogStoreFor, profile.franchiseId])
+  }, [resolveCatalogStore, profile.franchiseId, profile.cityId])
 
-  const getApiSepticService = useCallback((lang = 'ru', franchiseId) => {
-    const fid = franchiseId || profile.franchiseId
-    const store = catalogStoreFor(fid)
+  const getApiSepticService = useCallback((lang = 'ru', franchiseId, cityId) => {
+    const store = resolveCatalogStore(franchiseId, cityId)
+    const fid = franchiseId || profile.franchiseId || store?.services?.[0]?.franchiseId
     if (!store?.services?.length || !fid) return null
     return buildSepticServiceFromStore(store, fid, lang)
-  }, [catalogStoreFor, profile.franchiseId])
+  }, [resolveCatalogStore, profile.franchiseId, profile.cityId])
 
-  const isServiceAvailable = useCallback((serviceId, franchiseId) => {
+  const isServiceAvailable = useCallback((serviceId, franchiseId, cityId) => {
+    const store = resolveCatalogStore(franchiseId, cityId)
+    const fid = franchiseId || profile.franchiseId || store?.services?.[0]?.franchiseId
     if (isDemoMode()) {
-      const fid = franchiseId || profile.franchiseId
-      const store = catalogStoreFor(fid)
       if (!store?.services?.length || !fid) return true
       return isServiceActiveInCity(store, fid, serviceId)
     }
-    const fid = franchiseId || profile.franchiseId
-    const store = catalogStoreFor(fid)
     if (!store?.services?.length || !fid) return false
     return isServiceActiveInCity(store, fid, serviceId)
-  }, [catalogStoreFor, profile.franchiseId])
+  }, [resolveCatalogStore, profile.franchiseId, profile.cityId])
 
-  const calcOrderTotal = useCallback((params, lang = 'ru', franchiseId) => {
-    const fid = franchiseId || profile.franchiseId
+  const calcOrderTotal = useCallback((params, lang = 'ru', franchiseId, cityId) => {
+    const store = resolveCatalogStore(franchiseId, cityId)
+    const fid = franchiseId || profile.franchiseId || store?.services?.[0]?.franchiseId
     return calcServiceTotalWithCity({
-      store: catalogStoreFor(fid),
+      store,
       franchiseId: fid,
       lang,
       ...params,
     })
-  }, [catalogStoreFor, profile.franchiseId])
+  }, [resolveCatalogStore, profile.franchiseId, profile.cityId])
 
   const placeServiceOrder = useCallback(async (data) => {
     requireAuth()
@@ -608,8 +632,8 @@ export function ServiceProvider({ children }) {
     if (LAWN_SERVICE_IDS.includes(data.serviceId) && (!data.lawnAreaSqm || Number(data.lawnAreaSqm) < 1)) {
       throw new Error('Укажите площадь участка в м²')
     }
-    const store = catalogStoreFor(data.franchiseId || profile.franchiseId)
-    const orderFranchiseId = data.franchiseId || profile.franchiseId
+    const store = catalogStoreFor(data.franchiseId, data.cityId)
+    const orderFranchiseId = data.franchiseId || profile.franchiseId || store?.services?.[0]?.franchiseId
     const totalFromApi = calcServiceTotalWithCity({
       store,
       franchiseId: orderFranchiseId,
@@ -619,7 +643,7 @@ export function ServiceProvider({ children }) {
       lang: 'ru',
     })
     const total = totalFromApi ?? Number(data.total) ?? 0
-    if (isSeptic && (!store?.services?.length || total <= 0)) {
+    if (isSeptic && total <= 0) {
       throw new Error('Септик бағасы табылмады — қала каталогын тексеріңіз')
     }
 
@@ -682,6 +706,8 @@ export function ServiceProvider({ children }) {
     catalogStore,
     ensureCatalog,
     catalogLoadingFranchise,
+    isCatalogLoading,
+    isCatalogFetched,
     getCityCatalog,
     getSepticOptions,
     getApiSepticService,

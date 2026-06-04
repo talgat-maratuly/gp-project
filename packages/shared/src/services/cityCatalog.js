@@ -27,10 +27,14 @@ export function templateForServiceId(serviceId) {
 }
 
 export function findStoreService(store, franchiseId, templateId) {
-  if (!store?.services?.length || !franchiseId || !templateId) return null
-  return store.services.find(
-    (s) => s.franchiseId === franchiseId && s.templateId === templateId,
-  ) || null
+  if (!store?.services?.length || !templateId) return null
+  const matches = store.services.filter((s) => s.templateId === templateId)
+  if (!matches.length) return null
+  if (franchiseId) {
+    const exact = matches.find((s) => s.franchiseId === franchiseId)
+    if (exact) return exact
+  }
+  return matches.find((s) => s.active !== false) || matches[0]
 }
 
 export function findStoreServiceByCatalogId(store, franchiseId, serviceId) {

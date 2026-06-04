@@ -51,6 +51,12 @@ export class CatalogBuilderService {
 
     if (!prices.length) return [];
 
+    const resolvedFranchiseId =
+      franchiseId ||
+      prices[0].franchiseId ||
+      (await this.resolveFranchiseIdForCity(cityId)) ||
+      undefined;
+
     const byService = new Map<string, typeof prices>();
     for (const p of prices) {
       const key = p.serviceTypeId;
@@ -89,9 +95,9 @@ export class CatalogBuilderService {
       const minPrice = Math.min(...subservices.map((s) => s.price));
 
       services.push({
-        id: `${st.code}_${franchiseId || cityId}`,
+        id: `${st.code}_${resolvedFranchiseId || cityId}`,
         templateId: st.code,
-        franchiseId: franchiseId || rows[0].franchiseId,
+        franchiseId: resolvedFranchiseId,
         cityId,
         names,
         name: names.ru,
