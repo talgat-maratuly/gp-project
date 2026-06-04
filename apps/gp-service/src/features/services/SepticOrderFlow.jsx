@@ -38,8 +38,8 @@ export default function SepticOrderFlow() {
   const { t, lang } = useLanguage()
   const {
     placeServiceOrder, objects, profile, geoStore, isLoggedIn, authReady, notify, refreshOrders,
-    getSepticOptions, calcOrderTotal, isServiceAvailable, getCityCatalog, ensureCatalog,
-    catalogLoadingFranchise,
+    getSepticOptions, getApiSepticService, calcOrderTotal, isServiceAvailable, getCityCatalog,
+    ensureCatalog, catalogLoadingFranchise, isDemoMode: demoMode,
   } = useService()
 
   const tomorrow = new Date()
@@ -74,18 +74,27 @@ export default function SepticOrderFlow() {
     address: objects[0]?.address || '',
   })
 
-  const baseService = getServiceById('septic-pumping')
+  const catalogLoadKey = form.franchiseId || (form.cityId ? `city:${form.cityId}` : '')
+
   const service = useMemo(() => {
-    const list = getCityCatalog(baseService ? [baseService] : [], lang, form.franchiseId)
-    return list[0] || baseService
-  }, [getCityCatalog, baseService, lang, form.franchiseId])
+    if (demoMode) {
+      const base = getServiceById('septic-pumping')
+      const list = getCityCatalog(base ? [base] : [], lang, form.franchiseId)
+      return list[0] || base
+    }
+    return getApiSepticService(lang, form.franchiseId)
+  }, [demoMode, getApiSepticService, getCityCatalog, lang, form.franchiseId])
+
   const available = isServiceAvailable('septic-pumping', form.franchiseId)
 
   const volumeOptions = useMemo(() => {
     const cityOpts = getSepticOptions(lang, form.franchiseId)
-    if (cityOpts?.length) return cityOpts
-    return SEPTIC_VOLUME_OPTIONS
-  }, [getSepticOptions, lang, form.franchiseId])
+    if (demoMode) {
+      if (cityOpts?.length) return cityOpts
+      return SEPTIC_VOLUME_OPTIONS
+    }
+    return cityOpts || []
+  }, [getSepticOptions, lang, form.franchiseId, demoMode])
 
   useEffect(() => {
     setForm((f) => ({
@@ -101,9 +110,9 @@ export default function SepticOrderFlow() {
   }, [profile.name, profile.phone, profile.oblastId, profile.cityId, profile.city, profile.franchiseId, objects])
 
   useEffect(() => {
-    if (!form.franchiseId) return
-    ensureCatalog(form.franchiseId)
-  }, [form.franchiseId, ensureCatalog])
+    if (!form.franchiseId && !form.cityId) return
+    ensureCatalog({ franchiseId: form.franchiseId, cityId: form.cityId })
+  }, [form.franchiseId, form.cityId, ensureCatalog])
 
   useEffect(() => {
     if (!volumeOptions.length) return
@@ -115,14 +124,14 @@ export default function SepticOrderFlow() {
     }
   }, [volumeOptions, form.septicVolume])
 
-  const total = useMemo(
-    () => calcOrderTotal({ serviceId: 'septic-pumping', septicVolume: form.septicVolume }, lang, form.franchiseId),
-    [calcOrderTotal, form.septicVolume, lang, form.franchiseId],
-  )
-
   const selectedVolume = volumeOptions.find(
     (o) => o.volumes?.includes(form.septicVolume) || o.value === form.septicVolume,
   )
+
+  const total = useMemo(() => {
+    if (selectedVolume?.price != null) return Number(selectedVolume.price)
+    return calcOrderTotal({ serviceId: 'septic-pumping', septicVolume: form.septicVolume }, lang, form.franchiseId)
+  }, [calcOrderTotal, form.septicVolume, lang, form.franchiseId, selectedVolume?.price])
 
   const obj = objects.find((o) => o.id === form.objectId)
 
@@ -137,10 +146,11 @@ export default function SepticOrderFlow() {
       if (!form.cityId) throw new Error('Выберите область и город')
       if (!form.address?.trim() && !obj?.address) throw new Error('Укажите адрес')
       const order = await placeServiceOrder({
-        serviceId: service.id,
-        serviceName: service.name,
-        priceFrom: service.priceFrom,
+        serviceId: service?.id || 'septic-pumping',
+        serviceName: service?.name || 'Откачка септика',
+        priceFrom: service?.priceFrom,
         total,
+        subserviceCode: selectedVolume?.subserviceCode,
         ...form,
         address: form.address || obj?.address,
       })
@@ -245,8 +255,8 @@ export default function SepticOrderFlow() {
   }
 
   if (!available || !volumeOptions.length) {
-    const loadingCatalog = form.franchiseId && catalogLoadingFranchise === form.franchiseId
-    if (loadingCatalog) {
+    const isLoadingCatalog = !demoMode && catalogLoadKey && catalogLoadingFranchise === catalogLoadKey
+    if (isLoadingCatalog) {
       return (
         <div className="px-4 py-8 text-center gp-animate-in">
           <PageHeader title={service?.name || t('nav_services')} onBack={() => navigate(-1)} />
@@ -267,8 +277,8 @@ export default function SepticOrderFlow() {
   return (
     <div className="px-4 py-4 gp-animate-in">
       <PageHeader
-        title="Откачка септика"
-        subtitle={step === 1 ? 'Объём и время' : step === 2 ? 'Адрес и оплата' : 'Подтверждение'}
+        title={service?.name || 'Откачка септика'}
+        subtitle={step === 1 ? 'Қала, көлем және уақыт' : step === 2 ? 'Адрес и оплата' : 'Подтверждение'}
         onBack={() => (step > 1 ? setStep((s) => s - 1) : navigate(-1))}
       />
       <StepBar step={step} />

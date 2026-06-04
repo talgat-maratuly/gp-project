@@ -19,6 +19,7 @@ import {
 } from '@gp/shared/testMode'
 import { STATIC_GEO_STORE } from '@gp/shared/geography'
 import {
+  buildSepticServiceFromStore,
   calcServiceTotalWithCity,
   filterCatalogForCity,
   getSepticVolumeOptionsForCity,
@@ -71,34 +72,49 @@ export function ServiceProvider({ children }) {
     return subscribeGlobalStore(setGeoStore)
   }, [])
 
-  const ensureCatalog = useCallback(async (franchiseId) => {
+  const ensureCatalog = useCallback(async (franchiseIdOrOpts, cityIdArg) => {
     if (isDemoMode()) return geoStore
+    let franchiseId = franchiseIdOrOpts
+    let cityId = cityIdArg
+    if (franchiseIdOrOpts && typeof franchiseIdOrOpts === 'object') {
+      franchiseId = franchiseIdOrOpts.franchiseId
+      cityId = franchiseIdOrOpts.cityId
+    }
     const fid = franchiseId?.trim()
-    if (!fid) return null
-    const cached = catalogByFranchiseRef.current[fid]
+    const cid = cityId?.trim()
+    const cacheKey = fid || (cid ? `city:${cid}` : '')
+    if (!cacheKey) return null
+    const cached = (fid && catalogByFranchiseRef.current[fid])
+      || catalogByFranchiseRef.current[cacheKey]
     if (cached?.length) {
       return { services: cached }
     }
-    setCatalogLoadingFranchise(fid)
+    setCatalogLoadingFranchise(cacheKey)
     try {
-      const list = await api.getServiceCatalog(fid)
+      const list = await api.getServiceCatalog({ franchiseId: fid, cityId: cid })
       const services = Array.isArray(list) ? list : []
-      setCatalogByFranchise((prev) => ({ ...prev, [fid]: services }))
+      const resolvedFr = services[0]?.franchiseId
+      setCatalogByFranchise((prev) => {
+        const next = { ...prev, [cacheKey]: services }
+        if (fid) next[fid] = services
+        if (resolvedFr) next[resolvedFr] = services
+        if (cid) next[`city:${cid}`] = services
+        return next
+      })
       return services.length ? { services } : null
     } catch {
       return null
     } finally {
-      setCatalogLoadingFranchise((cur) => (cur === fid ? null : cur))
+      setCatalogLoadingFranchise((cur) => (cur === cacheKey ? null : cur))
     }
   }, [geoStore])
 
   useEffect(() => {
     if (isDemoMode()) return undefined
-    const fid = profile.franchiseId
-    if (!fid) return undefined
-    ensureCatalog(fid)
+    if (!profile.franchiseId && !profile.cityId) return undefined
+    ensureCatalog({ franchiseId: profile.franchiseId, cityId: profile.cityId })
     return undefined
-  }, [profile.franchiseId, ensureCatalog])
+  }, [profile.franchiseId, profile.cityId, ensureCatalog])
 
   const notify = useCallback((message, type = 'success') => setToast({ message, type }), [])
 
@@ -525,14 +541,27 @@ export function ServiceProvider({ children }) {
   const getSepticOptions = useCallback((lang = 'ru', franchiseId) => {
     const fid = franchiseId || profile.franchiseId
     const store = catalogStoreFor(fid)
-    if (!store?.services?.length || !fid) return null
+    if (!store?.services?.length || !fid) return isDemoMode() ? null : []
     return getSepticVolumeOptionsForCity(store, fid, lang)
   }, [catalogStoreFor, profile.franchiseId])
 
-  const isServiceAvailable = useCallback((serviceId, franchiseId) => {
+  const getApiSepticService = useCallback((lang = 'ru', franchiseId) => {
     const fid = franchiseId || profile.franchiseId
     const store = catalogStoreFor(fid)
-    if (!store?.services?.length || !fid) return true
+    if (!store?.services?.length || !fid) return null
+    return buildSepticServiceFromStore(store, fid, lang)
+  }, [catalogStoreFor, profile.franchiseId])
+
+  const isServiceAvailable = useCallback((serviceId, franchiseId) => {
+    if (isDemoMode()) {
+      const fid = franchiseId || profile.franchiseId
+      const store = catalogStoreFor(fid)
+      if (!store?.services?.length || !fid) return true
+      return isServiceActiveInCity(store, fid, serviceId)
+    }
+    const fid = franchiseId || profile.franchiseId
+    const store = catalogStoreFor(fid)
+    if (!store?.services?.length || !fid) return false
     return isServiceActiveInCity(store, fid, serviceId)
   }, [catalogStoreFor, profile.franchiseId])
 
@@ -575,15 +604,23 @@ export function ServiceProvider({ children }) {
     if (LAWN_SERVICE_IDS.includes(data.serviceId) && (!data.lawnAreaSqm || Number(data.lawnAreaSqm) < 1)) {
       throw new Error('Укажите площадь участка в м²')
     }
-    const total =
-      calcServiceTotalWithCity({
-        store: catalogStoreFor(data.franchiseId || profile.franchiseId),
-        franchiseId: data.franchiseId || profile.franchiseId,
-        serviceId: data.serviceId,
-        septicVolume: isSeptic ? Number(data.septicVolume) : undefined,
-        lawnAreaSqm: data.lawnAreaSqm ? Number(data.lawnAreaSqm) : undefined,
-        lang: 'ru',
-      }) || Number(data.total) || 0
+    const store = catalogStoreFor(data.franchiseId || profile.franchiseId)
+    const orderFranchiseId = data.franchiseId || profile.franchiseId
+    const totalFromApi = calcServiceTotalWithCity({
+      store,
+      franchiseId: orderFranchiseId,
+      serviceId: data.serviceId,
+      septicVolume: isSeptic ? Number(data.septicVolume) : undefined,
+      lawnAreaSqm: data.lawnAreaSqm ? Number(data.lawnAreaSqm) : undefined,
+      lang: 'ru',
+    })
+    const total = totalFromApi ?? Number(data.total) ?? 0
+    if (isSeptic && (!store?.services?.length || total <= 0)) {
+      throw new Error('Септик бағасы табылмады — қала каталогын тексеріңіз')
+    }
+
+    const commentParts = [data.comment]
+    if (data.subserviceCode) commentParts.push(`Подуслуга: ${data.subserviceCode}`)
 
     const payload = {
       category: apiCategory,
@@ -594,7 +631,7 @@ export function ServiceProvider({ children }) {
       clientLng: Number(data.lng ?? data.clientLng) || 51.367,
       total,
       paymentMethod: PAYMENT_TO_API[data.paymentMethod] || 'CASH_ON_DELIVERY',
-      comment: data.comment,
+      comment: commentParts.filter(Boolean).join('\n'),
       onBehalfCity: geo.city,
       septicVolume: isSeptic ? Number(data.septicVolume) : undefined,
       preferredDate: data.preferredDate || undefined,
@@ -643,6 +680,7 @@ export function ServiceProvider({ children }) {
     catalogLoadingFranchise,
     getCityCatalog,
     getSepticOptions,
+    getApiSepticService,
     isServiceAvailable,
     calcOrderTotal,
     demoFranchises: isDemoMode() ? demoApi.demoFranchises() : [],

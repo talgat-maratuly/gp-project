@@ -74,6 +74,7 @@ export function getSepticVolumeOptionsForCity(store, franchiseId, lang = 'ru') {
           price: sub.price,
           commission: sub.gpCommission,
           subserviceId: sub.id,
+          subserviceCode: sub.code,
         }
       })
   }
@@ -97,6 +98,7 @@ export function getSepticVolumeOptionsForCity(store, franchiseId, lang = 'ru') {
       price: sub.price,
       commission: sub.gpCommission,
       subserviceId: sub.id,
+      subserviceCode: sub.code,
     }
   }).filter(Boolean)
 }
@@ -224,4 +226,24 @@ export function calcServiceTotalWithCity(params) {
   }
   if (serviceId === 'filter-cartridge') return FILTER_CARTRIDGE_PRICE
   return 0
+}
+
+/** API каталогынан клиент septic қызметі */
+export function buildSepticServiceFromStore(store, franchiseId, lang = 'ru') {
+  const svc = findStoreService(store, franchiseId, 'septic')
+  if (!svc || svc.active === false) return null
+  const opts = getSepticVolumeOptionsForCity(store, franchiseId, lang)
+  const catalogId = TEMPLATE_TO_CATALOG_IDS.septic?.[0] || 'septic-pumping'
+  const name = resolveLocalizedName(svc, lang)
+  const priceFrom = opts.length
+    ? Math.min(...opts.map((o) => Number(o.price) || 0))
+    : Number(svc.basePrice) || 0
+  return {
+    id: catalogId,
+    name,
+    priceFrom,
+    priceNote: priceFrom > 0 ? `от ${priceFrom.toLocaleString('ru-RU')} ₸` : '',
+    templateId: 'septic',
+    active: true,
+  }
 }

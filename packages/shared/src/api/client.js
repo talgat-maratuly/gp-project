@@ -363,8 +363,16 @@ export const api = {
   patchQrPartnerOrderStatus: (orderId, status) =>
     patch(`/qr/partner/orders/${orderId}/status`, { status }),
 
-  getServiceCatalog: (franchiseId) =>
-    get(`/services/catalog?franchiseId=${encodeURIComponent(franchiseId)}`, { auth: false }),
+  getServiceCatalog: (franchiseId, cityId) => {
+    const opts = franchiseId && typeof franchiseId === 'object'
+      ? franchiseId
+      : { franchiseId, cityId }
+    const params = new URLSearchParams()
+    if (opts.franchiseId) params.set('franchiseId', opts.franchiseId)
+    if (opts.cityId) params.set('cityId', opts.cityId)
+    const q = params.toString()
+    return get(`/services/catalog${q ? `?${q}` : ''}`, { auth: false })
+  },
 
   listServiceFranchises: () => get('/services/franchises', { auth: false }),
 

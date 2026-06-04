@@ -151,6 +151,11 @@ export class CatalogBuilderService {
       });
   }
 
+  async resolveFranchiseIdForCity(cityId: string) {
+    const fr = await this.prisma.franchise.findFirst({ where: { cityId: cityId.trim() } });
+    return fr?.id ?? null;
+  }
+
   async resolveCityId(cityId?: string | null, cityName?: string | null, franchiseId?: string | null) {
     if (cityId?.trim()) return cityId.trim();
     if (franchiseId) {
