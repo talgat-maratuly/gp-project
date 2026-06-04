@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Crosshair } from 'lucide-react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { useLanguage } from '../i18n'
 
 const DEFAULT = [51.233, 51.367]
 
@@ -16,6 +17,7 @@ const pinIcon = L.divIcon({
  * Карта: тап / клик или перетаскивание метки — координаты для доставки.
  */
 export default function AddressPickerMap({ lat, lng, onLocationChange, className = 'h-52' }) {
+  const { t } = useLanguage()
   const ref = useRef(null)
   const mapRef = useRef(null)
   const markerRef = useRef(null)
@@ -96,10 +98,10 @@ export default function AddressPickerMap({ lat, lng, onLocationChange, className
         className="flex items-center gap-2 text-xs font-semibold text-gp-blue-600 hover:underline"
       >
         <Crosshair className="w-4 h-4" />
-        Определить моё местоположение
+        {t('useMyLocation')}
       </button>
       <p className="text-[11px] text-slate-500 leading-snug">
-        Нажмите на карту или перетащите зелёную точку.
+        {t('mapTapHint')}
       </p>
       <div ref={ref} className={`w-full rounded-2xl overflow-hidden border border-slate-200 z-0 touch-manipulation ${className}`} />
     </div>

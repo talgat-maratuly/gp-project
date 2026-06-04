@@ -2,14 +2,12 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { getServiceWebUrl } from '@gp/shared/constants'
 import { WhatsappOtpLogin } from '@gp/shared/auth/whatsappOtpLogin'
+import { useLanguage } from '@gp/shared/i18n'
 import { usePartner } from '../context/PartnerContext'
 
-/**
- * Тек кіру: WhatsApp OTP + email/пароль.
- * Тіркелу формасы жоқ — /register бөлек.
- */
 export default function PartnerLoginPage() {
   const navigate = useNavigate()
+  const { t } = useLanguage()
   const { login, loginViaWhatsappOtp, logout, loading, user, authReady } = usePartner()
   const [loginMethod, setLoginMethod] = useState('whatsapp')
   const [error, setError] = useState('')
@@ -19,21 +17,21 @@ export default function PartnerLoginPage() {
     e.preventDefault()
     setError('')
     if (!form.email.trim() || !form.password) {
-      setError('Email және парольді енгізіңіз')
+      setError(t('partnerEnterEmailPassword'))
       return
     }
     try {
       await login(form.email, form.password)
       navigate('/', { replace: true })
     } catch (err) {
-      setError(err?.message || 'Кіру қатесі')
+      setError(err?.message || t('partnerLoginError'))
     }
   }
 
   if (!authReady) {
     return (
       <div className="min-h-screen flex items-center justify-center gp-app-bg text-[var(--gp-text-muted)]">
-        Жүктелуде…
+        {t('loading')}
       </div>
     )
   }
@@ -41,14 +39,14 @@ export default function PartnerLoginPage() {
   return (
     <div className="min-h-screen px-4 py-6 max-w-md mx-auto gp-app-bg">
       <div className="mb-6">
-        <h1 className="text-2xl font-extrabold gp-text-gradient">GP Partner</h1>
-        <p className="text-[var(--gp-text-muted)] text-sm mt-1">Кіру</p>
+        <h1 className="text-2xl font-extrabold gp-text-gradient">{t('app_partner')}</h1>
+        <p className="text-[var(--gp-text-muted)] text-sm mt-1">{t('partnerLogin')}</p>
       </div>
 
       {user ? (
         <div className="gp-card-kaspi p-4 space-y-3 border border-emerald-500/30">
           <p className="text-sm text-[var(--gp-text)]">
-            Сіз кірдіңіз: <strong>{user.phone || user.email}</strong>
+            {t('partnerLoggedIn', { who: user.phone || user.email })}
           </p>
           <div className="flex gap-2">
             <button
@@ -56,14 +54,14 @@ export default function PartnerLoginPage() {
               onClick={() => navigate('/', { replace: true })}
               className="flex-1 py-2.5 rounded-xl gp-gradient-kaspi text-white text-sm font-bold"
             >
-              Кабинетке өту
+              {t('partnerGoCabinet')}
             </button>
             <button
               type="button"
               onClick={() => logout()}
               className="flex-1 py-2.5 rounded-xl border border-[var(--gp-border)] text-sm font-semibold"
             >
-              Шығу
+              {t('logout')}
             </button>
           </div>
         </div>
@@ -72,7 +70,7 @@ export default function PartnerLoginPage() {
           <div className="flex gap-2">
             {[
               ['whatsapp', 'WhatsApp OTP'],
-              ['password', 'Email / пароль'],
+              ['password', t('emailPassword')],
             ].map(([id, label]) => (
               <button
                 key={id}
@@ -108,7 +106,7 @@ export default function PartnerLoginPage() {
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                 className="gp-input-kaspi w-full"
-                placeholder="uralsk_partner немесе partner@gp.kz"
+                placeholder="uralsk_partner / partner@gp.kz"
                 autoComplete="username"
               />
               <input
@@ -116,18 +114,18 @@ export default function PartnerLoginPage() {
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 className="gp-input-kaspi w-full"
-                placeholder="Пароль"
+                placeholder={t('password')}
                 autoComplete="current-password"
               />
               <Link to="/forgot-password" className="text-xs text-emerald-400 hover:underline block">
-                Парольді ұмыттыңыз ба?
+                {t('auth_forgot_link')}
               </Link>
               <button
                 type="submit"
                 disabled={loading}
                 className="w-full py-3.5 rounded-2xl gp-gradient-kaspi text-white font-bold text-sm disabled:opacity-50"
               >
-                {loading ? '…' : 'Кіру'}
+                {loading ? '…' : t('partnerLogin')}
               </button>
             </form>
           )}
@@ -141,13 +139,13 @@ export default function PartnerLoginPage() {
       )}
 
       <p className="text-center text-sm text-[var(--gp-text-muted)] mt-6">
-        Жаңа серіктес?{' '}
+        {t('partnerNewPartner')}{' '}
         <Link to="/register" className="text-emerald-500 font-semibold hover:underline">
-          Тіркелу
+          {t('partnerRegister')}
         </Link>
       </p>
       <p className="text-center text-xs text-slate-600 mt-4">
-        <a href={getServiceWebUrl()} className="text-emerald-500 hover:underline">GP Service</a> — клиенттерге
+        <a href={getServiceWebUrl()} className="text-emerald-500 hover:underline">{t('app_service')}</a> {t('partnerForClients')}
       </p>
     </div>
   )

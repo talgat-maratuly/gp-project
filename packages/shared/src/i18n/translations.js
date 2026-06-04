@@ -1,6 +1,8 @@
 /** Переводы GP: ru · kk · en */
 import { marketRu, marketKk, marketEn } from './marketI18n.js'
 import { spRu, spKk, spEn } from './serviceProjectsI18n.js'
+import { clientRu, clientKk, clientEn } from './clientAppI18n.js'
+import { partnerExtRu, partnerExtKk, partnerExtEn } from './partnerExtI18n.js'
 
 export const LANGUAGES = [
   { code: 'ru', label: 'RU' },
@@ -1228,9 +1230,9 @@ const en = {
 }
 
 export const translations = {
-  ru: { ...ru, ...marketRu, ...spRu },
-  kk: { ...kk, ...marketKk, ...spKk },
-  en: { ...en, ...marketEn, ...spEn },
+  ru: { ...ru, ...marketRu, ...spRu, ...clientRu, ...partnerExtRu },
+  kk: { ...kk, ...marketKk, ...spKk, ...clientKk, ...partnerExtKk },
+  en: { ...en, ...marketEn, ...spEn, ...clientEn, ...partnerExtEn },
 }
 
 export const DEFAULT_LANG = 'ru'

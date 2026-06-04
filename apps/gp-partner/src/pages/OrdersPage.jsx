@@ -21,9 +21,11 @@ import { subscribeOrderTracking } from '@gp/shared/api/trackingSocket'
 import LiveTrackingMap from '../components/LiveTrackingMap'
 import MapNavigationPicker from '../components/MapNavigationPicker'
 import { useGpsTracker } from '../hooks/useGpsTracker'
+import { useLanguage } from '@gp/shared/i18n'
 import { Chip, KaspiCard } from '@gp/shared/ui/KaspiUI'
 
 function OrderCard({ order, user, onAccept, onAdvance, onCancel, onSelect, onRoute, onOpen, selected, feedMode = false, expanded = false }) {
+  const { t } = useLanguage()
   const action = getPartnerOrderAction(order.status, order.category)
   const isMine = (order.assignedPartnerId || order.partnerId) === user?.partnerProfileId
   const lawnLabel = LAWN_WORK_TYPES.find((t) => t.id === order.lawnWorkType)?.label
@@ -49,7 +51,7 @@ function OrderCard({ order, user, onAccept, onAdvance, onCancel, onSelect, onRou
             </span>
           </div>
           <p className="font-extrabold text-lg leading-tight mb-1">
-            {order.serviceName || (order.items?.length ? `Заказ · ${order.items.length} поз.` : order.id)}
+            {order.serviceName || (order.items?.length ? t('orderPositions', { n: order.items.length }) : order.id)}
           </p>
           <p className="text-sm text-[var(--gp-text-muted)] flex items-center gap-1">
             <Phone className="w-3.5 h-3.5" />
@@ -63,7 +65,7 @@ function OrderCard({ order, user, onAccept, onAdvance, onCancel, onSelect, onRou
             <p className="text-xs text-blue-600 font-semibold mt-2">🕐 {formatOrderSchedule(order)}</p>
           )}
           {order.category === 'septic' && order.septicVolume && (
-            <p className="text-xs text-amber-700 dark:text-amber-400 mt-1 font-medium">Объём: {order.septicVolume} м³</p>
+            <p className="text-xs text-amber-700 dark:text-amber-400 mt-1 font-medium">{t('volumeLabel', { n: order.septicVolume })}</p>
           )}
           {order.category === 'lawn' && order.lawnAreaSqm && (
             <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">{order.lawnAreaSqm} м² · {lawnLabel}</p>
@@ -73,7 +75,7 @@ function OrderCard({ order, user, onAccept, onAdvance, onCancel, onSelect, onRou
 
         {(expanded || selected) && (
           <div className="px-4 pb-4 border-t border-[var(--gp-border)] pt-3 space-y-2" onClick={(e) => e.stopPropagation()}>
-            <p className="text-xs font-bold text-[var(--gp-text-muted)]">Детали заказа</p>
+            <p className="text-xs font-bold text-[var(--gp-text-muted)]">{t('orderDetails')}</p>
             {order.note && <p className="text-sm text-[var(--gp-text-muted)]">{order.note}</p>}
             <div className="flex flex-col gap-2">
               {order.status === 'new' && (isMine || feedMode) && (
@@ -120,6 +122,7 @@ function OrderCard({ order, user, onAccept, onAdvance, onCancel, onSelect, onRou
 }
 
 export default function OrdersPage() {
+  const { t } = useLanguage()
   const {
     user, newOrders, activeOrders, activeOrder, feed, feedLoading,
     acceptOrder, acceptFromFeed, advanceOrder, cancelOrder, setOnline,
@@ -169,7 +172,7 @@ export default function OrdersPage() {
   }
 
   const handleCancel = async (orderId) => {
-    const reason = window.prompt('Укажите причину отмены заказа:')
+    const reason = window.prompt(t('cancelReasonPrompt'))
     if (reason && reason.trim().length >= 3) await cancelOrder(orderId, reason.trim())
   }
 
@@ -197,7 +200,7 @@ export default function OrdersPage() {
 
   return (
     <div className="gp-animate-in">
-      <h1 className="text-2xl font-extrabold mb-1">Заявки</h1>
+      <h1 className="text-2xl font-extrabold mb-1">{t('ordersPageTitle')}</h1>
       <p className="text-xs text-[var(--gp-text-muted)] mb-2">
         {myDirections.map(getPartnerDirectionLabel).join(' · ')}
       </p>
@@ -217,11 +220,11 @@ export default function OrdersPage() {
 
       <div className="flex gap-2 mb-4">
         {[
-          ['feed', `Лента (${feed.length})`],
-          ['new', `Мои новые (${newOrders.length})`],
-          ['active', `В работе (${activeOrders.length})`],
-        ].map(([t, label]) => (
-          <Chip key={t} active={tab === t} onClick={() => setTab(t)} className="flex-1 !w-full text-center">
+          ['feed', t('partnerOrdersFeed', { n: feed.length })],
+          ['new', t('partnerOrdersNew', { n: newOrders.length })],
+          ['active', t('partnerOrdersActive', { n: activeOrders.length })],
+        ].map(([tabId, label]) => (
+          <Chip key={tabId} active={tab === tabId} onClick={() => setTab(tabId)} className="flex-1 !w-full text-center">
             {label}
           </Chip>
         ))}
@@ -229,22 +232,22 @@ export default function OrdersPage() {
 
       {tab === 'feed' && !isOnline && (
         <KaspiCard className="!p-6 text-center mb-4">
-          <p className="text-sm font-bold mb-1">Вы офлайн</p>
+          <p className="text-sm font-bold mb-1">{t('youOffline')}</p>
           <p className="text-xs text-[var(--gp-text-muted)] mb-4">
-            Перейдите в онлайн, чтобы получать и принимать новые заказы.
+            {t('partnerOfflineHint')}
           </p>
           <button
             type="button"
             onClick={() => setOnline(true)}
             className="px-5 py-3 rounded-2xl gp-btn-primary font-bold text-sm"
           >
-            Выйти в онлайн
+            {t('partnerGoOnline')}
           </button>
         </KaspiCard>
       )}
 
       <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide mb-2">
-        <Chip active={dirFilter === 'all'} onClick={() => setDirFilter('all')}>Все</Chip>
+        <Chip active={dirFilter === 'all'} onClick={() => setDirFilter('all')}>{t('all')}</Chip>
         {PARTNER_DIRECTIONS.filter((d) => myDirections.includes(d.id)).map((d) => (
           <Chip key={d.id} active={dirFilter === d.id} onClick={() => setDirFilter(d.id)}>
             {d.label.split(' / ')[0]}
@@ -255,7 +258,7 @@ export default function OrdersPage() {
       {acceptBanner && (
         <KaspiCard className="!p-4 mb-4 border-emerald-500/40 bg-emerald-500/10">
           <p className="text-sm font-bold text-emerald-800 dark:text-emerald-200">
-            Заказ принят. Он перемещен во вкладку «В работе».
+            {t('partnerOrderAccepted')}
           </p>
           <div className="flex gap-2 mt-3">
             <button
@@ -263,7 +266,7 @@ export default function OrdersPage() {
               onClick={() => { setTab('active'); setAcceptBanner(false) }}
               className="flex-1 py-3 rounded-2xl gp-btn-primary text-sm font-bold"
             >
-              Перейти в работу
+              {t('partnerGoToWork')}
             </button>
             <button
               type="button"

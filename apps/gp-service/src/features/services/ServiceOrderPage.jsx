@@ -99,8 +99,8 @@ function GenericServiceOrder({ serviceId }) {
   if (!service) {
     return (
       <div className="px-4 py-8 text-center">
-        <p className="text-slate-500 mb-4">Услуга не найдена</p>
-        <Button onClick={() => navigate(-1)}>Назад</Button>
+        <p className="text-slate-500 mb-4">{t('serviceNotFound')}</p>
+        <Button onClick={() => navigate(-1)}>{t('back')}</Button>
       </div>
     )
   }
@@ -152,26 +152,26 @@ function GenericServiceOrder({ serviceId }) {
 
   return (
     <div className="px-4 py-4">
-      <PageHeader title={service.name} subtitle="Оформление заявки" onBack={() => navigate(-1)} />
+      <PageHeader title={service.name} subtitle={t('orderFormSubtitle')} onBack={() => navigate(-1)} />
       {service.priceNote && <p className="text-sm text-gp-green-700 font-semibold mb-1">{service.priceNote}</p>}
-      <p className="text-gp-green-700 font-bold mb-2">от {formatPrice(service.priceFrom)}</p>
+      <p className="text-gp-green-700 font-bold mb-2">{t('priceFrom')} {formatPrice(service.priceFrom)}</p>
       {service.description && <p className="text-sm text-slate-500 mb-4">{service.description}</p>}
 
       {authReady && !isLoggedIn && (
         <div className="gp-card p-4 mb-4 border-amber-200 bg-amber-50 text-sm">
-          <p className="font-semibold text-amber-900 mb-2">Войдите как клиент</p>
+          <p className="font-semibold text-amber-900 mb-2">{t('loginAsClient')}</p>
           <p className="text-amber-800 text-xs mb-3">
-            Demo: <strong>client@gp.kz</strong> / password123
+            {t('demo_login_hint')}
           </p>
           <Link to="/login" state={{ from: `/services/${serviceId}` }} className="inline-block py-2 px-4 rounded-xl gp-gradient text-white text-sm font-semibold">
-            Войти
+            {t('login')}
           </Link>
         </div>
       )}
 
       <form onSubmit={submit} className="gp-card p-5 space-y-4">
-        <Input label="Имя" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-        <Input label="Телефон" type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required />
+        <Input label={t('name')} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+        <Input label={t('phone')} type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required />
         <OrderLocationFields
           store={geoStore}
           profile={profile}
@@ -183,7 +183,7 @@ function GenericServiceOrder({ serviceId }) {
 
         {isSeptic && (
           <label className="block text-sm">
-            <span className="font-medium">Объём септика</span>
+            <span className="font-medium">{t('septicVolume')}</span>
             <select
               value={form.septicVolume}
               onChange={(e) => setForm({ ...form, septicVolume: Number(e.target.value) })}
@@ -201,7 +201,7 @@ function GenericServiceOrder({ serviceId }) {
 
         {isLawn && lawnPricing && (
           <Input
-            label={`Площадь, м² (${formatPrice(lawnPricing.pricePerSqm)}/м²)`}
+            label={t('lawnAreaLabel').replace('{rate}', formatPrice(lawnPricing.pricePerSqm))}
             type="number"
             min={1}
             value={form.lawnAreaSqm}
@@ -212,14 +212,14 @@ function GenericServiceOrder({ serviceId }) {
 
         {isConsultation && (
           <p className="text-sm text-slate-600 bg-slate-50 rounded-xl p-3 border">
-            Выезд специалиста — <strong>{formatPrice(estimatedTotal)}</strong>. Стоимость работ определит мастер на месте.
+            {t('consultationHint').replace('{price}', formatPrice(estimatedTotal))}
           </p>
         )}
 
         {needsSchedule && (
           <>
             <Input
-              label="Желаемая дата"
+              label={t('visitDate')}
               type="date"
               min={defaultDate}
               value={form.preferredDate}
@@ -233,11 +233,11 @@ function GenericServiceOrder({ serviceId }) {
                 onChange={(e) => setForm({ ...form, flexibleTime: e.target.checked })}
                 className="accent-gp-green-600"
               />
-              Любое свободное время
+              {t('flexibleTime')}
             </label>
             {!form.flexibleTime && (
               <label className="block text-sm">
-                <span className="font-medium">Время визита</span>
+                <span className="font-medium">{t('visitTime')}</span>
                 <div className="grid grid-cols-3 gap-2 mt-2">
                   {PREFERRED_TIME_SLOTS.map((slot) => (
                     <button
@@ -259,16 +259,16 @@ function GenericServiceOrder({ serviceId }) {
           </>
         )}
 
-        <Input label="Комментарий" value={form.comment} onChange={(e) => setForm({ ...form, comment: e.target.value })} />
+        <Input label={t('comment')} value={form.comment} onChange={(e) => setForm({ ...form, comment: e.target.value })} />
         <div>
-          <p className="text-sm font-medium text-slate-700 mb-2">Оплата исполнителю</p>
+          <p className="text-sm font-medium text-slate-700 mb-2">{t('payToPartner')}</p>
           <PaymentMethodPicker value={form.paymentMethod} onChange={(paymentMethod) => setForm({ ...form, paymentMethod })} />
         </div>
 
         {estimatedTotal > 0 && (
           <div className="rounded-xl bg-gp-green-50 border border-gp-green-100 p-3 text-sm">
             <p className="font-semibold text-gp-green-800">
-              К оплате партнёру: {formatPrice(estimatedTotal)}
+              {t('toPayPartner')}: {formatPrice(estimatedTotal)}
             </p>
             {isLawn && lawnPricing && form.lawnAreaSqm && (
               <p className="text-xs text-slate-600 mt-1">
@@ -282,7 +282,7 @@ function GenericServiceOrder({ serviceId }) {
 
         {error && <p className="text-red-600 text-sm">{error}</p>}
         <Button type="submit" size="lg" className="w-full" disabled={processing}>
-          {processing ? 'Отправка…' : isSeptic ? 'Вызвать ассенизатора' : isConsultation ? 'Заказать выезд' : 'Отправить заявку'}
+          {processing ? t('sending') : isSeptic ? t('callSeptic') : isConsultation ? t('orderConsultation') : t('sendRequest')}
         </Button>
       </form>
     </div>
