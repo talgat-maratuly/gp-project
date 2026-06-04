@@ -12,7 +12,8 @@ import ClientsPage from '../pages/ClientsPage'
 import PartnersPage from '../pages/PartnersPage'
 import ModerationPage from '../pages/ModerationPage'
 import OrdersPage from '../pages/OrdersPage'
-import ServicesPage from '../pages/ServicesPage'
+import ServiceTypesPage from '../pages/ServiceTypesPage'
+import SepticCityPricingPage from '../pages/SepticCityPricingPage'
 import DiscountsPage from '../pages/DiscountsPage'
 import FinancePage from '../pages/FinancePage'
 import ReviewsPage from '../pages/ReviewsPage'
@@ -61,7 +62,8 @@ export default function App() {
         <Route path="specialists/moderation" element={<Navigate to="/moderation?block=specialists" replace />} />
         <Route path="specialists/offerings" element={<Navigate to="/moderation?block=offerings" replace />} />
         <Route path="services/moderation" element={<Navigate to="/moderation?block=offerings" replace />} />
-        <Route path="services" element={<ServicesPage />} />
+        <Route path="services/septic-pricing" element={<SepticCityPricingPage />} />
+        <Route path="services" element={<ServiceTypesPage />} />
         <Route path="services/hunter-irrigation" element={<ServiceProjectsAdminPage type="hunter_irrigation" />} />
         <Route path="services/furniture" element={<ServiceProjectsAdminPage type="furniture" />} />
         <Route path="discounts" element={<DiscountsPage />} />

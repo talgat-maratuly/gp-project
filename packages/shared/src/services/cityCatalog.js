@@ -58,6 +58,26 @@ export function getSepticVolumeOptionsForCity(store, franchiseId, lang = 'ru') {
   const subs = activeSubservices(svc, lang)
   if (!subs.length) return []
 
+  const withVolume = subs.filter((s) => s.volumeStart != null && s.volumeEnd != null && s.volumeEnd > 0)
+  if (withVolume.length) {
+    return withVolume
+      .sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0))
+      .map((sub) => {
+        const start = Number(sub.volumeStart)
+        const end = Number(sub.volumeEnd)
+        const volumes = []
+        for (let v = start; v <= end; v++) volumes.push(v)
+        return {
+          label: resolveLocalizedName(sub, lang),
+          volumes,
+          value: start,
+          price: sub.price,
+          commission: sub.gpCommission,
+          subserviceId: sub.id,
+        }
+      })
+  }
+
   const mapping = [
     { key: '3', volumes: [3, 4], value: 4, match: (n) => /3|4/.test(n) },
     { key: '5', volumes: [5, 6, 7], value: 5, match: (n) => /5|6|7/.test(n) },

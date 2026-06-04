@@ -383,6 +383,42 @@ export const api = {
   adminRemoveSubservice: (serviceId, subId) =>
     del(`/admin/services/${serviceId}/subservices/${subId}`),
 
+  adminServiceTypes: (code) => {
+    const q = code ? `?code=${encodeURIComponent(code)}` : ''
+    return get(`/admin/service-types${q}`)
+  },
+
+  adminCreateServiceType: (body) => post('/admin/service-types', body),
+
+  adminUpdateServiceType: (id, body) => patch(`/admin/service-types/${id}`, body),
+
+  adminRemoveServiceType: (id) => del(`/admin/service-types/${id}`),
+
+  adminAddSubserviceType: (serviceTypeId, body) =>
+    post(`/admin/service-types/${serviceTypeId}/subservices`, body),
+
+  adminUpdateSubserviceType: (serviceTypeId, subId, body) =>
+    patch(`/admin/service-types/${serviceTypeId}/subservices/${subId}`, body),
+
+  adminRemoveSubserviceType: (serviceTypeId, subId) =>
+    del(`/admin/service-types/${serviceTypeId}/subservices/${subId}`),
+
+  adminCityPrices: (opts = {}) => {
+    const params = new URLSearchParams()
+    if (opts.serviceCode) params.set('serviceCode', opts.serviceCode)
+    if (opts.cityId) params.set('cityId', opts.cityId)
+    if (opts.franchiseId) params.set('franchiseId', opts.franchiseId)
+    if (opts.oblastId) params.set('oblastId', opts.oblastId)
+    const q = params.toString() ? `?${params.toString()}` : ''
+    return get(`/admin/city-prices${q}`)
+  },
+
+  adminCreateCityPrice: (body) => post('/admin/city-prices', body),
+
+  adminUpdateCityPrice: (id, body) => patch(`/admin/city-prices/${id}`, body),
+
+  adminRemoveCityPrice: (id) => del(`/admin/city-prices/${id}`),
+
   healthFull: async () => {
     const url = `${getApiRootUrl()}/health/full`
     const res = await fetch(url)

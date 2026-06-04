@@ -19,6 +19,7 @@ import { FURNITURE_EXECUTOR_ACCESS_IDS } from '../src/common/furniture-executor.
 import { MARKET_REGIONS } from './market-regions';
 import { SHOP_CATALOG, toProductSeedRow } from './shop-catalog';
 import { seedFranchiseCatalog } from './service-catalog.seed';
+import { seedServiceTypes } from './service-types.seed';
 
 const prisma = new PrismaClient();
 
@@ -37,6 +38,7 @@ async function main() {
     regionByCode[r.code] = await prisma.region.findUniqueOrThrow({ where: { code: r.code } });
   }
   await seedFranchiseCatalog(prisma, regionByCode);
+  await seedServiceTypes(prisma);
   const uralskRegion = regionByCode.uralsk;
   const atyrauRegion = regionByCode.atyrau;
 

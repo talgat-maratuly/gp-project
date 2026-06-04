@@ -340,6 +340,62 @@ model FranchiseSubservice {
   @@index([franchiseServiceId])
 }
 
+/// Глобалды қызмет түрі (code + 3 тіл)
+model ServiceType {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  names     Json
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subserviceTypes SubserviceType[]
+  cityPrices      CityServicePrice[]
+}
+
+/// Глобалды подуслуга түрі
+model SubserviceType {
+  id            String      @id @default(uuid())
+  serviceTypeId String
+  serviceType   ServiceType @relation(fields: [serviceTypeId], references: [id], onDelete: Cascade)
+  code          String
+  names         Json
+  active        Boolean     @default(true)
+  sortOrder     Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  cityPrices CityServicePrice[]
+
+  @@unique([serviceTypeId, code])
+  @@index([serviceTypeId])
+}
+
+/// Қала бойынша баға (septic және басқа қызметтер)
+model CityServicePrice {
+  id               String          @id @default(uuid())
+  serviceTypeId    String
+  serviceType      ServiceType     @relation(fields: [serviceTypeId], references: [id], onDelete: Cascade)
+  subserviceTypeId String?
+  subserviceType   SubserviceType? @relation(fields: [subserviceTypeId], references: [id], onDelete: SetNull)
+  oblastId         String?
+  cityId           String
+  franchiseId      String?
+  price            Int
+  gpCommission     Int             @default(0)
+  active           Boolean         @default(true)
+  volumeStart      Int?
+  volumeEnd        Int?
+  priority         Int             @default(0)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([cityId])
+  @@index([serviceTypeId, cityId])
+  @@index([franchiseId])
+}
+
 model ClientProfile {
   id        String      @id @default(uuid())
   userId    String      @unique
