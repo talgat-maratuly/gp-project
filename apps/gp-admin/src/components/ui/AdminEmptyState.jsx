@@ -4,7 +4,7 @@ import { useLanguage } from '../../i18n/LanguageContext'
 export default function AdminEmptyState({ messageKey = 'noData', className = '' }) {
   const { t } = useLanguage()
   return (
-    <p className={`text-sm text-slate-500 py-8 text-center ${className}`}>
+    <p className={`text-sm admin-muted py-8 text-center ${className}`}>
       {t(messageKey)}
     </p>
   )

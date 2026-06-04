@@ -55,7 +55,7 @@ export default function TestingReportPage() {
         <button
           type="button"
           onClick={load}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-600 text-white text-sm font-semibold"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl admin-btn-primary text-sm font-semibold"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           {t('qa_refresh')}

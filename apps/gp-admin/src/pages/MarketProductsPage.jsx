@@ -29,7 +29,7 @@ export default function MarketProductsPage() {
           type="button"
           onClick={() => setTab('catalog')}
           className={`px-4 py-2 rounded-lg text-sm font-semibold min-h-[44px] ${
-            tab === 'catalog' ? 'bg-sky-600 text-white' : 'text-slate-400 hover:text-white'
+            tab === 'catalog' ? 'admin-tab-active' : 'admin-tab'
           }`}
         >
           {t('market_tab_catalog')}
@@ -38,7 +38,7 @@ export default function MarketProductsPage() {
           type="button"
           onClick={() => setTab('moderation')}
           className={`px-4 py-2 rounded-lg text-sm font-semibold min-h-[44px] ${
-            tab === 'moderation' ? 'bg-sky-600 text-white' : 'text-slate-400 hover:text-white'
+            tab === 'moderation' ? 'admin-tab-active' : 'admin-tab'
           }`}
         >
           {t('market_tab_moderation')}

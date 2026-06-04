@@ -134,7 +134,7 @@ export default function OrdersPage() {
             type="button"
             onClick={() => setTab(item.id)}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
-              tab === item.id ? 'bg-sky-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              tab === item.id ? 'admin-tab-active' : 'admin-tab'
             }`}
           >
             {t(item.labelKey)}

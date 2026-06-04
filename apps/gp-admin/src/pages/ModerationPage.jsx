@@ -36,7 +36,7 @@ export default function ModerationPage() {
             type="button"
             onClick={() => setBlock(b.id)}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
-              block === b.id ? 'bg-sky-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              block === b.id ? 'admin-tab-active' : 'admin-tab'
             }`}
           >
             {t(b.titleKey)}

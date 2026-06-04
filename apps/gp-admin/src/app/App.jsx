@@ -33,7 +33,7 @@ export default function App() {
   const { t } = useLanguage()
 
   if (!ready) {
-    return <div className="min-h-screen flex items-center justify-center text-slate-500 text-sm">{t('loading')}</div>
+    return <div className="min-h-screen flex items-center justify-center admin-muted text-sm">{t('loading')}</div>
   }
 
   if (!user) {

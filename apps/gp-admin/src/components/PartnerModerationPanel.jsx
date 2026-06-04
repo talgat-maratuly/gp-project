@@ -150,20 +150,20 @@ export default function PartnerModerationPanel({ scope, title, subtitle, initial
   }
 
   if (!can(ACTIONS.PARTNER_MODERATE)) {
-    return <p className="text-slate-500">{t('noAccess')}</p>
+    return <p className="admin-muted">{t('noAccess')}</p>
   }
 
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-xl font-bold text-white">{title}</h1>
-        <p className="text-sm text-slate-400">{subtitle}</p>
+        <h1 className="text-xl font-bold admin-heading">{title}</h1>
+        <p className="text-sm admin-muted">{subtitle}</p>
       </div>
 
       <AdminListFilters value={filters} onChange={setFilters} />
 
       {error && <p className="text-sm text-red-400">{error}</p>}
-      {(loading || acting) && <p className="text-sm text-slate-500">{t('loading')}</p>}
+      {(loading || acting) && <p className="text-sm admin-muted">{t('loading')}</p>}
 
       <div className="flex flex-wrap gap-2">
         {TAB_IDS.map((id) => (
@@ -172,7 +172,7 @@ export default function PartnerModerationPanel({ scope, title, subtitle, initial
             type="button"
             onClick={() => { setTab(id); setSelected(null) }}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
-              tab === id ? 'bg-sky-600 text-white' : 'bg-slate-800 text-slate-300'
+              tab === id ? 'admin-tab-active' : 'admin-tab'
             }`}
           >
             {t(`moderationTab_${id}`)}
@@ -198,7 +198,7 @@ export default function PartnerModerationPanel({ scope, title, subtitle, initial
               ) : list.map((p) => (
                 <tr
                   key={p.id}
-                  className={`cursor-pointer hover:bg-slate-800/40 ${selected?.id === p.id ? 'bg-slate-800/60' : ''}`}
+                  className={`cursor-pointer hover:opacity-90 ${selected?.id === p.id ? 'admin-panel' : ''}`}
                   onClick={() => openDetail(p.id)}
                 >
                   <td className="font-medium">{p.companyName || p.company}</td>
@@ -247,26 +247,26 @@ export default function PartnerModerationPanel({ scope, title, subtitle, initial
 
       {selected && isDetailOpen && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-          <div className="w-full max-w-3xl rounded-xl border border-slate-700 bg-slate-900 p-4 space-y-3 max-h-[85vh] overflow-y-auto">
+          <div className="w-full max-w-3xl admin-card space-y-3 max-h-[85vh] overflow-y-auto !p-4">
             <div className="flex justify-between items-start gap-2">
               <div>
                 <h2 className="font-bold text-lg">{selected.companyName || selected.company}</h2>
-                <p className="text-sm text-slate-400">
+                <p className="text-sm admin-muted">
                   {partnerStatusLabel(selected.status)} · {selected.region?.name || selected.city}
                 </p>
               </div>
-              <button type="button" onClick={() => setIsDetailOpen(false)} className="text-slate-300">✕</button>
+              <button type="button" onClick={() => setIsDetailOpen(false)} className="admin-muted">✕</button>
             </div>
-            <span className="text-xs bg-slate-800 px-2 py-1 rounded inline-block">
+            <span className="text-xs admin-panel border px-2 py-1 rounded inline-block">
               {PARTNER_ROLE_LABELS[selected.partnerRole] || selected.partnerRole}
               {' · '}
               {resolveTypeLabel(selected.partnerType, t)}
             </span>
             <dl className="text-sm grid grid-cols-2 gap-2">
-              <dt className="text-slate-500">{t('fullName')}</dt><dd>{selected.fullName || selected.user?.name}</dd>
-              <dt className="text-slate-500">{t('emailLabel')}</dt><dd>{selected.user?.email}</dd>
-              <dt className="text-slate-500">{t('phone')}</dt><dd>{selected.user?.phone}</dd>
-              <dt className="text-slate-500">{t('address')}</dt><dd>{selected.address || '—'}</dd>
+              <dt className="admin-muted">{t('fullName')}</dt><dd>{selected.fullName || selected.user?.name}</dd>
+              <dt className="admin-muted">{t('emailLabel')}</dt><dd>{selected.user?.email}</dd>
+              <dt className="admin-muted">{t('phone')}</dt><dd>{selected.user?.phone}</dd>
+              <dt className="admin-muted">{t('address')}</dt><dd>{selected.address || '—'}</dd>
               <dt className="text-slate-500">{t('registeredAt')}</dt>
               <dd className="text-slate-400" title={t('systemFieldReadonly')}>
                 {new Date(selected.createdAt).toLocaleString('ru-RU')}
@@ -308,7 +308,7 @@ export default function PartnerModerationPanel({ scope, title, subtitle, initial
                   {pendingOfferings.map((o) => (
                     <li key={o.id} className="rounded-lg bg-slate-950/80 border border-amber-500/20 p-2 space-y-2">
                       <div>
-                        <p className="text-sm font-medium text-white">{getPartnerSubserviceLabel(o.subserviceId)}</p>
+                        <p className="text-sm font-medium admin-heading">{getPartnerSubserviceLabel(o.subserviceId)}</p>
                         <p className="text-[10px] text-slate-500">{getPartnerOfferingStatusLabel(o.status)}</p>
                       </div>
                       <div className="flex gap-2">
@@ -382,7 +382,7 @@ export default function PartnerModerationPanel({ scope, title, subtitle, initial
       {selected && rejectModalOpen && (
         <div className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4">
           <div className="w-full max-w-lg rounded-xl border border-slate-700 bg-slate-900 p-4 space-y-3">
-            <h3 className="text-lg font-semibold text-white">{t('reject')}</h3>
+            <h3 className="text-lg font-semibold admin-heading">{t('reject')}</h3>
             <p className="text-sm text-slate-400">{selected.companyName || selected.company}</p>
             <textarea
               className="w-full rounded-lg bg-slate-950 border border-slate-700 p-2 text-sm"

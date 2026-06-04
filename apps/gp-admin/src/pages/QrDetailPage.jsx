@@ -50,7 +50,7 @@ export default function QrDetailPage() {
           {preview && <img src={preview} alt="QR" className="mx-auto w-48 h-48" />}
           <p className="text-xs text-slate-500 mt-3 break-all">{publicUrl}</p>
           <div className="flex gap-2 mt-4 justify-center">
-            <button type="button" onClick={() => downloadQrPng(obj.qrCode)} className="flex items-center gap-1 px-3 py-2 rounded-lg bg-sky-600 text-white text-sm font-semibold">
+            <button type="button" onClick={() => downloadQrPng(obj.qrCode)} className="flex items-center gap-1 px-3 py-2 rounded-lg admin-btn-primary text-sm font-semibold">
               <Download className="w-4 h-4" /> PNG
             </button>
             <button type="button" onClick={() => printQrSticker(obj.qrCode, obj.title)} className="flex items-center gap-1 px-3 py-2 rounded-lg bg-white/10 text-sm font-semibold">

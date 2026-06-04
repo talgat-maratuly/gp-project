@@ -65,7 +65,7 @@ export default function OfferingModerationPanel({ scope, title, subtitle, backTo
         </Link>
       )}
       <div>
-        <h1 className="text-xl font-bold text-white">{title}</h1>
+        <h1 className="text-xl font-bold admin-heading">{title}</h1>
         <p className="text-sm text-slate-400">{subtitle}</p>
       </div>
       {error && <p className="text-sm text-red-400">{error}</p>}
@@ -83,7 +83,7 @@ export default function OfferingModerationPanel({ scope, title, subtitle, backTo
             type="button"
             onClick={() => setTab(id)}
             className={`px-3 py-1.5 rounded-lg text-sm ${
-              tab === id ? 'bg-sky-600 text-white' : 'bg-white/10 text-slate-300'
+              tab === id ? 'admin-tab-active' : 'admin-tab'
             }`}
           >
             {PARTNER_OFFERING_STATUS_LABELS[id] || id}
@@ -98,7 +98,7 @@ export default function OfferingModerationPanel({ scope, title, subtitle, backTo
           <li key={o.id} className="rounded-xl border border-white/10 p-4 space-y-2">
             <div className="flex flex-wrap justify-between gap-2">
               <div>
-                <p className="font-semibold text-white">{getPartnerSubserviceLabel(o.subserviceId)}</p>
+                <p className="font-semibold admin-heading">{getPartnerSubserviceLabel(o.subserviceId)}</p>
                 <p className="text-xs text-slate-500 font-mono">{o.subserviceId}</p>
                 <p className="text-sm text-slate-300 mt-1">
                   {o.partner?.companyName || o.partner?.user?.name}

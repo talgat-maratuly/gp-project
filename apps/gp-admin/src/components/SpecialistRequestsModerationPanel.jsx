@@ -105,7 +105,7 @@ export default function SpecialistRequestsModerationPanel({ title, subtitle }) {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-xl font-bold text-white">{title}</h1>
+        <h1 className="text-xl font-bold admin-heading">{title}</h1>
         <p className="text-sm text-slate-400">{subtitle}</p>
       </div>
 
@@ -119,7 +119,7 @@ export default function SpecialistRequestsModerationPanel({ title, subtitle }) {
             type="button"
             onClick={() => { setTab(id); setSelected(null) }}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
-              tab === id ? 'bg-sky-600 text-white' : 'bg-slate-800 text-slate-300'
+              tab === id ? 'admin-tab-active' : 'admin-tab'
             }`}
           >
             {t(`moderationStatus_${id}`)}
@@ -131,7 +131,7 @@ export default function SpecialistRequestsModerationPanel({ title, subtitle }) {
             type="button"
             onClick={() => { setTab(''); setSelected(null) }}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
-              tab === '' ? 'bg-sky-600 text-white' : 'bg-slate-800 text-slate-300'
+              tab === '' ? 'admin-tab-active' : 'admin-tab'
             }`}
           >
             {t('all')}
