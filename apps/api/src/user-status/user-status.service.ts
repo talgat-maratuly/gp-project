@@ -229,7 +229,7 @@ export class UserStatusService {
       this.assertCanGoOnline(user, profile);
       return;
     }
-    if (next === WorkStatus.OFFLINE) {
+    if (next === WorkStatus.OFFLINE || next === WorkStatus.BUSY || next === WorkStatus.ON_ROUTE) {
       this.assertCanPerformCoreActions(user);
       return;
     }

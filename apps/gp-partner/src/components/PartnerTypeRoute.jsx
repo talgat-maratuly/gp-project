@@ -2,6 +2,8 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import {
   getPartnerAccess,
   isPathAllowedForPartner,
+  pathRequiresDelivery,
+  pathRequiresNursery,
   pathRequiresService,
   pathRequiresShop,
 } from '@gp/shared/constants'
@@ -10,7 +12,7 @@ import { usePartner } from '../context/PartnerContext'
 import AccessDenied from './AccessDenied'
 
 /** Блокирует маршруты по partnerRole (не только скрывает кнопки) */
-export function PartnerTypeRoute({ shopOnly = false, serviceOnly = false }) {
+export function PartnerTypeRoute({ shopOnly = false, serviceOnly = false, nurseryOnly = false, deliveryOnly = false }) {
   const { user } = usePartner()
   const { pathname } = useLocation()
   const access = getPartnerAccess(user || {}, {
@@ -40,6 +42,20 @@ export function PartnerTypeRoute({ shopOnly = false, serviceOnly = false }) {
       />
     )
   }
+  if (nurseryOnly && !access.nursery) {
+    return (
+      <AccessDenied
+        message="Раздел питомника доступен только партнёрам типа «Питомник» после одобрения администратором GP."
+      />
+    )
+  }
+  if (deliveryOnly && !access.delivery) {
+    return (
+      <AccessDenied
+        message="Раздел доставки доступен только партнёрам типа «Доставка» после одобрения администратором GP."
+      />
+    )
+  }
 
   if (pathRequiresShop(pathname) && !access.shop) {
     return (
@@ -52,6 +68,20 @@ export function PartnerTypeRoute({ shopOnly = false, serviceOnly = false }) {
     return (
       <AccessDenied
         message="Сервисные заказы и услуги недоступны для вашего типа партнёра."
+      />
+    )
+  }
+  if (pathRequiresNursery(pathname) && !access.nursery) {
+    return (
+      <AccessDenied
+        message="У вашего профиля нет доступа к питомнику."
+      />
+    )
+  }
+  if (pathRequiresDelivery(pathname) && !access.delivery) {
+    return (
+      <AccessDenied
+        message="У вашего профиля нет доступа к GP Доставке."
       />
     )
   }

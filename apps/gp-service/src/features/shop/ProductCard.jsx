@@ -2,8 +2,10 @@ import { Link } from 'react-router-dom'
 import { Heart, ShoppingCart, Star } from 'lucide-react'
 import { formatPrice } from '@gp/shared/utils'
 import { useService } from '../../context/ServiceContext'
+import { useLanguage } from '../../i18n'
 
 export default function ProductCard({ product }) {
+  const { t } = useLanguage()
   const { addToCart, toggleFavorite, isFavorite, notify } = useService()
   const fav = isFavorite(product.id)
   const inStock = product.inStock ?? product.stock > 0
@@ -40,10 +42,10 @@ export default function ProductCard({ product }) {
         <button
           type="button"
           disabled={!inStock}
-          onClick={() => (inStock ? addToCart(product.id) : notify('Нет в наличии', 'info'))}
+          onClick={() => (inStock ? addToCart(product.id) : notify(t('out_of_stock'), 'info'))}
           className="mt-auto w-full py-3 rounded-2xl gp-btn-primary text-sm font-bold disabled:opacity-50"
         >
-          {inStock ? 'Купить' : 'Нет в наличии'}
+          {inStock ? t('buy') : t('out_of_stock')}
         </button>
       </div>
     </article>

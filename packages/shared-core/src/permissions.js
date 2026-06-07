@@ -27,15 +27,20 @@ export function getPartnerAccess(user = {}, { isDemoMode = false, storeUiState =
     user.partnerType || (isDemoMode && !user.partnerRole ? 'LAWN_MOWING' : null)
   const role = user.partnerRole || (partnerType === 'SHOP' ? PARTNER_ROLES.SHOP : PARTNER_ROLES.SPECIALIST)
   const status = user.partnerStatus
+  const active = isPartnerActive(status)
+  const nursery = active && partnerType === 'NURSERY'
+  const delivery = active && partnerType === 'DELIVERY'
   const roleShop = canAccessShopModule(role, status)
   const shopProducts = roleShop && storeUiState === 'APPROVED'
   return {
     role,
     partnerType,
-    shop: roleShop,
-    shopProducts,
+    shop: !nursery && !delivery && roleShop,
+    shopProducts: !nursery && !delivery && shopProducts,
+    nursery,
+    delivery,
     storeUiState,
-    service: canAccessServiceModule(role, status),
+    service: !nursery && !delivery && canAccessServiceModule(role, status),
     canReceiveOrders: isPartnerActiveForOrders(status),
   }
 }

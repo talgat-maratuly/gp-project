@@ -7,6 +7,7 @@ export const PARTNER_DIRECTIONS = [
   { id: 'filters', label: 'Фильтры' },
   { id: 'nursery', label: 'Питомник' },
   { id: 'shop', label: 'Магазин товаров' },
+  { id: 'delivery', label: 'GP Доставка' },
   { id: 'landscape', label: 'Ландшафтные работы' },
   { id: 'electrical', label: 'Электросети' },
 ]
@@ -30,6 +31,7 @@ const API_DIR_TO_UI = {
   FILTERS: 'filters',
   NURSERY: 'nursery',
   SHOP: 'shop',
+  DELIVERY: 'delivery',
   LANDSCAPE: 'landscape',
   ELECTRICAL: 'electrical',
 }

@@ -20,7 +20,7 @@ export function PhotoUploadField({ label, value, onChange, kind, onError }) {
       const { url } = await api.uploadSpecialistPhoto(file, kind)
       onChange(url)
     } catch (err) {
-      onError?.(err?.message || 'Фото жүктеу қатесі')
+      onError?.(err?.message || 'Ошибка загрузки фото')
     } finally {
       setUploading(false)
     }
@@ -54,7 +54,7 @@ export function PhotoUploadField({ label, value, onChange, kind, onError }) {
             disabled={uploading}
             className="w-full min-h-[44px] py-2 px-3 rounded-xl border border-emerald-500/50 text-emerald-600 font-bold text-sm disabled:opacity-50"
           >
-            {value ? 'Фотоны ауыстыру' : 'Галереядан таңдау'}
+            {value ? 'Заменить фото' : 'Выбрать из галереи'}
           </button>
           {value && (
             <button
@@ -62,10 +62,10 @@ export function PhotoUploadField({ label, value, onChange, kind, onError }) {
               onClick={() => onChange('')}
               className="text-xs text-red-500 underline"
             >
-              Жою
+              Удалить
             </button>
           )}
-          <p className="text-[11px] text-[var(--gp-text-muted)]">JPEG, PNG, WebP · 5 МБ дейін</p>
+          <p className="text-[11px] text-[var(--gp-text-muted)]">JPEG, PNG, WebP · до 5 МБ</p>
         </div>
       </div>
       <input
@@ -96,7 +96,7 @@ export function PhotoUploadList({ label, urls, onChange, kind, max = 3, onError 
       const { url } = await api.uploadSpecialistPhoto(file, kind)
       onChange([...urls, url])
     } catch (err) {
-      onError?.(err?.message || 'Фото жүктеу қатесі')
+      onError?.(err?.message || 'Ошибка загрузки фото')
     } finally {
       setUploading(false)
     }
@@ -127,7 +127,7 @@ export function PhotoUploadList({ label, urls, onChange, kind, max = 3, onError 
           onClick={() => inputRef.current?.click()}
           className="w-full min-h-[44px] py-2 rounded-xl border border-emerald-500/50 text-emerald-600 font-bold text-sm disabled:opacity-50"
         >
-          {uploading ? 'Жүктелуде…' : '+ Фото қосу'}
+          {uploading ? 'Загрузка…' : '+ Добавить фото'}
         </button>
       )}
       <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="hidden" onChange={add} />

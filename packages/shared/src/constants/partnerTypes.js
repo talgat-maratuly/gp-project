@@ -8,6 +8,7 @@ export const PARTNER_TYPES = [
   { id: 'IRRIGATION_SERVICE', labelKey: 'partner_type_irrigation' },
   { id: 'CLEANING_SERVICE', labelKey: 'partner_type_cleaning' },
   { id: 'SHOP', labelKey: 'partner_type_shop' },
+  { id: 'NURSERY', labelKey: 'partner_type_nursery' },
   { id: 'SPECIALIST', labelKey: 'partner_type_specialist' },
   { id: 'DELIVERY', labelKey: 'partner_type_delivery' },
   { id: 'OTHER', labelKey: 'partner_type_other' },
@@ -28,7 +29,7 @@ const GROUP_TO_TYPE = {
   irrigation: 'IRRIGATION_SERVICE',
   cleaning: 'CLEANING_SERVICE',
   shop: 'SHOP',
-  nursery: 'SHOP',
+  nursery: 'NURSERY',
   furniture: 'SPECIALIST',
   filters: 'SPECIALIST',
   pumps: 'SPECIALIST',
@@ -38,6 +39,8 @@ const GROUP_TO_TYPE = {
 }
 
 export function resolvePartnerTypeFromGroups(mainGroupIds) {
+  if (mainGroupIds.length === 1 && mainGroupIds[0] === 'nursery') return 'NURSERY'
+  if (mainGroupIds.length === 1 && mainGroupIds[0] === 'delivery') return 'DELIVERY'
   const shopOnly =
     mainGroupIds.length > 0 && mainGroupIds.every((id) => SHOP_MAIN_GROUP_IDS.has(id))
   if (shopOnly) return 'SHOP'

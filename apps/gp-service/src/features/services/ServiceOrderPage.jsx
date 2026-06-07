@@ -8,7 +8,7 @@ import {
   LAWN_SERVICE_IDS,
   CONSULTATION_SERVICE_IDS,
 } from '@gp/shared/constants'
-import { getServiceById, getLawnPricing } from '../../data/services'
+import { getServiceById, getLawnPricing, getServiceOrderCategory } from '../../data/services'
 import { useService } from '../../context/ServiceContext'
 import { useLanguage } from '../../i18n'
 import OrderLocationFields from '@gp/shared/components/OrderLocationFields'
@@ -16,6 +16,7 @@ import PaymentMethodPicker from '../../components/PaymentMethodPicker'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import { PageHeader } from '@gp/shared/ui/KaspiUI'
+import LiveExecutorStats from '../availability/LiveExecutorStats'
 
 const NEEDS_SCHEDULE = new Set([
   'septic-pumping',
@@ -27,6 +28,14 @@ const NEEDS_SCHEDULE = new Set([
   'filter-install',
   'filter-cartridge',
 ])
+
+const CATEGORY_TO_API = {
+  septic: 'SEPTIC',
+  lawn: 'LAWN',
+  irrigation: 'AUTOWATERING',
+  filters: 'FILTERS',
+  pumps: 'PUMPS',
+}
 
 export default function ServiceOrderPage() {
   const { serviceId } = useParams()
@@ -178,6 +187,7 @@ function GenericServiceOrder({ serviceId }) {
       {service.priceNote && <p className="text-sm text-gp-green-700 font-semibold mb-1">{service.priceNote}</p>}
       <p className="text-gp-green-700 font-bold mb-2">{t('priceFrom')} {formatPrice(service.priceFrom)}</p>
       {service.description && <p className="text-sm text-slate-500 mb-4">{service.description}</p>}
+      <LiveExecutorStats city={form.city || profile.city} serviceId={serviceId} category={CATEGORY_TO_API[getServiceOrderCategory(serviceId)]} />
 
       {authReady && !isLoggedIn && (
         <div className="gp-card p-4 mb-4 border-amber-200 bg-amber-50 text-sm">

@@ -13,6 +13,7 @@ import { OrderLifecycleModule } from './order-lifecycle.module';
 import { GeoGatewayModule } from '../geo/geo-gateway.module';
 import { FurnitureExecutorModule } from '../furniture-executor/furniture-executor.module';
 import { SpecialistRequestsModule } from '../specialist-requests/specialist-requests.module';
+import { AvailabilityModule } from '../availability/availability.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { SpecialistRequestsModule } from '../specialist-requests/specialist-requ
     GeoGatewayModule,
     FurnitureExecutorModule,
     SpecialistRequestsModule,
+    AvailabilityModule,
   ],
   controllers: [
     OrdersController,

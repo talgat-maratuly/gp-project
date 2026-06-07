@@ -10,6 +10,18 @@ const DEFAULT_FRANCHISE = {
   createdAt: new Date().toISOString().slice(0, 10),
 }
 
+const REGION_TO_FRANCHISE = {
+  uralsk: 'fr-uralsk',
+  aktobe: 'fr-aktobe',
+  atyrau: 'fr-atyrau',
+  almaty: 'fr-almaty',
+  astana: 'fr-astana',
+}
+
+function franchiseIdForRegion(region) {
+  return REGION_TO_FRANCHISE[region?.code] || DEFAULT_FRANCHISE.id
+}
+
 const ADMIN_ORDER_STATUS = {
   NEW: 'new',
   ACCEPTED: 'assigned',
@@ -138,9 +150,59 @@ function mapQrOrder(o) {
   }
 }
 
+function mapMarketStore(s) {
+  const franchiseId = franchiseIdForRegion(s.region)
+  return {
+    ...s,
+    id: s.id,
+    shopName: s.name,
+    ownerName: s.owner?.name || s.owner?.email || '',
+    phone: s.phone || s.owner?.phone || '',
+    city: s.region?.name || '',
+    franchiseId,
+    status: s.status === 'APPROVED' ? 'ACTIVE' : s.status,
+    productsCount: s._count?.products ?? 0,
+    ordersCount: s._count?.orders ?? 0,
+  }
+}
+
+function mapMarketProduct(p) {
+  const qty = Number(p.stock?.quantity ?? p.quantity ?? 0)
+  const reserved = Number(p.stock?.reservedQuantity ?? 0)
+  return {
+    ...p,
+    id: p.id,
+    shopId: p.storeId,
+    shopName: p.store?.name || '',
+    city: p.store?.region?.name || p.region?.name || '',
+    franchiseId: franchiseIdForRegion(p.store?.region || p.region),
+    categoryId: p.categoryId,
+    price: Number(p.price),
+    quantity: Math.max(0, qty - reserved),
+    status: p.isActive ? 'ACTIVE' : 'INACTIVE',
+  }
+}
+
+function mapMarketOrder(o) {
+  const total = Number(o.totalAmount ?? o.total ?? 0)
+  return {
+    ...o,
+    id: o.id,
+    orderNumber: o.id.slice(0, 8),
+    shopId: o.storeId,
+    shopName: o.store?.name || '',
+    clientName: o.customer?.name || o.customer?.email || 'Клиент',
+    city: o.region?.name || '',
+    franchiseId: franchiseIdForRegion(o.region),
+    finalAmount: total,
+    total,
+    paymentStatus: 'DIRECT_TO_PARTNER',
+  }
+}
+
 export async function fetchAdminStore() {
   const seed = loadGlobalStore()
-  const [clients, partners, orders, qrStats, qrObjects, qrOrders, services, franchises] = await Promise.all([
+  const [clients, partners, orders, qrStats, qrObjects, qrOrders, services, franchises, marketProducts, marketOrders, marketStores] = await Promise.all([
     api.adminClients(),
     api.adminPartners(),
     api.adminOrders(),
@@ -149,6 +211,9 @@ export async function fetchAdminStore() {
     api.adminQrOrders(),
     api.adminServices().catch(() => []),
     api.adminFranchises().catch(() => []),
+    api.adminMarketProducts().catch(() => []),
+    api.adminMarketOrders().catch(() => []),
+    api.adminMarketStores().catch(() => []),
   ])
 
   const objectsActive = (qrObjects || []).filter((o) => o.status === 'active').length
@@ -167,9 +232,9 @@ export async function fetchAdminStore() {
       ...qrStats,
       objectsActive,
     },
-    marketProducts: seed.marketProducts || [],
-    marketOrders: seed.marketOrders || [],
-    shops: seed.shops || [],
+    marketProducts: (marketProducts || []).map(mapMarketProduct),
+    marketOrders: (marketOrders || []).map(mapMarketOrder),
+    shops: (marketStores || []).map(mapMarketStore),
     deliveryCompanies: seed.deliveryCompanies || [],
   }
 }

@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Plus, Pencil, Trash2, Ban, Eye } from 'lucide-react'
+import { api } from '@gp/shared/api'
 import { useStore } from '../context/StoreContext'
 import { useAccess } from '../context/AccessContext'
 import { useAuth } from '../context/AuthContext'
@@ -22,10 +23,29 @@ export default function PartnersPage() {
   const { t, lang } = useLanguage()
   const [modal, setModal] = useState(null)
   const [viewId, setViewId] = useState(null)
+  const [availability, setAvailability] = useState(null)
   const [form, setForm] = useState({ name: '', company: '', phone: '', city: '', cityId: '', oblastId: '', serviceIds: [], active: true, rating: 5 })
 
   const franchiseId = effectiveFranchiseId || user.franchiseId
   const franchiseServices = scoped.services
+
+  useEffect(() => {
+    let alive = true
+    const load = async () => {
+      try {
+        const row = await api.adminAvailabilitySummary()
+        if (alive) setAvailability(row)
+      } catch {
+        if (alive) setAvailability(null)
+      }
+    }
+    load()
+    const iv = setInterval(load, 15000)
+    return () => {
+      alive = false
+      clearInterval(iv)
+    }
+  }, [])
 
   const save = () => {
     const payload = { ...form, franchiseId, serviceIds: form.serviceIds }
@@ -46,6 +66,25 @@ export default function PartnersPage() {
   return (
     <div className="space-y-4">
       <PageHeader title={t('partners')} description={t('partners_page_desc')} />
+      {availability?.cities?.length > 0 && (
+        <section className="admin-card p-4">
+          <h2 className="text-lg font-extrabold admin-heading mb-3">{t('live_admin_title')}</h2>
+          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
+            {availability.cities.map((row) => (
+              <div key={row.city} className="rounded-lg border p-3" style={{ borderColor: 'var(--gp-border)' }}>
+                <p className="font-bold admin-heading">{row.city}</p>
+                <div className="mt-2 grid grid-cols-5 gap-1 text-center text-xs">
+                  <div><p className="admin-muted">{t('live_registered')}</p><p className="font-bold">{row.registered}</p></div>
+                  <div><p className="admin-muted">{t('live_online')}</p><p className="font-bold">{row.online}</p></div>
+                  <div><p className="admin-muted">{t('live_free')}</p><p className="font-bold">{row.free}</p></div>
+                  <div><p className="admin-muted">{t('live_busy')}</p><p className="font-bold">{row.busy}</p></div>
+                  <div><p className="admin-muted">{t('live_on_route')}</p><p className="font-bold">{row.onRoute}</p></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
       {can(ACTIONS.PARTNER_CRUD) && (
         <button type="button" onClick={() => { setModal('new'); setForm({ name: '', company: '', phone: '', city: '', cityId: '', oblastId: '', serviceIds: [], active: true, rating: 5 }) }} className="admin-btn-primary">
           <Plus className="w-4 h-4" /> {t('addPartner')}

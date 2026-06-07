@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { GeoGatewayModule } from '../geo/geo-gateway.module';
+import { AvailabilityModule } from '../availability/availability.module';
 import { OrderEventLogService } from './order-event-log.service';
 import { OrderLifecycleService } from './order-lifecycle.service';
 
@@ -9,7 +10,7 @@ import { OrderLifecycleService } from './order-lifecycle.service';
  * Импортируется orders / geo / admin — без циклов (gateway вынесен отдельно).
  */
 @Module({
-  imports: [NotificationsModule, GeoGatewayModule],
+  imports: [NotificationsModule, GeoGatewayModule, AvailabilityModule],
   providers: [OrderEventLogService, OrderLifecycleService],
   exports: [OrderEventLogService, OrderLifecycleService],
 })

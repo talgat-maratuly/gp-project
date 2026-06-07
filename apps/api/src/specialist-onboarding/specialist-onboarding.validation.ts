@@ -30,7 +30,7 @@ export function validateOnboardingPayload(
   }
 
   const needsVehicle = main === 'SEPTIC';
-  const needsTools = ['LAWN', 'AUTOWATERING', 'FILTERS', 'OTHER'].includes(main);
+  const needsTools = ['LAWN', 'AUTOWATERING', 'FILTERS', 'OTHER', 'LANDSCAPE'].includes(main);
 
   if (needsVehicle) {
     if (!dto.vehicle) {

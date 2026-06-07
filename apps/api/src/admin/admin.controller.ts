@@ -30,6 +30,19 @@ export class AdminController {
     return this.admin.listClients();
   }
 
+  @Get('clients/legal')
+  legalClients(@Query('status') status?: string) {
+    return this.admin.listLegalClients(status);
+  }
+
+  @Patch('clients/legal/:clientProfileId')
+  updateLegalClient(
+    @Param('clientProfileId') clientProfileId: string,
+    @Body() body: { status: string; comment?: string; ecpSubject?: string; ecpOwnerType?: string },
+  ) {
+    return this.admin.updateLegalClientVerification(clientProfileId, body);
+  }
+
   @Get('partners')
   partners() {
     return this.admin.listPartners();

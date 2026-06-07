@@ -24,6 +24,38 @@ export class PartnerMarketService {
     });
   }
 
+  listMyOrders(user: User) {
+    const regionFilter = this.regionAccess.regionWhere(user);
+    return this.prisma.marketOrder.findMany({
+      where: {
+        ...regionFilter,
+        store: { ownerId: user.id },
+      },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        items: true,
+        store: { select: { id: true, name: true, phone: true, address: true } },
+        customer: { select: { id: true, name: true, phone: true, email: true } },
+        region: { select: { id: true, name: true, code: true } },
+      },
+    });
+  }
+
+  listMyProducts(user: User) {
+    const regionFilter = this.regionAccess.regionWhere(user);
+    return this.prisma.marketProduct.findMany({
+      where: {
+        ...regionFilter,
+        store: { ownerId: user.id },
+      },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        stock: true,
+        store: { select: { id: true, name: true, status: true } },
+      },
+    });
+  }
+
   async createStore(user: User, dto: CreatePartnerStoreDto) {
     const regionId = this.regionAccess.requireRegionId(user);
     return this.prisma.store.create({

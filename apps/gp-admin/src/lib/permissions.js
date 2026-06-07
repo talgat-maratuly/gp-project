@@ -46,6 +46,18 @@ export const NAV_ITEMS = [
     roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MODERATOR', 'VIEWER', 'MARKET_MANAGER'],
   },
   {
+    path: '/nursery',
+    labelKey: 'nursery_title',
+    icon: 'Trees',
+    roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MODERATOR', 'VIEWER', 'MANAGER'],
+  },
+  {
+    path: '/delivery',
+    labelKey: 'delivery_title',
+    icon: 'Truck',
+    roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MODERATOR', 'VIEWER', 'DELIVERY_MANAGER', 'MANAGER'],
+  },
+  {
     path: '/clients',
     labelKey: 'clients',
     icon: 'Users',
@@ -94,6 +106,7 @@ export const HIDDEN_ROUTE_PREFIXES = [
   '/services/septic-pricing',
   '/services/hunter-irrigation',
   '/services/furniture',
+  '/services/plant-doctor',
   '/testing-report',
 ]
 
@@ -116,6 +129,7 @@ export const PAGE_TITLE_KEYS = {
   '/services/moderation': 'moderation_block_offerings',
   '/services/hunter-irrigation': 'admin_hunter',
   '/services/furniture': 'admin_furniture',
+  '/services/plant-doctor': 'plant_doctor_admin_cases',
   '/discounts': 'discounts',
   '/reviews': 'reviewsFull',
   '/qr': 'qr_service',
@@ -125,6 +139,8 @@ export const PAGE_TITLE_KEYS = {
   '/market/products/moderation': 'product_moderation',
   '/market/orders': 'market_orders',
   '/market/delivery': 'market_delivery',
+  '/nursery': 'nursery_admin',
+  '/delivery': 'delivery_admin',
   '/testing-report': 'qa_dashboard',
 }
 

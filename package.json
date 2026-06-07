@@ -22,6 +22,7 @@
     "dev:partner": "npm run dev -w @gp/partner",
     "dev:partner:safe": "node scripts/kill-ports.mjs && node scripts/wait-ports.mjs && npm run dev -w @gp/partner",
     "dev:admin": "npm run dev -w @gp/admin",
+    "dev:ai": "cd apps/ai-assistant && uvicorn app.main:app --host 0.0.0.0 --port 8010 --reload",
     "demo:hub": "node scripts/demo-store-hub.mjs",
     "demo:test": "node scripts/demo-flow-test.mjs",
     "demo:market:test": "node scripts/demo-market-test.mjs",

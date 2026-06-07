@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import {
+  AccountType,
   OrderStatus,
   PartnerOfferingStatus,
   PartnerRole,
@@ -92,6 +93,82 @@ export class AdminService {
         createdAt: true,
         updatedAt: true,
         clientProfile: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  listLegalClients(status?: string) {
+    const normalized = status?.trim().toUpperCase();
+    return this.prisma.clientProfile.findMany({
+      where: {
+        accountType: AccountType.LEGAL_ENTITY,
+        ...(normalized ? { legalVerificationStatus: normalized } : {}),
+      },
+      include: {
+        user: { select: { id: true, email: true, name: true, phone: true, createdAt: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async updateLegalClientVerification(
+    clientProfileId: string,
+    body: { status: string; comment?: string; ecpSubject?: string; ecpOwnerType?: string },
+  ) {
+    const status = body.status?.trim().toUpperCase();
+    if (!['PENDING', 'VERIFIED', 'REJECTED'].includes(status)) {
+      throw new BadRequestException('status должен быть PENDING, VERIFIED или REJECTED');
+    }
+    const existing = await this.prisma.clientProfile.findUnique({ where: { id: clientProfileId } });
+    if (!existing || existing.accountType !== AccountType.LEGAL_ENTITY) {
+      throw new NotFoundException('Юрлицо не найдено');
+    }
+    const now = new Date();
+    return this.prisma.clientProfile.update({
+      where: { id: clientProfileId },
+      data: {
+        legalVerificationStatus: status,
+        legalReviewComment: body.comment?.trim() || null,
+        legalVerifiedAt: status === 'VERIFIED' ? now : null,
+        legalRejectedAt: status === 'REJECTED' ? now : null,
+        ecpStatus: status === 'VERIFIED' ? 'VERIFIED' : existing.ecpStatus,
+        ecpSubject: body.ecpSubject?.trim() || existing.ecpSubject,
+        ecpOwnerType: body.ecpOwnerType?.trim() || existing.ecpOwnerType,
+        ecpBoundAt: status === 'VERIFIED' ? existing.ecpBoundAt ?? now : existing.ecpBoundAt,
+      },
+      include: {
+        user: { select: { id: true, email: true, name: true, phone: true, createdAt: true } },
+      },
+    });
+  }
+
+  listUsers() {
+    return this.prisma.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        phone: true,
+        role: true,
+        portalRoles: true,
+        accountStatus: true,
+        regionId: true,
+        franchiseId: true,
+        createdAt: true,
+        updatedAt: true,
+        clientProfile: { select: { id: true, city: true, accountType: true } },
+        partnerProfile: {
+          select: {
+            id: true,
+            status: true,
+            requestStatus: true,
+            partnerType: true,
+            partnerRole: true,
+            city: true,
+            workStatus: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -217,7 +294,15 @@ export class AdminService {
           : {}),
       },
       include: {
-        store: { select: { id: true, name: true, status: true, regionId: true } },
+        store: {
+          select: {
+            id: true,
+            name: true,
+            status: true,
+            regionId: true,
+            region: { select: { id: true, name: true, code: true } },
+          },
+        },
         stock: true,
       },
       orderBy: { createdAt: 'desc' },

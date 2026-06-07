@@ -148,6 +148,25 @@ export class MarketService {
     return product;
   }
 
+  listOrders(user: User) {
+    if (user.role !== Role.CLIENT) {
+      throw new ForbiddenException('Заказы магазина доступны только клиенту');
+    }
+    const regionFilter = this.regionAccess.regionWhere(user);
+    return this.prisma.marketOrder.findMany({
+      where: {
+        customerId: user.id,
+        ...regionFilter,
+      },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        items: true,
+        store: { select: { id: true, name: true, phone: true, address: true } },
+        region: { select: { id: true, name: true, code: true } },
+      },
+    });
+  }
+
   async createOrder(user: User, dto: CreateMarketOrderDto) {
     if (user.role !== Role.CLIENT) {
       throw new ForbiddenException('Заказ может оформить только клиент');

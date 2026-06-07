@@ -1,6 +1,12 @@
 import { OrderCategory } from '@prisma/client';
 
-export type MainServiceId = 'SEPTIC' | 'LAWN' | 'AUTOWATERING' | 'FILTERS' | 'OTHER';
+export type MainServiceId =
+  | 'SEPTIC'
+  | 'LAWN'
+  | 'AUTOWATERING'
+  | 'FILTERS'
+  | 'OTHER'
+  | 'LANDSCAPE';
 
 export const MAIN_SERVICE_TO_CATEGORY: Record<MainServiceId, OrderCategory> = {
   SEPTIC: OrderCategory.SEPTIC,
@@ -8,6 +14,7 @@ export const MAIN_SERVICE_TO_CATEGORY: Record<MainServiceId, OrderCategory> = {
   AUTOWATERING: OrderCategory.AUTOWATERING,
   FILTERS: OrderCategory.FILTERS,
   OTHER: OrderCategory.PUMPS,
+  LANDSCAPE: OrderCategory.AUTOWATERING,
 };
 
 export const ONBOARDING_CATALOG = {
@@ -16,7 +23,8 @@ export const ONBOARDING_CATALOG = {
     { id: 'LAWN' as const, label: 'Газон', requiresVehicle: false, requiresWorkTools: true },
     { id: 'AUTOWATERING' as const, label: 'Автополив', requiresVehicle: false, requiresWorkTools: true },
     { id: 'FILTERS' as const, label: 'Фильтры', requiresWorkTools: true, requiresVehicle: false },
-    { id: 'OTHER' as const, label: 'Другое', requiresVehicle: false, requiresWorkTools: true },
+    { id: 'OTHER' as const, label: 'Оборудование', requiresVehicle: false, requiresWorkTools: true },
+    { id: 'LANDSCAPE' as const, label: 'Сад и участок', requiresVehicle: false, requiresWorkTools: true },
   ],
   subservicesByMain: {
     SEPTIC: [{ id: 'septic-pumping', label: 'Откачка септика' }],
@@ -38,6 +46,10 @@ export const ONBOARDING_CATALOG = {
       { id: 'filter-maintenance', label: 'Ремонт' },
     ],
     OTHER: [{ id: 'pump-service', label: 'Насосы' }],
+    LANDSCAPE: [
+      { id: 'landscape', label: 'Ландшафтный дизайн' },
+      { id: 'lighting', label: 'Ландшафтная подсветка' },
+    ],
   },
   rejectionReasons: [
     { code: 'DOCUMENTS_UNCLEAR', label: 'Documents unclear' },

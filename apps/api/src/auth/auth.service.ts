@@ -36,6 +36,7 @@ import { UserStatusService } from '../user-status/user-status.service';
 import { MobileAuthService } from './mobile-auth.service';
 import { DeviceSessionDto } from './dto/device-session.dto';
 import { generateOtpCode, hashOtp, normalizePhone } from './mobile-auth.util';
+import { EgovLegalVerificationService } from './egov-legal-verification.service';
 
 const RESET_OTP_TTL_MS = 10 * 60 * 1000;
 const RESET_TOKEN_TTL_MS = 15 * 60 * 1000;
@@ -52,6 +53,7 @@ export class AuthService {
     private rbac: RbacService,
     private userStatus: UserStatusService,
     private mobileAuth: MobileAuthService,
+    private egovVerification: EgovLegalVerificationService,
   ) {}
 
   private hasDeviceSession(dto?: DeviceSessionDto) {
@@ -149,6 +151,10 @@ export class AuthService {
       ? await this.assertActiveRegion(dto.regionId)
       : await this.resolveDefaultRegion();
     const cityLabel = dto.city?.trim() || region.name;
+    const egovCheck =
+      accountType === AccountType.LEGAL_ENTITY
+        ? await this.egovVerification.checkCompany(bin!, companyName)
+        : null;
 
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await this.prisma.user.create({
@@ -163,10 +169,17 @@ export class AuthService {
         clientProfile: {
           create: {
             accountType,
+            legalForm: accountType === AccountType.LEGAL_ENTITY ? dto.legalForm || 'IP' : null,
             companyName: companyName || null,
             bin: bin || null,
             legalAddress: legalAddress || null,
             contactPerson: contactPerson || null,
+            legalVerificationStatus:
+              accountType === AccountType.LEGAL_ENTITY ? 'PENDING' : 'VERIFIED',
+            egovCheckStatus: egovCheck?.status ?? 'NOT_REQUIRED',
+            egovProvider: egovCheck?.provider ?? null,
+            egovCheckedAt: egovCheck?.checkedAt ?? null,
+            ecpStatus: accountType === AccountType.LEGAL_ENTITY ? 'PENDING' : 'NOT_REQUIRED',
             city: cityLabel,
           },
         },
@@ -257,6 +270,17 @@ export class AuthService {
     return this.buildAuthResponse(user, dto);
   }
 
+  async checkLegalCompany(body: { identifier: string; companyName?: string }) {
+    const result = await this.egovVerification.checkCompany(body.identifier, body.companyName);
+    return {
+      status: result.status,
+      provider: result.provider,
+      checkedAt: result.checkedAt.toISOString(),
+      companyName: result.companyName ?? body.companyName?.trim() ?? null,
+      reason: result.reason ?? null,
+    };
+  }
+
   async me(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -276,6 +300,38 @@ export class AuthService {
       roles: this.rbac.resolvePortalRoles(user),
       statuses: this.userStatus.snapshot(user, user.partnerProfile ?? null),
     };
+  }
+
+  async bindLegalEcp(userId: string, body: {
+    ownerType: 'DIRECTOR' | 'AUTHORIZED_EMPLOYEE';
+    subject: string;
+    signature?: string;
+    provider?: 'mock' | 'ncalayer' | 'egov_mobile';
+  }) {
+    const profile = await this.prisma.clientProfile.findUnique({ where: { userId } });
+    if (!profile || profile.accountType !== AccountType.LEGAL_ENTITY) {
+      throw new BadRequestException('ЭЦП доступна только для юрлица');
+    }
+    const result = await this.egovVerification.verifyEcpSignature({
+      ownerType: body.ownerType,
+      subject: body.subject,
+      identifier: profile.bin ?? undefined,
+      signature: body.signature,
+      provider: body.provider,
+    });
+    return this.prisma.clientProfile.update({
+      where: { id: profile.id },
+      data: {
+        ecpOwnerType: body.ownerType,
+        ecpSubject: result.subject ?? body.subject.trim(),
+        ecpStatus: result.status,
+        ecpBoundAt: result.checkedAt,
+        legalVerificationStatus:
+          profile.legalVerificationStatus === 'REJECTED'
+            ? 'PENDING'
+            : profile.legalVerificationStatus,
+      },
+    });
   }
 
   private hashResetToken(token: string) {

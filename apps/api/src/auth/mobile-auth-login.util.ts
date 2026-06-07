@@ -77,6 +77,16 @@ export function buildNewUserCreateData(params: {
   loginAs: OtpLoginAs;
   accountType: AccountType;
   portalRoles: PortalRole[];
+  legalForm?: string;
+  companyName?: string;
+  bin?: string;
+  legalAddress?: string;
+  contactPerson?: string;
+  legalVerificationStatus?: string;
+  egovCheckStatus?: string;
+  egovProvider?: string | null;
+  egovCheckedAt?: Date | null;
+  ecpStatus?: string;
 }) {
   const { loginAs, portalRoles, accountType, city, regionId } = params;
   const legacyRole = syncUserRoleFromPortalRoles(portalRoles);
@@ -95,7 +105,25 @@ export function buildNewUserCreateData(params: {
 
   if (loginAs === 'client' || loginAs === 'admin') {
     profiles.clientProfile = {
-      create: { accountType: AccountType.INDIVIDUAL, city },
+      create: {
+        accountType,
+        city,
+        legalForm: accountType === AccountType.LEGAL_ENTITY ? params.legalForm ?? null : null,
+        companyName:
+          accountType === AccountType.LEGAL_ENTITY ? params.companyName?.trim() || null : null,
+        bin: accountType === AccountType.LEGAL_ENTITY ? params.bin?.trim() || null : null,
+        legalAddress:
+          accountType === AccountType.LEGAL_ENTITY ? params.legalAddress?.trim() || city : null,
+        contactPerson:
+          accountType === AccountType.LEGAL_ENTITY ? params.contactPerson?.trim() || params.name?.trim() || null : null,
+        legalVerificationStatus:
+          accountType === AccountType.LEGAL_ENTITY ? params.legalVerificationStatus ?? 'PENDING' : 'VERIFIED',
+        egovCheckStatus:
+          accountType === AccountType.LEGAL_ENTITY ? params.egovCheckStatus ?? 'PENDING' : 'NOT_REQUIRED',
+        egovProvider: accountType === AccountType.LEGAL_ENTITY ? params.egovProvider ?? null : null,
+        egovCheckedAt: accountType === AccountType.LEGAL_ENTITY ? params.egovCheckedAt ?? null : null,
+        ecpStatus: accountType === AccountType.LEGAL_ENTITY ? params.ecpStatus ?? 'PENDING' : 'NOT_REQUIRED',
+      },
     };
   }
 

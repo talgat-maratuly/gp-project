@@ -20,6 +20,9 @@ import HunterProjectDetails from '../features/hunter-irrigation/HunterProjectDet
 import FurnitureServicePage from '../features/furniture/FurnitureServicePage'
 import FurnitureProjectWizard from '../features/furniture/FurnitureProjectWizard'
 import FurnitureProjectDetails from '../features/furniture/FurnitureProjectDetails'
+import PlantDoctorPage from '../features/plant-doctor/PlantDoctorPage'
+import NurseryPage from '../features/nursery/NurseryPage'
+import DeliveryPage from '../features/delivery/DeliveryPage'
 import ClientAuthPage from '../features/auth/ClientAuthPage'
 import QrPublicPage from '../features/qr/QrPublicPage'
 import { ForgotPasswordScreen, ResetPasswordScreen } from '@gp/shared/auth/passwordRecovery'
@@ -53,6 +56,11 @@ export default function App() {
         <Route path="services/furniture" element={<FurnitureServicePage />} />
         <Route path="services/furniture/new" element={<FurnitureProjectWizard />} />
         <Route path="services/furniture/:id" element={<FurnitureProjectDetails />} />
+        <Route path="services/plant-doctor" element={<PlantDoctorPage />} />
+        <Route path="nursery" element={<NurseryPage />} />
+        <Route path="delivery" element={<DeliveryPage />} />
+        <Route path="services/nursery" element={<NurseryPage />} />
+        <Route path="services/delivery" element={<DeliveryPage />} />
         <Route path="market/category/:categoryId" element={<Navigate to="/shop/catalog/:categoryId" replace />} />
         <Route path="services/irrigation-install" element={<Navigate to="/services/irrigation-tuning" replace />} />
         <Route path="services/water-filter-install" element={<Navigate to="/services/filter-install" replace />} />

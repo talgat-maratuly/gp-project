@@ -6,9 +6,10 @@ export function getQrPublicBaseUrl() {
   if (typeof window !== 'undefined' && window.location?.origin) {
     return window.location.origin.replace(/\/$/, '')
   }
-  return 'http://localhost:5173'
+  return ''
 }
 
 export function getQrPublicUrl(qrCode) {
-  return `${getQrPublicBaseUrl()}/qr/${encodeURIComponent(qrCode)}`
+  const baseUrl = getQrPublicBaseUrl()
+  return `${baseUrl}/qr/${encodeURIComponent(qrCode)}`
 }

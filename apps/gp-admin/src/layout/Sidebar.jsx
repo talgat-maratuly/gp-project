@@ -28,6 +28,7 @@ import {
 import { navForRole } from '../lib/permissions'
 import { navLinkEnd } from '../lib/navLinkEnd'
 import { useLanguage } from '../i18n/LanguageContext'
+import { isDemoMode } from '@gp/shared/demo'
 
 const ICONS = {
   LayoutDashboard,
@@ -102,9 +103,11 @@ export default function Sidebar({ role, open, onClose }) {
             )
           })}
         </nav>
-        <p className="p-4 text-[10px] admin-muted border-t" style={{ borderColor: 'var(--gp-border)' }}>
-          {t('demoFooter')}
-        </p>
+        {isDemoMode() && (
+          <p className="p-4 text-[10px] admin-muted border-t" style={{ borderColor: 'var(--gp-border)' }}>
+            {t('demoFooter')}
+          </p>
+        )}
       </aside>
     </>
   )

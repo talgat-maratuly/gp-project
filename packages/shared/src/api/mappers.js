@@ -136,18 +136,45 @@ export function mapOrder(o, { forClient = false } = {}) {
 
 export function mapProduct(p) {
   if (!p) return p
+  const stockValue =
+    typeof p.stock === 'object' && p.stock !== null
+      ? Math.max(0, Number(p.stock.quantity ?? 0) - Number(p.stock.reservedQuantity ?? 0))
+      : Number(p.stock ?? p.quantity ?? 0)
+  const category = p.category ?? p.categoryId
   return {
     ...p,
     price: Number(p.price),
-    stock: Number(p.stock),
-    categoryId: productCategoryToUi(p.category),
-    brand: p.brand || p.partner?.company || 'Partner',
+    stock: stockValue,
+    quantity: stockValue,
+    categoryId: productCategoryToUi(category),
+    brand: p.brand || p.partner?.company || p.store?.name || 'Partner',
     description: p.description || '',
     specifications: p.specifications || '',
-    partnerName: p.partner?.company || p.partner?.user?.name || p.partnerName,
-    inStock: p.inStock ?? Number(p.stock) > 0,
+    partnerName: p.partner?.company || p.partner?.user?.name || p.partnerName || p.store?.name,
+    storeId: p.storeId,
+    storeName: p.store?.name || p.storeName,
+    inStock: p.inStock ?? (p.isActive !== undefined ? p.isActive && stockValue > 0 : stockValue > 0),
     popularity: p.popularity ?? 50,
     rating: p.rating ?? 4.5,
+  }
+}
+
+export function mapMarketOrder(o) {
+  if (!o) return o
+  return {
+    ...o,
+    id: o.id,
+    kind: 'market',
+    rawStatus: o.status,
+    status: o.status,
+    serviceName: o.store?.name ? `Заказ GP Market · ${o.store.name}` : 'Заказ GP Market',
+    total: Number(o.totalAmount ?? o.finalAmount ?? o.total ?? 0),
+    amount: Number(o.totalAmount ?? o.finalAmount ?? o.total ?? 0),
+    address: o.address || '',
+    city: o.region?.name || o.city || '',
+    partnerName: o.store?.name || o.partnerName || '',
+    items: o.items || [],
+    createdAt: o.createdAt,
   }
 }
 

@@ -20,6 +20,9 @@ const ICONS = {
 }
 
 const SPECIAL = [
+  { to: '/nursery', titleKey: 'nursery_title', descKey: 'nursery_find_plants', color: 'from-green-700 to-lime-700' },
+  { to: '/delivery', titleKey: 'delivery_title', descKey: 'delivery_create_order', color: 'from-sky-700 to-emerald-700' },
+  { to: '/services/plant-doctor', titleKey: 'plant_doctor_title', descKey: 'plant_doctor_desc', color: 'from-lime-600 to-emerald-700' },
   { to: '/services/hunter-irrigation', titleKey: 'hunter_title', descKey: 'hunter_subtitle', color: 'from-emerald-600 to-emerald-800' },
   { to: '/services/furniture', titleKey: 'furniture_title', descKey: 'furniture_subtitle', color: 'from-slate-600 to-slate-800' },
 ]
@@ -33,7 +36,12 @@ export default function ServicesPage() {
     () => getCityCatalog(SERVICE_CATALOG, lang),
     [getCityCatalog, lang, profile.franchiseId, profile.cityId],
   )
-  const byId = useMemo(() => Object.fromEntries(catalog.map((s) => [s.id, s])), [catalog])
+  const byId = useMemo(() => {
+    const cityById = Object.fromEntries(catalog.map((s) => [s.id, s]))
+    return Object.fromEntries(
+      SERVICE_CATALOG.map((service) => [service.id, cityById[service.id] || service]),
+    )
+  }, [catalog])
 
   return (
     <div className="px-4 py-4">

@@ -14,6 +14,7 @@ import {
   PartnerType,
   PortalRole,
   Role,
+  WorkStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PartnersService } from '../partners/partners.service';
@@ -44,6 +45,7 @@ import { FurnitureExecutorService } from '../furniture-executor/furniture-execut
 import { RbacService } from '../rbac/rbac.service';
 import { RbacRegionService } from '../rbac/rbac-region.service';
 import { UserStatusService } from '../user-status/user-status.service';
+import { AvailabilityService } from '../availability/availability.service';
 import { randomBytes } from 'crypto';
 import * as bcrypt from 'bcrypt';
 
@@ -67,6 +69,7 @@ export class OrdersService {
     private rbac: RbacService,
     private rbacRegion: RbacRegionService,
     private userStatus: UserStatusService,
+    private availability: AvailabilityService,
   ) {}
 
   async createOrder(userId: string, dto: CreateOrderDto) {
@@ -704,6 +707,10 @@ export class OrdersService {
       toStatus: OrderStatus.ACCEPTED,
     });
     await this.notifications.notifyOrderStatusChange(orderId, OrderStatus.ACCEPTED);
+    await this.availability.recordStatus(ctx.profile.id, WorkStatus.ON_ROUTE, {
+      orderId,
+      reason: 'accepted_from_pool',
+    });
     this.lifecycle.broadcast(orderId, OrderStatus.ACCEPTED);
     this.gateway.emitFeedTaken(orderId);
 

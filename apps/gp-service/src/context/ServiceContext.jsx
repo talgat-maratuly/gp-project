@@ -36,6 +36,26 @@ const KEYS = {
   partnerLeads: 'gp-service-partner-leads',
 }
 
+const CITY_TO_REGION_CODE = {
+  'city-uralsk': 'uralsk',
+  'city-aktobe': 'aktobe',
+  'city-atyrau': 'atyrau',
+  'city-almaty': 'almaty',
+  'city-astana': 'astana',
+}
+
+const FRANCHISE_TO_REGION_CODE = {
+  'fr-uralsk': 'uralsk',
+  'fr-aktobe': 'aktobe',
+  'fr-atyrau': 'atyrau',
+  'fr-almaty': 'almaty',
+  'fr-astana': 'astana',
+}
+
+function regionCodeForProfile(profile = {}) {
+  return CITY_TO_REGION_CODE[profile.cityId] || FRANCHISE_TO_REGION_CODE[profile.franchiseId] || 'uralsk'
+}
+
 const load = (k, fb) => { try { const r = localStorage.getItem(k); return r ? JSON.parse(r) : fb } catch { return fb } }
 
 const ServiceContext = createContext(null)
@@ -234,7 +254,7 @@ export function ServiceProvider({ children }) {
         setProducts(list)
         setProductsError(null)
       } else {
-        const list = await api.getMarketProducts()
+        const list = await api.getMarketProducts({ regionCode: regionCodeForProfile(profile) })
         setProducts(list)
         setProductsError(null)
       }
@@ -243,7 +263,7 @@ export function ServiceProvider({ children }) {
     } finally {
       setProductsLoading(false)
     }
-  }, [])
+  }, [profile.cityId, profile.franchiseId])
 
   const refreshOrders = useCallback(async () => {
     if (isDemoMode()) {
@@ -268,7 +288,11 @@ export function ServiceProvider({ children }) {
     setOrdersLoading(true)
     setOrdersError(null)
     try {
-      setOrders(await api.getOrders())
+      const [serviceOrders, marketOrders] = await Promise.all([
+        api.getOrders(),
+        api.getMarketOrders().catch(() => []),
+      ])
+      setOrders([...serviceOrders, ...marketOrders])
     } catch (e) {
       setOrders([])
       setOrdersError(e?.message || 'Не удалось загрузить заказы')
@@ -393,6 +417,18 @@ export function ServiceProvider({ children }) {
     return { session, me }
   }, [applyTestSession])
 
+  const checkLegalCompany = useCallback((payload) => api.checkLegalCompany(payload), [])
+
+  const loginTrustedDevice = useCallback(async () => {
+    const session = await api.refreshSession()
+    const me = await api.me()
+    if (me.clientProfile) {
+      applyTestSession(me)
+      notify('Вход выполнен с доверенного устройства')
+    }
+    return { session, me }
+  }, [applyTestSession, notify])
+
   const submitPartnerApplication = useCallback(async () => {
     notify('Маман өтінімін GP Partner қолданбасында толтырыңыз (specialist onboarding).', 'info')
     throw new Error('Use GP Partner app: /apply/specialist')
@@ -510,35 +546,21 @@ export function ServiceProvider({ children }) {
       return order
     }
 
-    const deliveryLine =
-      mode === 'pickup'
-        ? 'Доставка: самовывоз'
-        : deliveryFee === 0
-          ? 'Доставка: курьер (0 ₸, по сумме заказа)'
-          : `Доставка: курьер (+${deliveryFee} ₸)`
-    const commentParts = [data.comment, deliveryLine].filter(Boolean)
-
-    const payload = {
-      category: 'SHOP',
-      serviceName: 'Заказ из GP Shop',
-      address: data.address,
-      clientLat: Number(data.lat) || 51.233,
-      clientLng: Number(data.lng) || 51.367,
-      total: orderTotal,
-      paymentMethod: PAYMENT_TO_API[data.paymentMethod] || 'CASH_ON_DELIVERY',
-      comment: commentParts.join('\n'),
-      onBehalfCity: data.city || profile.city,
+    const storeIds = [...new Set(cartItems.map((i) => i.product.storeId).filter(Boolean))]
+    if (storeIds.length !== 1) {
+      throw new Error(storeIds.length ? 'Оформите товары разных магазинов отдельными заказами' : 'У товара не указан магазин')
+    }
+    const order = await api.createMarketOrder({
+      storeId: storeIds[0],
       items: cartItems.map((i) => ({
         productId: i.product.id,
-        name: i.product.name,
-        price: Number(i.product.price),
         qty: i.qty,
       })),
-    }
-    const order = await api.createOrder(payload)
+      deliveryType: mode === 'pickup' ? 'PICKUP' : 'DELIVERY',
+      address: mode === 'pickup' ? undefined : data.address,
+    })
     setOrders((prev) => {
-      const mapped = { ...order, kind: order.category === 'shop' ? 'shop' : 'service' }
-      return [mapped, ...prev.filter((o) => o.id !== order.id)]
+      return [order, ...prev.filter((o) => o.id !== order.id)]
     })
     await refreshOrders()
     clearCart()
@@ -699,7 +721,7 @@ export function ServiceProvider({ children }) {
     toggleFavorite, isFavorite, placeShopOrder, placeServiceOrder,
     setCheckoutDraft, setProfile, setObjects, submitPartnerLead, notify,
     login, register, logout, refreshOrders,
-    sendOtp, verifyOtp, submitPartnerApplication,
+    sendOtp, verifyOtp, checkLegalCompany, loginTrustedDevice, submitPartnerApplication,
     isDemoMode: isDemoMode(),
     isTestMode: isTestModeActive(),
     geoStore: isDemoMode() && geoStore?.cities?.length ? geoStore : STATIC_GEO_STORE,

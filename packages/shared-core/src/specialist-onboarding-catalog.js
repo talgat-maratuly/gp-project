@@ -13,7 +13,8 @@ export const MAIN_SERVICES = [
     requiresWorkTools: true,
   },
   { id: 'FILTERS', category: 'FILTERS', label: 'Фильтры воды', requiresVehicle: false, requiresWorkTools: true },
-  { id: 'OTHER', category: 'PUMPS', label: 'Другое', requiresVehicle: false, requiresWorkTools: true },
+  { id: 'OTHER', category: 'PUMPS', label: 'Оборудование', requiresVehicle: false, requiresWorkTools: true },
+  { id: 'LANDSCAPE', category: 'AUTOWATERING', label: 'Сад и участок', requiresVehicle: false, requiresWorkTools: true },
 ]
 
 export const SUBSERVICES_BY_MAIN = {
@@ -36,6 +37,10 @@ export const SUBSERVICES_BY_MAIN = {
     { id: 'filter-maintenance', label: 'Ремонт / обслуживание' },
   ],
   OTHER: [{ id: 'pump-service', label: 'Обслуживание насосов' }],
+  LANDSCAPE: [
+    { id: 'landscape', label: 'Ландшафтный дизайн' },
+    { id: 'lighting', label: 'Ландшафтная подсветка' },
+  ],
 }
 
 export const REJECTION_REASON_CODES = {

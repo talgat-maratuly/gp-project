@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { AccountType } from '@prisma/client';
-import { IsEmail, IsEnum, IsOptional, IsString, MaxLength, MinLength, ValidateIf } from 'class-validator';
+import { IsEmail, IsEnum, IsIn, IsOptional, IsString, MaxLength, MinLength, ValidateIf } from 'class-validator';
 import { DeviceSessionDto } from './device-session.dto';
 
 /** MVP: region/email/password опциональны — подставляются на сервере */
@@ -32,6 +32,11 @@ export class RegisterClientDto extends DeviceSessionDto {
   @IsOptional()
   @IsEnum(AccountType)
   accountType?: AccountType;
+
+  @ApiProperty({ required: false, enum: ['IP', 'TOO', 'OTHER'], description: 'Для юрлица' })
+  @IsOptional()
+  @IsIn(['IP', 'TOO', 'OTHER'])
+  legalForm?: 'IP' | 'TOO' | 'OTHER';
 
   @ApiProperty({ required: false, description: 'Для юрлица' })
   @IsOptional()

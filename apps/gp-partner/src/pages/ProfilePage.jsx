@@ -3,31 +3,20 @@ import { Link, useLocation } from 'react-router-dom'
 import { partnerStatusLabel } from '@gp/shared-core/statuses'
 import { LogOut, Package, Plus, Store } from 'lucide-react'
 import {
-  getAccountTypeLabel,
-  getPartnerDirectionLabel,
-  getPartnerOfferingStatusLabel,
-  getPartnerSubserviceLabel,
   PARTNER_DOCUMENT_KIND_OPTIONS,
   PARTNER_REGISTRATION_GROUPS,
   FURNITURE_EXECUTOR_GROUP,
   SHOP_REGISTRATION_GROUP,
 } from '@gp/shared/constants'
 import { getPartnerAccess } from '@gp/shared/constants'
+import { useLanguage } from '@gp/shared/i18n'
 import { usePartner } from '../context/PartnerContext'
 
 const ALL_GROUPS = [...PARTNER_REGISTRATION_GROUPS, FURNITURE_EXECUTOR_GROUP, SHOP_REGISTRATION_GROUP]
 
-const PROFILE_STATUS_HINT = {
-  PENDING_REVIEW: 'Заявка на проверке администратором GP. Модерация доступна только в GP Admin.',
-  APPROVED: 'Профиль одобрен. Перейдите в онлайн на вкладке «Заявки» — доступные заказы появятся в ленте автоматически.',
-  REJECTED: 'Заявка отклонена. Обратитесь в поддержку GP.',
-  NEEDS_REVISION: 'Нужно исправить данные и отправить заявку снова.',
-  SUSPENDED: 'Аккаунт заблокирован.',
-  DRAFT: 'Заполните и отправьте заявку на проверку.',
-}
-
 export default function ProfilePage() {
   const location = useLocation()
+  const { t } = useLanguage()
   const { user, logout, loading, addPartnerOfferings } = usePartner()
   const { shop, shopProducts, service } = getPartnerAccess(user || {}, {
     storeUiState: user?.storeUiState,
@@ -67,7 +56,7 @@ export default function ProfilePage() {
     setMsg('')
     const subserviceIds = [...picked]
     if (!subserviceIds.length) {
-      setMsg('Кемінде бір қызмет түрін таңдаңыз')
+      setMsg(t('partner_profile_select_service_error'))
       return
     }
     setSaving(true)
@@ -76,7 +65,7 @@ export default function ProfilePage() {
       setShowAdd(false)
       setMsg('')
     } catch (e) {
-      setMsg(e.message || 'Не удалось сохранить')
+      setMsg(e.message || t('saveError'))
     } finally {
       setSaving(false)
     }
@@ -88,27 +77,35 @@ export default function ProfilePage() {
     <div>
       {location.state?.noAccess && (
         <div className="mb-4 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
-          Нет доступа. Модерация доступна только в GP Admin.
+          {t('partner_profile_no_access')}
         </div>
       )}
       <div className="mb-4 rounded-2xl border border-[var(--gp-border)] bg-[var(--gp-surface-2)] px-4 py-3">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--gp-text-muted)]">Статус профиля</p>
-        <p className="text-lg font-extrabold text-[var(--gp-text)] mt-1">{partnerStatusLabel(status)}</p>
-        <p className="text-xs text-[var(--gp-text-muted)] mt-1">{PROFILE_STATUS_HINT[status] || ''}</p>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--gp-text-muted)]">{t('partner_profile_status')}</p>
+        <p className="text-lg font-extrabold text-[var(--gp-text)] mt-1">{t(`partnerStatus_${status}`) !== `partnerStatus_${status}` ? t(`partnerStatus_${status}`) : partnerStatusLabel(status)}</p>
+        <p className="text-xs text-[var(--gp-text-muted)] mt-1">{t(`partner_profile_status_hint_${status}`)}</p>
         {(status === 'DRAFT' || status === 'NEEDS_REVISION') && (
           <Link
-            to={user?.partnerRole === 'SHOP' ? '/apply' : '/apply/specialist'}
+            to={
+              user?.partnerType === 'NURSERY'
+                ? '/apply/nursery'
+                : user?.partnerType === 'DELIVERY'
+                  ? '/apply/delivery'
+                  : user?.partnerRole === 'SHOP'
+                    ? '/apply'
+                    : '/apply/specialist'
+            }
             className="inline-block mt-3 text-sm font-bold text-emerald-600 underline"
           >
-            {status === 'NEEDS_REVISION' ? 'Исправить заявку' : 'Заполнить заявку'}
+            {status === 'NEEDS_REVISION' ? t('partner_profile_fix_application') : t('partner_profile_fill_application')}
           </Link>
         )}
       </div>
       <h1 className="text-xl font-bold text-[var(--gp-text)] mb-1">{user?.company || user?.name}</h1>
-      <p className="text-xs font-bold text-emerald-600 mb-1">{getAccountTypeLabel(user?.accountType || 'INDIVIDUAL')}</p>
+      <p className="text-xs font-bold text-emerald-600 mb-1">{t(`accountType_${user?.accountType || 'INDIVIDUAL'}`)}</p>
       {user?.accountType === 'LEGAL_ENTITY' && (
         <div className="text-xs text-[var(--gp-text-muted)] mb-2 space-y-0.5">
-          {user.bin && <p>БИН {user.bin}</p>}
+          {user.bin && <p>{t('bin')}: {user.bin}</p>}
           {user.legalAddress && <p>{user.legalAddress}</p>}
         </div>
       )}
@@ -117,18 +114,18 @@ export default function ProfilePage() {
       {service && (
       <div className="partner-card p-4 mb-4">
         <div className="flex items-center justify-between gap-2 mb-3">
-          <p className="text-xs text-[var(--gp-text-muted)] uppercase tracking-wide">Подуслуги и модерация</p>
+          <p className="text-xs text-[var(--gp-text-muted)] uppercase tracking-wide">{t('partner_profile_subservices_moderation')}</p>
           <button
             type="button"
             onClick={() => setShowAdd(true)}
             disabled={loading}
             className="flex items-center gap-1 text-xs font-semibold text-emerald-400 hover:text-emerald-300 disabled:opacity-50"
           >
-            <Plus className="w-3.5 h-3.5" /> Қызмет қосу
+            <Plus className="w-3.5 h-3.5" /> {t('partner_profile_add_service')}
           </button>
         </div>
         <p className="text-[11px] text-[var(--gp-text-muted)] mb-3 leading-snug">
-          Жаңа қызмет түрін қосқанда өтінім GP Admin модерациясына жіберіледі. Тапсырыс тек «Активна» статусы бар қызметтер бойынша келеді.
+          {t('partner_profile_add_service_hint')}
         </p>
         {offerings.length ? (
           <ul className="space-y-2 max-h-[40vh] overflow-y-auto pr-1">
@@ -138,7 +135,7 @@ export default function ProfilePage() {
                 className="flex flex-col gap-0.5 rounded-xl border border-[var(--gp-border)] bg-[var(--gp-surface-2)] px-3 py-2.5"
               >
                 <span className="text-sm text-[var(--gp-text)]">
-                  {o.custom && o.name ? o.name : getPartnerSubserviceLabel(o.subserviceId)}
+                  {o.custom && o.name ? o.name : t(`partner_subservice_${o.subserviceId}`) !== `partner_subservice_${o.subserviceId}` ? t(`partner_subservice_${o.subserviceId}`) : o.subserviceId}
                 </span>
                 {o.custom && o.price != null && (
                   <span className="text-[11px] text-[var(--gp-text-muted)]">{Number(o.price).toLocaleString('ru-RU')} ₸</span>
@@ -151,32 +148,32 @@ export default function ProfilePage() {
                         : 'text-[var(--gp-text-muted)]'
                 }`}
                 >
-                  {getPartnerOfferingStatusLabel(o.status)}
+                  {t(`partnerOfferingStatus_${o.status}`)}
                 </span>
                 {o.moderationNote && (
-                  <span className="text-[11px] text-[var(--gp-text-muted)] mt-1">Комментарий модератора: {o.moderationNote}</span>
+                  <span className="text-[11px] text-[var(--gp-text-muted)] mt-1">{t('moderatorComment')}: {o.moderationNote}</span>
                 )}
               </li>
             ))}
           </ul>
         ) : (
-          <p className="text-xs text-[var(--gp-text-muted)]">Нет зарегистрированных подуслуг</p>
+          <p className="text-xs text-[var(--gp-text-muted)]">{t('partner_profile_no_subservices')}</p>
         )}
         <Link to="/services" className="inline-block mt-3 text-xs font-bold text-emerald-600">
-          Управление услугами →
+          {t('partner_profile_manage_services')} →
         </Link>
       </div>
       )}
 
       {(user?.documents?.length > 0 || user?.bin) && (
         <div className="partner-card p-4 mb-4 text-sm">
-          <p className="text-xs text-[var(--gp-text-muted)] mb-2 uppercase tracking-wide">Документы</p>
-          {user.bin && <p className="text-[var(--gp-text-muted)] text-xs">БИН: {user.bin}</p>}
+          <p className="text-xs text-[var(--gp-text-muted)] mb-2 uppercase tracking-wide">{t('documents')}</p>
+          {user.bin && <p className="text-[var(--gp-text-muted)] text-xs">{t('bin')}: {user.bin}</p>}
           {user.legalAddress && <p className="text-[var(--gp-text-muted)] text-xs mt-1">{user.legalAddress}</p>}
           <ul className="mt-2 space-y-1">
             {(Array.isArray(user.documents) ? user.documents : []).map((d, i) => (
               <li key={i} className="text-xs text-[var(--gp-text)]">
-                {PARTNER_DOCUMENT_KIND_OPTIONS.find((o) => o.id === d.kind)?.label || d.kind}
+                {t(`partnerDocument_${d.kind}`) !== `partnerDocument_${d.kind}` ? t(`partnerDocument_${d.kind}`) : PARTNER_DOCUMENT_KIND_OPTIONS.find((o) => o.id === d.kind)?.label || d.kind}
                 {d.number ? `: ${d.number}` : ''}
               </li>
             ))}
@@ -185,7 +182,7 @@ export default function ProfilePage() {
       )}
 
       <div className="partner-card p-4 mb-4">
-        <p className="text-xs text-[var(--gp-text-muted)] mb-2 uppercase tracking-wide">Направления профиля</p>
+        <p className="text-xs text-[var(--gp-text-muted)] mb-2 uppercase tracking-wide">{t('partner_profile_directions')}</p>
         <div className="flex flex-wrap gap-1.5">
           {(user?.directions || []).length ? (
             (user?.directions || []).map((d) => (
@@ -193,11 +190,11 @@ export default function ProfilePage() {
                 key={d}
                 className="text-xs px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
               >
-                {getPartnerDirectionLabel(d)}
+                {t(`partnerDirection_${d}`) !== `partnerDirection_${d}` ? t(`partnerDirection_${d}`) : d}
               </span>
             ))
           ) : (
-            <span className="text-xs text-[var(--gp-text-muted)]">Не указаны</span>
+            <span className="text-xs text-[var(--gp-text-muted)]">{t('notSpecified')}</span>
           )}
         </div>
       </div>
@@ -206,13 +203,13 @@ export default function ProfilePage() {
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 p-3" role="dialog">
           <div className="partner-card w-full max-w-md max-h-[85vh] overflow-hidden flex flex-col border border-[var(--gp-border)] shadow-2xl">
             <div className="p-4 border-b border-[var(--gp-border)]">
-              <h2 className="text-lg font-bold text-[var(--gp-text)]">Добавить подуслуги</h2>
-              <p className="text-xs text-[var(--gp-text-muted)] mt-1">Новые позиции уходят на модерацию.</p>
+              <h2 className="text-lg font-bold text-[var(--gp-text)]">{t('partner_profile_add_subservices')}</h2>
+              <p className="text-xs text-[var(--gp-text-muted)] mt-1">{t('partner_profile_new_items_moderation')}</p>
             </div>
             <div className="p-3 overflow-y-auto flex-1 space-y-3">
               {ALL_GROUPS.map((g) => (
                 <div key={g.id} className="rounded-xl border border-[var(--gp-border)] bg-[var(--gp-surface-2)] p-3">
-                  <p className="text-xs font-semibold text-emerald-600 mb-2">{g.title}</p>
+                  <p className="text-xs font-semibold text-emerald-600 mb-2">{t(`partnerGroup_${g.id}`)}</p>
                   <div className="space-y-1.5">
                     {(g.subs || []).map((s) => {
                       const blocked = blockedAddIds.has(s.id)
@@ -233,7 +230,7 @@ export default function ProfilePage() {
                             onChange={() => togglePick(s.id)}
                             className="accent-emerald-500 w-3.5 h-3.5 shrink-0"
                           />
-                          <span>{s.label}{blocked ? ' · уже в профиле' : ''}</span>
+                          <span>{t(`partner_subservice_${s.id}`) !== `partner_subservice_${s.id}` ? t(`partner_subservice_${s.id}`) : s.id}{blocked ? ` · ${t('partner_profile_already_in_profile')}` : ''}</span>
                         </label>
                       )
                     })}
@@ -248,7 +245,7 @@ export default function ProfilePage() {
                 onClick={() => { setShowAdd(false); setMsg('') }}
                 className="flex-1 py-2.5 rounded-xl border border-[var(--gp-border)] text-[var(--gp-text)] text-sm font-semibold"
               >
-                Отмена
+                {t('cancel')}
               </button>
               <button
                 type="button"
@@ -256,7 +253,7 @@ export default function ProfilePage() {
                 onClick={submitAdd}
                 className="flex-1 py-2.5 rounded-xl partner-gradient text-white text-sm font-bold disabled:opacity-50"
               >
-                {saving ? '…' : 'Отправить'}
+                {saving ? '…' : t('send')}
               </button>
             </div>
           </div>
@@ -268,23 +265,23 @@ export default function ProfilePage() {
           <li>
             <Link to="/shop" className="partner-card p-4 flex items-center gap-3">
               <Store className="w-5 h-5 text-emerald-400" />
-              Мой магазин
+              {t('market_my_shop')}
             </Link>
           </li>
           {shopProducts ? (
             <li>
               <Link to="/catalog/add" className="partner-card p-4 flex items-center gap-3">
                 <Package className="w-5 h-5 text-emerald-400" />
-                Добавить товар
+                {t('nav_add_product')}
               </Link>
             </li>
           ) : (
             <li className="partner-card p-4 text-sm partner-muted">
               {user?.storeUiState === 'UNDER_REVIEW'
-                ? 'Магазин на проверке — товары пока недоступны'
+                ? t('partner_profile_shop_under_review')
                 : user?.storeUiState === 'REJECTED'
-                  ? 'Магазин отклонён — подайте заявку снова в «Мой магазин»'
-                  : 'Зарегистрируйте магазин в разделе «Мой магазин»'}
+                  ? t('partner_profile_shop_rejected')
+                  : t('partner_profile_shop_register_hint')}
             </li>
           )}
         </ul>
@@ -294,7 +291,7 @@ export default function ProfilePage() {
           <li>
             <Link to="/services" className="partner-card p-4 flex items-center gap-3">
               <Package className="w-5 h-5 text-emerald-400" />
-              Мои услуги
+              {t('partner_profile_my_services')}
             </Link>
           </li>
         </ul>
@@ -304,7 +301,7 @@ export default function ProfilePage() {
         onClick={logout}
         className="w-full py-3 rounded-xl border border-red-500/30 text-red-500 flex items-center justify-center gap-2"
       >
-        <LogOut className="w-4 h-4" /> Выйти
+        <LogOut className="w-4 h-4" /> {t('logout')}
       </button>
     </div>
   )

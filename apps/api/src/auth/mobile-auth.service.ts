@@ -41,12 +41,14 @@ import {
   phoneToEmail,
 } from './mobile-auth.util';
 import { OtpDeliveryService } from './otp-delivery.service';
+import { EgovLegalVerificationService } from './egov-legal-verification.service';
 
 const OTP_TTL_MS = 5 * 60 * 1000;
 const OTP_COOLDOWN_MS = 60 * 1000;
 const MAX_ATTEMPTS = 5;
 const ACCESS_TTL = process.env.MOBILE_ACCESS_EXPIRES_IN || '15m';
 const REFRESH_DAYS = Number(process.env.MOBILE_REFRESH_DAYS || 30);
+const DEV_OTP_CODE = '000000';
 
 @Injectable()
 export class MobileAuthService {
@@ -56,6 +58,7 @@ export class MobileAuthService {
     private userStatus: UserStatusService,
     private otpDelivery: OtpDeliveryService,
     private rbac: RbacService,
+    private egovVerification: EgovLegalVerificationService,
   ) {}
 
   private getStoreReviewCredentials(): { phone: string; code: string } | null {
@@ -71,10 +74,15 @@ export class MobileAuthService {
 
   private isOtpVerifyBypass(phone: string, code: string): boolean {
     const trimmed = code.trim();
+    const isProduction = process.env.NODE_ENV === 'production';
+    if (trimmed === DEV_OTP_CODE) {
+      return !isProduction;
+    }
     const storeReview = this.getStoreReviewCredentials();
     if (storeReview && phone === storeReview.phone && trimmed === storeReview.code) {
       return true;
     }
+    if (isProduction) return false;
     const devEnabled =
       String(process.env.OTP_DEV_BYPASS_ENABLED ?? '').toLowerCase() === 'true';
     const devCode = process.env.OTP_DEV_BYPASS_CODE ?? '777777';
@@ -186,7 +194,48 @@ export class MobileAuthService {
       regionId = defaultRegion?.id;
       city = defaultRegion?.name ?? city;
     }
+    if (dto.city?.trim()) city = dto.city.trim();
     return { regionId, city };
+  }
+
+  private async legalClientData(dto: MobileOtpVerifyDto, city: string) {
+    const accountType = dto.accountType || AccountType.INDIVIDUAL;
+    if (accountType !== AccountType.LEGAL_ENTITY) {
+      return {
+        accountType,
+        city,
+        legalForm: null,
+        companyName: null,
+        bin: null,
+        legalAddress: null,
+        contactPerson: null,
+        legalVerificationStatus: 'VERIFIED',
+        egovCheckStatus: 'NOT_REQUIRED',
+        egovProvider: null,
+        egovCheckedAt: null,
+        ecpStatus: 'NOT_REQUIRED',
+      };
+    }
+    const legalForm = dto.legalForm || 'IP';
+    const companyName = dto.companyName?.trim();
+    const bin = dto.bin?.trim();
+    if (!companyName) throw new BadRequestException('Укажите название компании');
+    if (!bin || !/^\d{12}$/.test(bin)) throw new BadRequestException('Укажите БИН из 12 цифр');
+    const egovCheck = await this.egovVerification.checkCompany(bin, companyName);
+    return {
+      accountType,
+      city,
+      legalForm,
+      companyName,
+      bin,
+      legalAddress: dto.legalAddress?.trim() || city,
+      contactPerson: dto.contactPerson?.trim() || dto.name?.trim() || companyName,
+      legalVerificationStatus: 'PENDING',
+      egovCheckStatus: egovCheck.status,
+      egovProvider: egovCheck.provider,
+      egovCheckedAt: egovCheck.checkedAt,
+      ecpStatus: 'PENDING',
+    };
   }
 
   /** Жоқ client/partner профильдерін қосу + portalRoles жаңарту */
@@ -197,6 +246,23 @@ export class MobileAuthService {
   ) {
     const { regionId, city } = await this.resolveRegion(dto);
     const accountType = dto.accountType || AccountType.INDIVIDUAL;
+    const clientProfileData =
+      loginAs === 'client'
+        ? await this.legalClientData(dto, city)
+        : {
+            accountType: AccountType.INDIVIDUAL,
+            city,
+            legalForm: null,
+            companyName: null,
+            bin: null,
+            legalAddress: null,
+            contactPerson: null,
+            legalVerificationStatus: 'VERIFIED',
+            egovCheckStatus: 'NOT_REQUIRED',
+            egovProvider: null,
+            egovCheckedAt: null,
+            ecpStatus: 'NOT_REQUIRED',
+          };
 
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -208,9 +274,13 @@ export class MobileAuthService {
       await this.prisma.clientProfile.create({
         data: {
           userId,
-          accountType: AccountType.INDIVIDUAL,
-          city,
+          ...clientProfileData,
         },
+      });
+    } else if (loginAs === 'client' && dto.accountType) {
+      await this.prisma.clientProfile.update({
+        where: { id: user.clientProfile.id },
+        data: clientProfileData,
       });
     }
 
@@ -286,7 +356,7 @@ export class MobileAuthService {
       ...(dto.channel === OtpChannel.whatsapp
         ? { whatsappSent: delivery.whatsappSent ?? false }
         : {}),
-      ...(process.env.NODE_ENV !== 'production' ? { devCode: code } : {}),
+      ...(process.env.NODE_ENV !== 'production' ? { devCode: code, devBypassCode: DEV_OTP_CODE } : {}),
     };
   }
 
@@ -343,6 +413,8 @@ export class MobileAuthService {
       const email = phoneToEmail(phone);
       const passwordHash = await bcrypt.hash(newRefreshToken(), 10);
       const portalRoles = mergePortalRolesForOtpLogin([], loginAs);
+      const newClientProfileData =
+        loginAs === 'client' ? await this.legalClientData(dto, city) : null;
       user = await this.prisma.user.create({
         data: buildNewUserCreateData({
           email,
@@ -354,6 +426,16 @@ export class MobileAuthService {
           loginAs,
           accountType,
           portalRoles,
+          legalForm: dto.legalForm,
+          companyName: dto.companyName,
+          bin: dto.bin,
+          legalAddress: dto.legalAddress,
+          contactPerson: dto.contactPerson,
+          legalVerificationStatus: newClientProfileData?.legalVerificationStatus,
+          egovCheckStatus: newClientProfileData?.egovCheckStatus,
+          egovProvider: newClientProfileData?.egovProvider,
+          egovCheckedAt: newClientProfileData?.egovCheckedAt,
+          ecpStatus: newClientProfileData?.ecpStatus,
         }),
         include: { clientProfile: true, partnerProfile: true },
       });

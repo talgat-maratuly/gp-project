@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { RegionsController } from './regions.controller';
+import { CitiesController, RegionsController } from './regions.controller';
 import { RegionsService } from './regions.service';
 
 @Module({
-  controllers: [RegionsController],
+  controllers: [RegionsController, CitiesController],
   providers: [RegionsService],
   exports: [RegionsService],
 })

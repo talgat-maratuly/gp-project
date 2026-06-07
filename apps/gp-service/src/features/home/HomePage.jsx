@@ -94,21 +94,14 @@ export default function HomePage() {
         <p className="text-white/75 text-sm font-medium mb-1">{t('welcome')}</p>
         <h1 className="text-2xl font-extrabold leading-tight mb-2">{t('homeHeroSubtitle')}</h1>
         <p className="text-white/85 text-sm mb-5">{t('homeHeroDesc')}</p>
-        <div className="flex gap-2">
+        <div>
           <button
             type="button"
             onClick={() => navigate('/quick-order')}
-            className="flex-1 py-4 px-4 rounded-2xl bg-white text-emerald-700 font-bold text-sm shadow-lg active:scale-[0.98] transition"
+            className="w-full py-4 px-4 rounded-2xl bg-white text-emerald-700 font-bold text-sm shadow-lg active:scale-[0.98] transition"
           >
             <Droplets className="w-5 h-5 inline mr-1.5 -mt-0.5" />
             {t('quickOrder')}
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate('/shop')}
-            className="flex-1 py-4 px-4 rounded-2xl bg-white/15 border border-white/30 text-white font-bold text-sm backdrop-blur active:scale-[0.98] transition"
-          >
-            {t('nav_shop')}
           </button>
         </div>
       </section>
@@ -255,7 +248,7 @@ export default function HomePage() {
         <div className="flex justify-between items-center mb-3">
           <h2 className="font-extrabold text-lg flex items-center gap-1.5">
             <Sparkles className="w-5 h-5 text-amber-500" />
-            {t('nav_shop')}
+            {t('popularProducts')}
           </h2>
           <button type="button" onClick={() => navigate('/shop')} className="text-sm font-bold text-emerald-600">
             {t('catalogLink')}

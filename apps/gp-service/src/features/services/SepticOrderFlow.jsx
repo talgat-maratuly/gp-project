@@ -11,6 +11,7 @@ import OrderLocationFields from '@gp/shared/components/OrderLocationFields'
 import CitySelector from '@gp/shared/components/CitySelector'
 import PaymentMethodPicker from '../../components/PaymentMethodPicker'
 import AddressPickerMap from '../../components/AddressPickerMap'
+import LiveExecutorStats from '../availability/LiveExecutorStats'
 import {
   Chip,
   KaspiButton,
@@ -301,6 +302,8 @@ export default function SepticOrderFlow() {
           </KaspiButton>
         </KaspiCard>
       )}
+
+      <LiveExecutorStats city={form.city || profile.city} serviceId="septic-pumping" category="SEPTIC" />
 
       {step === 1 && (
         <div className="space-y-4">

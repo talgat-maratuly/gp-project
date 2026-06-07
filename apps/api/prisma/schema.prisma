@@ -39,6 +39,7 @@ enum PartnerDirection {
   FILTERS
   NURSERY
   SHOP
+  DELIVERY
   LANDSCAPE
   ELECTRICAL
 }
@@ -57,6 +58,7 @@ enum PartnerType {
   IRRIGATION_SERVICE
   CLEANING_SERVICE
   SHOP
+  NURSERY
   SPECIALIST
   DELIVERY
   OTHER
@@ -76,6 +78,64 @@ enum PartnerStatus {
   APPROVED
   REJECTED
   SUSPENDED
+}
+
+enum NurseryProductStatus {
+  AVAILABLE
+  UNAVAILABLE
+  PREORDER_ONLY
+}
+
+enum NurseryRequestStatus {
+  CREATED
+  OFFERED
+  ACCEPTED
+  CANCELLED
+  COMPLETED
+}
+
+enum NurseryOfferStatus {
+  SENT
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum GrowingPreorderStatus {
+  CREATED
+  OFFERED
+  ACCEPTED
+  CONTRACT_PENDING
+  IN_GROWING
+  READY_FOR_DELIVERY
+  DELIVERED
+  COMPLETED
+  CANCELLED
+}
+
+enum DeliveryPartnerStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum DeliveryOrderStatus {
+  CREATED
+  OFFERED
+  ACCEPTED
+  PICKUP_SCHEDULED
+  IN_TRANSIT
+  DELIVERED
+  COMPLETED
+  CANCELLED
+}
+
+enum DeliveryOfferStatus {
+  SENT
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
 }
 
 /// Specialist moderation request (PartnerProfile) — PartnerStatus-тан бөлек
@@ -111,6 +171,7 @@ enum WorkStatus {
   ONLINE
   OFFLINE
   BUSY
+  ON_ROUTE
 }
 
 enum PartnerModerationAction {
@@ -401,15 +462,31 @@ model ClientProfile {
   userId    String      @unique
   user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   accountType AccountType @default(INDIVIDUAL)
+  legalForm   String?
   companyName String?
   bin         String?
   legalAddress String?
   contactPerson String?
+  legalVerificationStatus String @default("VERIFIED")
+  legalReviewComment String?
+  legalVerifiedAt DateTime?
+  legalRejectedAt DateTime?
+  egovCheckStatus String @default("NOT_REQUIRED")
+  egovProvider String?
+  egovCheckedAt DateTime?
+  ecpStatus String @default("PENDING")
+  ecpOwnerType String?
+  ecpSubject String?
+  ecpBoundAt DateTime?
   city      String?     @default("Уральск")
   createdAt DateTime    @default(now())
 
   orders Order[]
   serviceProjects ServiceProject[]
+  plantCases PlantCase[]
+  nurseryRequests NurseryRequest[]
+  growingPreorders GrowingPreorder[]
+  deliveryOrders DeliveryOrder[]
 }
 
 model PartnerProfile {
@@ -470,11 +547,87 @@ model PartnerProfile {
   serviceProjects ServiceProject[] @relation("AssignedPartnerProjects")
   furnitureExecutorOrders FurnitureExecutorOrder[] @relation("FurnitureExecutorPartner")
   specialistRequests SpecialistRequest[]
+  assignedPlantCases PlantCase[] @relation("PlantCaseAssignedPartner")
+  statusEvents PartnerStatusEvent[]
+  locations    PartnerLocation[]
+  vehicles     PartnerVehicle[]
+  availability PartnerAvailability?
+  nurseries    Nursery[]
+  nurseryOffers NurseryOffer[]
+  growingContracts GrowingContract[]
+  deliveryPartner DeliveryPartner?
+  deliveryOffers DeliveryOffer[]
 
   @@index([regionId])
   @@index([status])
   @@index([partnerType])
   @@index([partnerRole])
+}
+
+model PartnerStatusEvent {
+  id        String         @id @default(uuid())
+  partnerId String
+  partner   PartnerProfile @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  status    WorkStatus
+  orderId   String?
+  reason    String?
+  createdAt DateTime       @default(now())
+
+  @@index([partnerId, createdAt])
+  @@index([status])
+  @@map("partner_status")
+}
+
+model PartnerLocation {
+  id         String         @id @default(uuid())
+  partnerId  String
+  partner    PartnerProfile @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  orderId    String?
+  lat        Float
+  lng        Float
+  accuracyM  Float?
+  visibleToClient Boolean   @default(false)
+  createdAt  DateTime       @default(now())
+
+  @@index([partnerId, createdAt])
+  @@index([orderId, createdAt])
+  @@map("partner_location")
+}
+
+model PartnerVehicle {
+  id          String         @id @default(uuid())
+  partnerId   String
+  partner     PartnerProfile @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  category    OrderCategory  @default(SEPTIC)
+  vehicleType String         @default("septic_truck")
+  volumeM3    Int?
+  quantity    Int            @default(1)
+  status      WorkStatus     @default(OFFLINE)
+  meta        Json?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([partnerId])
+  @@index([category, volumeM3])
+  @@index([status])
+  @@map("partner_vehicle")
+}
+
+model PartnerAvailability {
+  id             String         @id @default(uuid())
+  partnerId      String         @unique
+  partner        PartnerProfile @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  city           String?
+  serviceIds     String[]       @default([])
+  status         WorkStatus     @default(OFFLINE)
+  activeOrderId  String?
+  etaFreeAt      DateTime?
+  lastSeenAt     DateTime?
+  updatedAt      DateTime       @updatedAt
+
+  @@index([city])
+  @@index([status])
+  @@map("partner_availability")
 }
 
 /// Specialist moderation request — бір user → бірнеше өтінім (бір негізгі қызмет / өтінім)
@@ -648,17 +801,28 @@ model HunterIrrigationProject {
   serviceProjectId String         @unique
   serviceProject   ServiceProject @relation(fields: [serviceProjectId], references: [id], onDelete: Cascade)
   photo            String?
+  shape            String         @default("rectangle")
+  lotAreaSotka     Float?
   length           Float
   width            Float
   area             Float
+  lawnArea         Float?
+  noWaterArea      Float?
   waterSource      String
   pressure         Float
   waterFlow        Float
   zones            Int
+  zonesPlan        Json?
   sprinklers       Json
   pipes            Json
   valves           Json
   controller       Json
+  filter           Json?
+  fittings         Json?
+  pump             Json?
+  materials        Json?
+  market           Json?
+  aiChecks         Json?
   estimate         Json
   drawing2D        Json
 }
@@ -740,6 +904,7 @@ model Order {
   notifications Notification[]
   disposalEvents DisposalEvent[]
   eventLogs     OrderEventLog[]
+  plantCase     PlantCase?
 
   @@index([clientId])
   @@index([assignedPartnerId])
@@ -749,6 +914,349 @@ model Order {
   @@index([recreatedFromId])
   @@index([status, assignedPartnerId])
   @@index([regionId])
+}
+
+model PlantCase {
+  id                       String          @id @default(uuid())
+  clientId                 String
+  client                   ClientProfile   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  orderId                  String?         @unique
+  order                    Order?          @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  assignedPartnerId        String?
+  assignedPartner          PartnerProfile? @relation("PlantCaseAssignedPartner", fields: [assignedPartnerId], references: [id])
+  city                     String
+  description              String?
+  photoUrl                 String
+  status                   PlantCaseStatus @default(NEW)
+  aiDiagnosis              Json
+  aiRecommendations        Json
+  aiIssues                 Json
+  aiConfidence             Float           @default(0.5)
+  needsSpecialistReview    Boolean         @default(true)
+  specialistDiagnosis      String?
+  specialistRecommendation String?
+  specialistReviewedAt     DateTime?
+  adminApprovedAt          DateTime?
+  addedToKnowledgeBaseAt   DateTime?
+  createdAt                DateTime        @default(now())
+  updatedAt                DateTime        @updatedAt
+
+  knowledgePhotos PlantKnowledgePhoto[]
+
+  @@index([clientId])
+  @@index([assignedPartnerId])
+  @@index([city])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model PlantKnowledgePhoto {
+  id          String    @id @default(uuid())
+  plantCaseId String
+  plantCase   PlantCase @relation(fields: [plantCaseId], references: [id], onDelete: Cascade)
+  photoUrl    String
+  city        String
+  diagnosis   String
+  pest        String?
+  deficiency  String?
+  notes       String?
+  createdAt   DateTime  @default(now())
+
+  @@index([city])
+  @@index([diagnosis])
+  @@index([createdAt])
+}
+
+model Nursery {
+  id            String         @id @default(uuid())
+  partnerId     String
+  partner       PartnerProfile @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  cityId        String
+  city          String
+  name          String
+  legalForm     String?
+  bin           String?
+  address       String?
+  phone         String?
+  description   String?
+  status        PartnerStatus  @default(PENDING_REVIEW)
+  delivers      Boolean        @default(false)
+  growsToOrder  Boolean        @default(false)
+  categories    String[]       @default([])
+  serviceCities String[]       @default([])
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  products NurseryProduct[]
+  offers   NurseryOffer[]
+
+  @@index([partnerId])
+  @@index([cityId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("nurseries")
+}
+
+model NurseryProduct {
+  id             String               @id @default(uuid())
+  nurseryId      String
+  nursery        Nursery              @relation(fields: [nurseryId], references: [id], onDelete: Cascade)
+  partnerId      String
+  cityId         String
+  category       String
+  plantType      String?
+  name           String
+  description    String?
+  images         Json                 @default("[]")
+  quantity       Int                  @default(0)
+  heightCm       Int?
+  sizeLabel      String?
+  ageMonths      Int?
+  price          Decimal?             @db.Decimal(12, 2)
+  availability   NurseryProductStatus @default(AVAILABLE)
+  delivery       Boolean              @default(false)
+  growToOrder    Boolean              @default(false)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  @@index([nurseryId])
+  @@index([partnerId])
+  @@index([cityId])
+  @@index([category])
+  @@index([availability])
+  @@map("nursery_products")
+}
+
+model NurseryRequest {
+  id                String               @id @default(uuid())
+  clientId          String
+  client            ClientProfile        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  cityId            String
+  city              String
+  plantType         String?
+  plantName         String
+  quantity          Int
+  heightCm          Int?
+  ageMonths         Int?
+  desiredDeliveryAt DateTime?
+  deliveryNeeded    Boolean              @default(false)
+  comment           String?
+  examplePhotoUrl   String?
+  status            NurseryRequestStatus @default(CREATED)
+  acceptedOfferId   String?              @unique
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  offers NurseryOffer[] @relation("NurseryRequestOffers")
+  acceptedOffer NurseryOffer? @relation("AcceptedNurseryOffer", fields: [acceptedOfferId], references: [id])
+  deliveryOrders DeliveryOrder[]
+
+  @@index([clientId])
+  @@index([cityId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("nursery_requests")
+}
+
+model NurseryOffer {
+  id             String             @id @default(uuid())
+  requestId      String
+  request        NurseryRequest     @relation("NurseryRequestOffers", fields: [requestId], references: [id], onDelete: Cascade)
+  nurseryId      String
+  nursery        Nursery            @relation(fields: [nurseryId], references: [id], onDelete: Cascade)
+  partnerId      String
+  partner        PartnerProfile     @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  cityId         String
+  pricePerUnit   Decimal            @db.Decimal(12, 2)
+  availableQty   Int
+  photoUrl       String?
+  supplyDate     DateTime?
+  deliveryTerms  String?
+  comment        String?
+  status         NurseryOfferStatus @default(SENT)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  acceptedBy NurseryRequest? @relation("AcceptedNurseryOffer")
+
+  @@unique([requestId, nurseryId])
+  @@index([requestId])
+  @@index([nurseryId])
+  @@index([partnerId])
+  @@index([cityId])
+  @@index([status])
+  @@map("nursery_offers")
+}
+
+model GrowingPreorder {
+  id                String                @id @default(uuid())
+  clientId          String
+  client            ClientProfile         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  cityId            String
+  city              String
+  plantName         String
+  quantity          Int
+  deliveryDate      DateTime?
+  sizeRequirement   String?
+  varietyRequirement String?
+  deliveryNeeded    Boolean               @default(false)
+  contractNeeded    Boolean               @default(false)
+  comment           String?
+  status            GrowingPreorderStatus @default(CREATED)
+  acceptedOfferId   String?               @unique
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  offers GrowingContract[] @relation("GrowingPreorderOffers")
+  acceptedOffer GrowingContract? @relation("AcceptedGrowingContract", fields: [acceptedOfferId], references: [id])
+
+  @@index([clientId])
+  @@index([cityId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("growing_preorders")
+}
+
+model GrowingContract {
+  id              String                @id @default(uuid())
+  preorderId      String
+  preorder        GrowingPreorder       @relation("GrowingPreorderOffers", fields: [preorderId], references: [id], onDelete: Cascade)
+  partnerId       String
+  partner         PartnerProfile        @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  cityId          String
+  pricePerUnit    Decimal               @db.Decimal(12, 2)
+  totalAmount     Decimal?              @db.Decimal(12, 2)
+  readyDate       DateTime?
+  minBatch        Int?
+  paymentTerms    String?
+  similarPhotoUrl String?
+  comment         String?
+  status          NurseryOfferStatus    @default(SENT)
+  contractStatus  GrowingPreorderStatus @default(OFFERED)
+  growingSchedule Json                  @default("[]")
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  acceptedBy GrowingPreorder? @relation("AcceptedGrowingContract")
+
+  @@unique([preorderId, partnerId])
+  @@index([preorderId])
+  @@index([partnerId])
+  @@index([cityId])
+  @@index([status])
+  @@map("growing_contracts")
+}
+
+model DeliveryPartner {
+  id            String                @id @default(uuid())
+  partnerId     String                @unique
+  partner       PartnerProfile        @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  cityId        String
+  city          String
+  direction     String?
+  transportType String
+  bodyVolumeM3  Float?
+  capacityKg    Int?
+  freePlaces    Int                   @default(0)
+  basePrice     Decimal?              @db.Decimal(12, 2)
+  availableDates Json                 @default("[]")
+  gpsStatus     WorkStatus            @default(OFFLINE)
+  status        DeliveryPartnerStatus @default(PENDING)
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  routes DeliveryRoute[]
+  offers DeliveryOffer[]
+
+  @@index([cityId])
+  @@index([status])
+  @@index([gpsStatus])
+  @@map("delivery_partners")
+}
+
+model DeliveryRoute {
+  id                String          @id @default(uuid())
+  deliveryPartnerId String
+  deliveryPartner   DeliveryPartner @relation(fields: [deliveryPartnerId], references: [id], onDelete: Cascade)
+  partnerId         String
+  cityId            String
+  fromCity          String
+  toCity            String
+  transportType     String?
+  price             Decimal?        @db.Decimal(12, 2)
+  availableDate     DateTime?
+  isActive          Boolean         @default(true)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([deliveryPartnerId])
+  @@index([partnerId])
+  @@index([cityId])
+  @@index([fromCity, toCity])
+  @@index([isActive])
+  @@map("delivery_routes")
+}
+
+model DeliveryOrder {
+  id               String              @id @default(uuid())
+  clientId         String?
+  client           ClientProfile?      @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  requesterPartnerId String?
+  cityId           String
+  fromCity         String
+  toCity           String
+  pickupAddress    String?
+  deliveryAddress  String?
+  cargoType        String
+  cargoDescription String?
+  weightKg         Int?
+  volumeM3         Float?
+  desiredDate      DateTime?
+  linkedNurseryRequestId String?
+  linkedNurseryRequest   NurseryRequest? @relation(fields: [linkedNurseryRequestId], references: [id], onDelete: SetNull)
+  status           DeliveryOrderStatus @default(CREATED)
+  acceptedOfferId  String?             @unique
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  offers DeliveryOffer[] @relation("DeliveryOrderOffers")
+  acceptedOffer DeliveryOffer? @relation("AcceptedDeliveryOffer", fields: [acceptedOfferId], references: [id])
+
+  @@index([clientId])
+  @@index([requesterPartnerId])
+  @@index([cityId])
+  @@index([fromCity, toCity])
+  @@index([status])
+  @@index([createdAt])
+  @@map("delivery_orders")
+}
+
+model DeliveryOffer {
+  id                String              @id @default(uuid())
+  deliveryOrderId   String
+  deliveryOrder     DeliveryOrder       @relation("DeliveryOrderOffers", fields: [deliveryOrderId], references: [id], onDelete: Cascade)
+  deliveryPartnerId String
+  deliveryPartner   DeliveryPartner     @relation(fields: [deliveryPartnerId], references: [id], onDelete: Cascade)
+  partnerId         String
+  partner           PartnerProfile      @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  cityId            String
+  price             Decimal             @db.Decimal(12, 2)
+  pickupDate        DateTime?
+  etaDate           DateTime?
+  comment           String?
+  status            DeliveryOfferStatus @default(SENT)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  acceptedBy DeliveryOrder? @relation("AcceptedDeliveryOffer")
+
+  @@unique([deliveryOrderId, deliveryPartnerId])
+  @@index([deliveryOrderId])
+  @@index([deliveryPartnerId])
+  @@index([partnerId])
+  @@index([cityId])
+  @@index([status])
+  @@map("delivery_offers")
 }
 
 /// Неизменяемый журнал событий заказа (аудит, споры, аналитика)
@@ -1066,6 +1574,91 @@ model UserDevice {
 
   @@unique([userId, deviceId])
   @@index([userId])
+}
+
+enum AiArtifactDomain {
+  ORDERS
+  MARKET
+  PARTNERS
+  ADMIN
+  IRRIGATION
+  PLANT_DOCTOR
+  REPORT_SERVICE
+  REPORT_PARTNER
+  REPORT_ADMIN
+}
+
+enum AiSeverity {
+  ok
+  info
+  warning
+  error
+}
+
+enum PlantCaseStatus {
+  NEW
+  AI_ANALYZED
+  SPECIALIST_REVIEW
+  SPECIALIST_CONFIRMED
+  ADMIN_APPROVED
+  CLOSED
+}
+
+model AiCheck {
+  id          String           @id @default(uuid())
+  domain      AiArtifactDomain
+  severity    AiSeverity       @default(info)
+  code        String
+  message     String
+  recommendation String?
+  entityType  String?
+  entityId    String?
+  payload     Json?
+  result      Json
+  createdAt   DateTime         @default(now())
+
+  @@index([domain])
+  @@index([entityType, entityId])
+  @@index([severity])
+  @@index([createdAt])
+}
+
+model AiRecommendation {
+  id          String           @id @default(uuid())
+  domain      AiArtifactDomain
+  severity    AiSeverity       @default(info)
+  code        String
+  message     String
+  recommendation String?
+  requiresSpecialistReview Boolean @default(false)
+  score       Float            @default(0.5)
+  entityType  String?
+  entityId    String?
+  payload     Json?
+  result      Json
+  acceptedAt  DateTime?
+  rejectedAt  DateTime?
+  createdAt   DateTime         @default(now())
+
+  @@index([domain])
+  @@index([entityType, entityId])
+  @@index([severity])
+  @@index([createdAt])
+}
+
+model AiReport {
+  id          String           @id @default(uuid())
+  domain      AiArtifactDomain
+  title       String
+  summary     String
+  fromDate    DateTime?
+  toDate      DateTime?
+  payload     Json?
+  result      Json
+  createdAt   DateTime         @default(now())
+
+  @@index([domain])
+  @@index([createdAt])
 }
 
 model QRScanLog {

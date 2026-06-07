@@ -14,6 +14,13 @@ export function getDeviceId() {
   try {
     const stored = localStorage.getItem(DEVICE_ID_KEY)
     if (stored && stored.length >= 8) return stored
+    const random =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+    const next = `gp-${APP}-${random}`
+    localStorage.setItem(DEVICE_ID_KEY, next)
+    return next
   } catch {
     /* ignore */
   }

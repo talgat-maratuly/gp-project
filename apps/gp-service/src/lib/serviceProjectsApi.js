@@ -26,11 +26,16 @@ export async function demoCreateHunter(input) {
 export async function apiCreateHunter(input) {
   const project = await api.createHunterProject({
     photo: input.photo,
+    shape: input.shape,
+    sotki: Number(input.sotki || 0),
     length: Number(input.length),
     width: Number(input.width),
     waterSource: input.waterSource,
     pressure: Number(input.pressure),
     waterFlow: Number(input.waterFlow),
+    objects: input.objects || [],
+    points: input.points || [],
+    drawing: input.drawing || null,
     submit: input.submit !== false,
   })
   return { serviceProject: project }
@@ -101,8 +106,14 @@ export async function apiLinkedProducts(type) {
     id: p.id,
     name: p.name,
     price: Number(p.price),
+    stock: Number(p.stock ?? p.quantity ?? 0),
+    quantity: Number(p.stock ?? p.quantity ?? 0),
+    inStock: p.inStock !== false,
+    storeName: p.storeName || p.partnerName || p.shopName,
     unit: p.unit || 'шт',
     category: p.categoryId,
+    categoryId: p.categoryId || p.category,
+    brand: p.brand,
     linkedServiceType: p.linkedServiceType,
   }))
 }

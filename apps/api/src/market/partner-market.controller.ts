@@ -32,6 +32,16 @@ export class PartnerMarketController {
     return this.partnerMarket.listMyStores(user.id);
   }
 
+  @Get('market/orders')
+  myOrders(@CurrentUser() user: User) {
+    return this.partnerMarket.listMyOrders(user);
+  }
+
+  @Get('products')
+  myProducts(@CurrentUser() user: User) {
+    return this.partnerMarket.listMyProducts(user);
+  }
+
   @Post('stores')
   createStore(@CurrentUser() user: User, @Body() dto: CreatePartnerStoreDto) {
     return this.partnerMarket.createStore(user, dto);

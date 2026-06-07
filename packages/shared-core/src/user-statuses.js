@@ -15,7 +15,8 @@ export const ACCOUNT_STATUS = {
 export const WORK_STATUS = {
   ONLINE: 'ONLINE',
   OFFLINE: 'OFFLINE',
-  /** Кейіні: BUSY */
+  BUSY: 'BUSY',
+  ON_ROUTE: 'ON_ROUTE',
 }
 
 export function canUsePlatform(accountStatus) {

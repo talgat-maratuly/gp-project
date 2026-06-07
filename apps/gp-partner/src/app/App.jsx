@@ -24,6 +24,13 @@ import ServiceSchedulePage from '../pages/ServiceSchedulePage'
 import ServicePhotosPage from '../pages/ServicePhotosPage'
 import ServicesPage from '../pages/ServicesPage'
 import PartnerAuthRedirect from '../components/PartnerAuthRedirect'
+import PlantDoctorCasesPage from '../pages/PlantDoctorCasesPage'
+import NurseryApplyPage from '../pages/NurseryApplyPage'
+import NurseryProductsPage from '../pages/NurseryProductsPage'
+import NurseryRequestsPage from '../pages/NurseryRequestsPage'
+import DeliveryApplyPage from '../pages/DeliveryApplyPage'
+import DeliveryRoutesPage from '../pages/DeliveryRoutesPage'
+import DeliveryOrdersPage from '../pages/DeliveryOrdersPage'
 
 export default function App() {
   return (
@@ -49,6 +56,8 @@ export default function App() {
         <Route path="moderation/*" element={<Navigate to="/profile" replace state={{ noAccess: true }} />} />
         <Route path="apply" element={<ShopApplyPage />} />
         <Route path="apply/specialist" element={<SpecialistOnboardingPage />} />
+        <Route path="apply/nursery" element={<NurseryApplyPage />} />
+        <Route path="apply/delivery" element={<DeliveryApplyPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route element={<PartnerAccessGate />}>
           <Route index element={<DashboardPage />} />
@@ -69,6 +78,7 @@ export default function App() {
             <Route path="orders/filter-replacement" element={<QrOrdersPage />} />
             <Route path="orders/equipment-service" element={<QrOrdersPage />} />
             <Route path="orders/hunter-irrigation" element={<ServiceProjectsOrdersPage type="hunter_irrigation" />} />
+            <Route path="orders/plant-doctor" element={<PlantDoctorCasesPage />} />
             <Route path="orders/furniture" element={<ServiceProjectsOrdersPage type="furniture" />} />
             <Route path="orders/furniture-manufacturing" element={<FurnitureExecutorOrdersPage />} />
             <Route path="orders/furniture-assembly" element={<FurnitureExecutorOrdersPage />} />
@@ -77,6 +87,17 @@ export default function App() {
             <Route path="photos" element={<ServicePhotosPage />} />
             <Route path="map" element={<MapPage />} />
             <Route path="balance" element={<BalancePage />} />
+          </Route>
+          <Route element={<PartnerTypeRoute nurseryOnly />}>
+            <Route path="nursery" element={<NurseryProductsPage />} />
+            <Route path="nursery/products" element={<NurseryProductsPage />} />
+            <Route path="nursery/requests" element={<NurseryRequestsPage />} />
+            <Route path="nursery/preorders" element={<NurseryRequestsPage />} />
+          </Route>
+          <Route element={<PartnerTypeRoute deliveryOnly />}>
+            <Route path="delivery" element={<DeliveryOrdersPage />} />
+            <Route path="delivery/orders" element={<DeliveryOrdersPage />} />
+            <Route path="delivery/routes" element={<DeliveryRoutesPage />} />
           </Route>
         </Route>
         <Route path="payouts" element={<Navigate to="/balance" replace />} />

@@ -11,6 +11,7 @@ export const GP_SHOP_SUBSERVICE_ID = 'gp-shop';
 export const SUBSERVICE_TO_DIRECTION: Record<string, PartnerDirection> = {
   [GP_SHOP_SUBSERVICE_ID]: PartnerDirection.SHOP,
   'gp-nursery': PartnerDirection.NURSERY,
+  'gp-delivery': PartnerDirection.DELIVERY,
   'septic-pumping': PartnerDirection.SEPTIC,
   vol_3_4: PartnerDirection.SEPTIC,
   vol_5_7: PartnerDirection.SEPTIC,

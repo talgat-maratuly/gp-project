@@ -12,15 +12,15 @@ import { PhotoUploadField, PhotoUploadList } from '../components/PhotoUploadFiel
 import { usePartner } from '../context/PartnerContext'
 
 const STEPS = [
-  'Аймақ',
-  'Қызмет',
+  'Регион',
+  'Услуга',
   'Подуслуги',
-  'Деректер',
-  'Фото және ID',
-  'Техника / құрал',
-  'Тәжірибе',
-  'Келісім',
-  'Тексеру',
+  'Данные',
+  'Фото и ID',
+  'Техника / инструмент',
+  'Опыт',
+  'Согласие',
+  'Проверка',
 ]
 
 const EMPTY_VEHICLE = {
@@ -152,40 +152,40 @@ export default function SpecialistOnboardingPage() {
 
   const validateStep = () => {
     if (step === 0) {
-      if (!regions.length) return 'Аймақ тізімі жүктелмеді — API байланысын тексеріңіз'
-      if (!regionId || !cityId || !city.trim()) return 'Аймақ пен қала'
+      if (!regions.length) return 'Список регионов не загрузился — проверьте связь с API'
+      if (!regionId || !cityId || !city.trim()) return 'Укажите регион и город'
     }
     if (step === 1) {
-      if (mainsLoading) return 'Қызметтер жүктелуде…'
-      if (!mainServicesForCity.length) return 'Бұл қалада белсенді қызмет жоқ'
-      if (!mainServiceId || !availableMainServices.includes(mainServiceId)) return 'Қызметті таңдаңыз'
+      if (mainsLoading) return 'Услуги загружаются…'
+      if (!mainServicesForCity.length) return 'В этом городе нет активных услуг'
+      if (!mainServiceId || !availableMainServices.includes(mainServiceId)) return 'Выберите услугу'
     }
     if (step === 2) {
-      if (subsLoading) return 'Подуслугалар жүктелуде…'
-      if (!subs.length) return 'Бұл қалада белсенді подуслуга жоқ'
-      if (subserviceIds.size < 1) return 'Кем дегенде бір подуслуга'
+      if (subsLoading) return 'Подуслуги загружаются…'
+      if (!subs.length) return 'В этом городе нет активных подуслуг'
+      if (subserviceIds.size < 1) return 'Выберите хотя бы одну подуслугу'
     }
-    if (step === 3 && (!fullName.trim() || !phone.trim())) return 'Аты және телефон'
+    if (step === 3 && (!fullName.trim() || !phone.trim())) return 'Укажите имя и телефон'
     if (step === 4) {
-      if (!profilePhotoUrl.trim()) return 'Профиль фотосы'
-      if (!idCardFrontUrl.trim()) return 'ID алдыңғы жағы'
-      if (!idCardBackUrl.trim()) return 'ID артқы жағы'
+      if (!profilePhotoUrl.trim()) return 'Фото профиля'
+      if (!idCardFrontUrl.trim()) return 'ID: лицевая сторона'
+      if (!idCardBackUrl.trim()) return 'ID: обратная сторона'
     }
     if (step === 5) {
       if (needsVehicle) {
-        if (!vehicle.vehicleBrand.trim()) return 'Көлік маркасы'
-        if (!vehicle.licensePlate.trim()) return 'Мемлекеттік нөмір'
-        if (!vehicle.vehiclePhotoUrl.trim()) return 'Көлік фотосы'
-        if (!vehicle.registrationPhotoUrls.length) return 'Тіркеу фотолары'
-        if (!vehicle.driverLicensePhotoUrl.trim()) return 'ЖҚ фотосы'
+        if (!vehicle.vehicleBrand.trim()) return 'Марка транспорта'
+        if (!vehicle.licensePlate.trim()) return 'Госномер'
+        if (!vehicle.vehiclePhotoUrl.trim()) return 'Фото транспорта'
+        if (!vehicle.registrationPhotoUrls.length) return 'Фото регистрационных документов'
+        if (!vehicle.driverLicensePhotoUrl.trim()) return 'Фото водительского удостоверения'
       }
       if (needsTools) {
-        if (!equipmentUrls.length) return 'Жұмыс құралдары фотосы (кем дегенде 1)'
-        if (equipmentUrls.length > 3) return 'Ең көбі 3 фото'
+        if (!equipmentUrls.length) return 'Фото рабочих инструментов: минимум 1'
+        if (equipmentUrls.length > 3) return 'Максимум 3 фото'
       }
     }
     if (step === 7) {
-      if (!termsAccepted || !personalDataAccepted) return 'Келісімдерді қабылдаңыз'
+      if (!termsAccepted || !personalDataAccepted) return 'Примите согласия'
     }
     return null
   }
@@ -246,7 +246,7 @@ export default function SpecialistOnboardingPage() {
   const submit = async (e) => {
     e.preventDefault()
     if (!regionId?.trim()) {
-      setError('Аймақты таңдаңыз (қадам 3)')
+      setError('Выберите регион')
       return
     }
     const err = validateStep()
@@ -258,10 +258,10 @@ export default function SpecialistOnboardingPage() {
     try {
       await api.submitSpecialistApplication(buildPayload())
       await syncPartner()
-      notify('Маман өтінімі модерацияға жіберілді')
+      notify('Заявка специалиста отправлена на модерацию')
       navigate('/profile', { replace: true })
     } catch (submitErr) {
-      setError(submitErr?.message || 'Жіберу қатесі')
+      setError(submitErr?.message || 'Ошибка отправки')
     }
   }
 
@@ -271,20 +271,20 @@ export default function SpecialistOnboardingPage() {
 
   return (
     <form onSubmit={submit} className="gp-form-stack max-w-lg mx-auto pb-8 w-full">
-      <h1 className="text-xl font-bold text-[var(--gp-text)]">Маман өтінімі</h1>
+      <h1 className="text-xl font-bold text-[var(--gp-text)]">Заявка специалиста</h1>
       <p className="text-sm text-[var(--gp-text-muted)]">
-        Бір өтінім — бір негізгі қызмет. Фотоларды телефоннан немесе галереядан жүктеңіз.
+        Одна заявка — одна основная услуга. Фото можно загрузить с телефона или из галереи.
       </p>
 
       {location.state?.fromWhatsappLogin && (
         <p className="text-sm text-emerald-700 bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-3 py-2">
-          Кірдіңіз. Өтінімді толтырып модерацияға жіберіңіз.
+          Вы вошли. Заполните заявку и отправьте ее на модерацию.
         </p>
       )}
 
       {pendingForService && (
         <p className="text-sm text-amber-700 bg-amber-500/10 rounded-xl px-3 py-2">
-          {mainServiceId} бойынша өтінім тексеруде. Жаңасын жіберуге болмайды.
+          Заявка по услуге {mainServiceId} уже на проверке. Новую заявку отправить нельзя.
         </p>
       )}
 
@@ -317,7 +317,7 @@ export default function SpecialistOnboardingPage() {
               disabled={!regions.length}
             >
               {!regions.length ? (
-                <option value="">Аймақтар жүктелуде…</option>
+                <option value="">Регионы загружаются…</option>
               ) : (
                 regions.map((r) => (
                   <option key={r.id} value={r.id}>{r.name}</option>
@@ -326,7 +326,7 @@ export default function SpecialistOnboardingPage() {
             </select>
           </div>
           <div className="gp-form-field">
-            <label className="gp-form-label">Қала</label>
+            <label className="gp-form-label">Город</label>
             <CitySelector
               store={STATIC_GEO_STORE}
               value={{ oblastId: cityOblastId, cityId }}
@@ -339,7 +339,7 @@ export default function SpecialistOnboardingPage() {
             />
           </div>
           <div className="gp-form-field">
-            <label className="gp-form-label">Аудан (міндетті емес)</label>
+            <label className="gp-form-label">Район (необязательно)</label>
             <input className="gp-input-kaspi" value={district} onChange={(e) => setDistrict(e.target.value)} />
           </div>
         </>
@@ -347,10 +347,10 @@ export default function SpecialistOnboardingPage() {
 
       {step === 1 && (
         <div className="space-y-2">
-          {mainsLoading && <p className="text-sm text-[var(--gp-text-muted)]">Қызметтер жүктелуде…</p>}
+          {mainsLoading && <p className="text-sm text-[var(--gp-text-muted)]">Услуги загружаются…</p>}
           {!mainsLoading && !mainServicesForCity.length && (
             <p className="text-sm text-amber-700 bg-amber-500/10 rounded-xl px-3 py-2">
-              {city} қаласында белсенді қызмет табылмады.
+              В городе {city} активные услуги не найдены.
             </p>
           )}
           <div className="flex flex-wrap gap-2">
@@ -372,10 +372,10 @@ export default function SpecialistOnboardingPage() {
 
       {step === 2 && (
         <div className="space-y-2">
-          {subsLoading && <p className="text-sm text-[var(--gp-text-muted)]">Подуслугалар жүктелуде…</p>}
+          {subsLoading && <p className="text-sm text-[var(--gp-text-muted)]">Подуслуги загружаются…</p>}
           {!subsLoading && !subs.length && (
             <p className="text-sm text-amber-700 bg-amber-500/10 rounded-xl px-3 py-2">
-              {city} қалasında белсенді подуслуга табылмады.
+              В городе {city} активные подуслуги не найдены.
             </p>
           )}
           <div className="flex flex-wrap gap-2">
@@ -399,7 +399,7 @@ export default function SpecialistOnboardingPage() {
       {step === 3 && (
         <>
           <div className="gp-form-field">
-            <label className="gp-form-label">Толық аты</label>
+            <label className="gp-form-label">ФИО</label>
             <input className="gp-input-kaspi" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
           </div>
           <div className="gp-form-field">
@@ -411,16 +411,16 @@ export default function SpecialistOnboardingPage() {
 
       {step === 4 && (
         <>
-          <PhotoUploadField label="Профиль фотосы" value={profilePhotoUrl} onChange={setProfilePhotoUrl} kind="profile" onError={setError} />
-          <PhotoUploadField label="ID — алдыңғы жағы" value={idCardFrontUrl} onChange={setIdCardFrontUrl} kind="id_front" onError={setError} />
-          <PhotoUploadField label="ID — артқы жағы" value={idCardBackUrl} onChange={setIdCardBackUrl} kind="id_back" onError={setError} />
+          <PhotoUploadField label="Фото профиля" value={profilePhotoUrl} onChange={setProfilePhotoUrl} kind="profile" onError={setError} />
+          <PhotoUploadField label="ID — лицевая сторона" value={idCardFrontUrl} onChange={setIdCardFrontUrl} kind="id_front" onError={setError} />
+          <PhotoUploadField label="ID — обратная сторона" value={idCardBackUrl} onChange={setIdCardBackUrl} kind="id_back" onError={setError} />
         </>
       )}
 
       {step === 5 && needsVehicle && (
         <>
           <div className="gp-form-field">
-            <label className="gp-form-label">Көлік түрі</label>
+            <label className="gp-form-label">Тип транспорта</label>
             <input className="gp-input-kaspi" value={vehicle.vehicleType} onChange={(e) => setVehicle((v) => ({ ...v, vehicleType: e.target.value }))} />
           </div>
           <div className="gp-form-field">
@@ -428,22 +428,22 @@ export default function SpecialistOnboardingPage() {
             <input className="gp-input-kaspi" value={vehicle.vehicleBrand} onChange={(e) => setVehicle((v) => ({ ...v, vehicleBrand: e.target.value }))} required />
           </div>
           <div className="gp-form-field">
-            <label className="gp-form-label">Мемлекеттік нөмір</label>
+            <label className="gp-form-label">Госномер</label>
             <input className="gp-input-kaspi" value={vehicle.licensePlate} onChange={(e) => setVehicle((v) => ({ ...v, licensePlate: e.target.value }))} required />
           </div>
           <div className="gp-form-field">
-            <label className="gp-form-label">Цистерна көлемі</label>
+            <label className="gp-form-label">Объем цистерны</label>
             <input className="gp-input-kaspi" value={vehicle.tankVolume} onChange={(e) => setVehicle((v) => ({ ...v, tankVolume: e.target.value }))} />
           </div>
           <PhotoUploadField
-            label="Көлік фотосы"
+            label="Фото транспорта"
             value={vehicle.vehiclePhotoUrl}
             onChange={(val) => setVehicle((v) => ({ ...v, vehiclePhotoUrl: val }))}
             kind="vehicle"
             onError={setError}
           />
           <PhotoUploadList
-            label="Тіркеу құжаты фотолары"
+            label="Фото регистрационных документов"
             urls={vehicle.registrationPhotoUrls}
             onChange={(urls) => setVehicle((v) => ({ ...v, registrationPhotoUrls: urls }))}
             kind="registration"
@@ -451,11 +451,11 @@ export default function SpecialistOnboardingPage() {
             onError={setError}
           />
           <div className="gp-form-field">
-            <label className="gp-form-label">ЖҚ категориясы</label>
+            <label className="gp-form-label">Категория водительских прав</label>
             <input className="gp-input-kaspi" value={vehicle.driverLicenseCategory} onChange={(e) => setVehicle((v) => ({ ...v, driverLicenseCategory: e.target.value }))} />
           </div>
           <PhotoUploadField
-            label="Жүргізуші куәлігі"
+            label="Водительское удостоверение"
             value={vehicle.driverLicensePhotoUrl}
             onChange={(val) => setVehicle((v) => ({ ...v, driverLicensePhotoUrl: val }))}
             kind="driver_license"
@@ -466,7 +466,7 @@ export default function SpecialistOnboardingPage() {
 
       {step === 5 && needsTools && (
         <PhotoUploadList
-          label="Жұмыс құралдары / жабдық"
+          label="Рабочие инструменты / оборудование"
           urls={equipmentUrls}
           onChange={setEquipmentUrls}
           kind="equipment"
@@ -476,12 +476,12 @@ export default function SpecialistOnboardingPage() {
       )}
 
       {step === 5 && !needsVehicle && !needsTools && (
-        <p className="text-sm text-[var(--gp-text-muted)]">Бұл қызмет үшін қосымша техника фотосы қажет емес.</p>
+        <p className="text-sm text-[var(--gp-text-muted)]">Для этой услуги дополнительные фото техники не нужны.</p>
       )}
 
       {step === 6 && (
         <div className="gp-form-field">
-          <label className="gp-form-label">Жұмыс тәжірибесі (міндетті емес)</label>
+          <label className="gp-form-label">Опыт работы (необязательно)</label>
           <textarea className="gp-textarea-kaspi" value={workExperience} onChange={(e) => setWorkExperience(e.target.value)} rows={4} />
         </div>
       )}
@@ -490,34 +490,34 @@ export default function SpecialistOnboardingPage() {
         <div className="space-y-3 text-sm">
           <label className="flex gap-2 items-start">
             <input type="checkbox" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} />
-            <span>Пайдалану шарттарын қабылдаймын</span>
+            <span>Принимаю условия использования</span>
           </label>
           <label className="flex gap-2 items-start">
             <input type="checkbox" checked={personalDataAccepted} onChange={(e) => setPersonalDataAccepted(e.target.checked)} />
-            <span>Жеке деректерді өңдеуге келісемін</span>
+            <span>Согласен на обработку персональных данных</span>
           </label>
         </div>
       )}
 
       {step === 8 && (
         <dl className="text-sm space-y-2 bg-[var(--gp-surface-2)] rounded-xl p-4">
-          <div><dt className="text-[var(--gp-text-muted)]">Қызмет</dt><dd>{MAIN_SERVICES.find((m) => m.id === mainServiceId)?.label}</dd></div>
+          <div><dt className="text-[var(--gp-text-muted)]">Услуга</dt><dd>{MAIN_SERVICES.find((m) => m.id === mainServiceId)?.label}</dd></div>
           <div><dt className="text-[var(--gp-text-muted)]">Подуслуги</dt><dd>{subs.filter((s) => subserviceIds.has(s.id)).map((s) => s.label).join(', ') || '—'}</dd></div>
-          <div><dt className="text-[var(--gp-text-muted)]">Қала</dt><dd>{city}</dd></div>
-          <div><dt className="text-[var(--gp-text-muted)]">Аты</dt><dd>{fullName}</dd></div>
-          {resubmitRequestId && <div><dt className="text-[var(--gp-text-muted)]">Қайта жіберу</dt><dd className="text-xs break-all">{resubmitRequestId}</dd></div>}
+          <div><dt className="text-[var(--gp-text-muted)]">Город</dt><dd>{city}</dd></div>
+          <div><dt className="text-[var(--gp-text-muted)]">Имя</dt><dd>{fullName}</dd></div>
+          {resubmitRequestId && <div><dt className="text-[var(--gp-text-muted)]">Повторная отправка</dt><dd className="text-xs break-all">{resubmitRequestId}</dd></div>}
         </dl>
       )}
 
       <div className="flex gap-2 pt-2">
         {step > 0 && (
           <button type="button" onClick={back} className="flex-1 py-3 rounded-xl border border-[var(--gp-border)] font-bold">
-            Артқа
+            Назад
           </button>
         )}
         {step < STEPS.length - 1 ? (
           <button type="button" onClick={next} className="flex-1 py-3 rounded-xl gp-gradient-kaspi text-white font-bold">
-            Келесі
+            Далее
           </button>
         ) : (
           <button
@@ -525,7 +525,7 @@ export default function SpecialistOnboardingPage() {
             disabled={loading || Boolean(pendingForService)}
             className="flex-1 py-3 rounded-xl gp-gradient-kaspi text-white font-bold disabled:opacity-50"
           >
-            Модерацияға жіберу
+            Отправить на модерацию
           </button>
         )}
       </div>

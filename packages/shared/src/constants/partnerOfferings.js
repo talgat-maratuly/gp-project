@@ -62,6 +62,11 @@ export const PARTNER_REGISTRATION_GROUPS = [
     subs: [{ id: 'gp-nursery', label: 'Работы питомника / растения' }],
   },
   {
+    id: 'delivery',
+    title: 'GP Доставка',
+    subs: [{ id: 'gp-delivery', label: 'Перевозка растений и товаров' }],
+  },
+  {
     id: 'electrical',
     title: 'Электросети',
     subs: [

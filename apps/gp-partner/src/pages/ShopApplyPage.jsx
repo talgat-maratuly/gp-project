@@ -89,7 +89,7 @@ export default function ShopApplyPage() {
     <form onSubmit={submit} className="gp-form-stack max-w-lg mx-auto pb-8 w-full">
       <h1 className="text-xl font-bold text-[var(--gp-text)]">Заявка магазина / мебель</h1>
       <p className="text-sm text-[var(--gp-text-muted)]">
-        Маман қызметтері үшін «Маман өтінімі» бөлімін пайдаланыңыз.
+        Для услуг специалиста используйте раздел «Заявка специалиста».
       </p>
       {error && (
         <p className="text-sm text-red-600 font-medium bg-red-50 border border-red-200 rounded-xl px-3 py-2">

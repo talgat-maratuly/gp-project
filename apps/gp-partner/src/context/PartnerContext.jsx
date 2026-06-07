@@ -107,6 +107,7 @@ export function PartnerProvider({ children }) {
   const [products, setProducts] = useState([])
   const [productsLoading, setProductsLoading] = useState(false)
   const [productsError, setProductsError] = useState(null)
+  const [marketOrders, setMarketOrders] = useState([])
   const [transactions, setTransactions] = useState([])
   const [activeOrderId, setActiveOrderId] = useState(() => load(KEYS.activeOrder, null))
   const [loading, setLoading] = useState(false)
@@ -207,14 +208,33 @@ export function PartnerProvider({ children }) {
     setProductsLoading(true)
     setProductsError(null)
     try {
-      setProducts(await api.getProducts({ partnerId: user.partnerProfileId }))
+      const access = getPartnerAccess(user || {})
+      setProducts(
+        access.shopProducts
+          ? await api.getPartnerMarketProducts()
+          : await api.getProducts({ partnerId: user.partnerProfileId }),
+      )
     } catch (e) {
       setProductsError(e?.message || 'Не удалось загрузить товары')
       notify(e?.message || 'Не удалось загрузить товары')
     } finally {
       setProductsLoading(false)
     }
-  }, [user?.partnerProfileId, notify])
+  }, [user, notify])
+
+  const refreshMarketOrders = useCallback(async () => {
+    if (!getToken() || isDemoMode()) return
+    const access = getPartnerAccess(user || {})
+    if (!access.shop) {
+      setMarketOrders([])
+      return
+    }
+    try {
+      setMarketOrders(await api.getPartnerMarketOrders())
+    } catch {
+      setMarketOrders([])
+    }
+  }, [user])
 
   const refreshTransactions = useCallback(async () => {
     if (!getToken()) return
@@ -244,8 +264,9 @@ export function PartnerProvider({ children }) {
       refreshTransactions(),
       syncPartner(),
       refreshStores(),
+      refreshMarketOrders(),
     ])
-  }, [refreshOrders, refreshFeed, refreshProducts, refreshTransactions, syncPartner, refreshStores])
+  }, [refreshOrders, refreshFeed, refreshProducts, refreshTransactions, syncPartner, refreshStores, refreshMarketOrders])
 
   useEffect(() => {
     if (!user?.id) return
@@ -417,7 +438,7 @@ export function PartnerProvider({ children }) {
 
   const setOnline = useCallback(async (isOnline) => {
     const profile = await api.patchPartnerMe({ isOnline })
-    setUser((u) => (u ? { ...u, isOnline: partnerIsOnline(profile) } : u))
+    setUser((u) => (u ? { ...u, isOnline: partnerIsOnline(profile), workStatus: profile.workStatus } : u))
     if (partnerIsOnline(profile)) refreshFeed()
     else setFeed([])
   }, [refreshFeed])
@@ -564,14 +585,17 @@ export function PartnerProvider({ children }) {
     if (!Number.isFinite(stock) || stock < 0 || !Number.isInteger(stock)) {
       throw new Error('Остаток должен быть целым числом ≥ 0')
     }
-    const item = await api.createProduct({
+    const store = (user.stores || []).find((s) => s.status === 'APPROVED' || s.status === 'ACTIVE')
+    if (!store) throw new Error('Сначала дождитесь одобрения магазина')
+    const item = await api.createPartnerMarketProduct({
+      storeId: store.id,
       name,
       price,
-      stock,
-      category: p.categoryId || p.category || 'irrigation',
-      brand: user.company || 'Partner',
+      quantity: stock,
+      categoryId: p.categoryId || p.category || 'irrigation',
       description: p.description || '',
-      specifications: p.specifications || '',
+      images: p.images || [],
+      isActive: true,
     })
     await refreshProducts()
     await syncPartner()
@@ -606,12 +630,12 @@ export function PartnerProvider({ children }) {
   const value = {
     user, authReady, orders, ordersLoading, ordersError, newOrders, myOrders, activeOrders, activeOrder,
     feed, feedLoading, refreshFeed, acceptFromFeed,
-    products, productsLoading, productsError, transactions,
+    products, productsLoading, productsError, marketOrders, transactions,
     loading, toast, activeOrderId, setActiveOrderId,
     register, login, loginViaWhatsappOtp, logout, setOnline, addPartnerOfferings, saveCustomOffering, acceptOrder, advanceOrder, cancelOrder,
     updateOrderStatus: (orderId, status) => advanceOrder(orderId, status),
     isDemoMode: isDemoMode(),
-    refreshMarket: () => {},
+    refreshMarket: refreshMarketOrders,
     topupBalance, addProduct, refreshAll, refreshStores, updateExecutorLocation, notify,
     syncPartner,
     clearToast: () => setToast(null),

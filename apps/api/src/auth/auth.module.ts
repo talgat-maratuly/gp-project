@@ -6,20 +6,28 @@ import { AuthService } from './auth.service';
 import { MobileAuthController } from './mobile-auth.controller';
 import { MobileAuthService } from './mobile-auth.service';
 import { OtpDeliveryService } from './otp-delivery.service';
+import { EgovLegalVerificationService } from './egov-legal-verification.service';
 import { JwtStrategy } from './jwt.strategy';
 import { PartnersModule } from '../partners/partners.module';
+import { getJwtExpiresIn, getJwtSecret } from './jwt.config';
 
 @Module({
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'dev-secret',
-      signOptions: { expiresIn: process.env.JWT_EXPIRES_IN || '7d' },
+      secret: getJwtSecret(),
+      signOptions: { expiresIn: getJwtExpiresIn() },
     }),
     PartnersModule,
   ],
   controllers: [AuthController, MobileAuthController],
-  providers: [AuthService, MobileAuthService, OtpDeliveryService, JwtStrategy],
+  providers: [
+    AuthService,
+    MobileAuthService,
+    OtpDeliveryService,
+    EgovLegalVerificationService,
+    JwtStrategy,
+  ],
   exports: [AuthService, MobileAuthService, JwtModule, PassportModule],
 })
 export class AuthModule {}

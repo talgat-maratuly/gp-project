@@ -3,9 +3,11 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { ChevronLeft, Heart, ShoppingCart } from 'lucide-react'
 import { formatPrice, parseProductSpecifications } from '@gp/shared/utils'
 import { useService } from '../../context/ServiceContext'
+import { useLanguage } from '../../i18n'
 import Button from '../../components/ui/Button'
 
 export default function ProductPage() {
+  const { t } = useLanguage()
   const { id } = useParams()
   const navigate = useNavigate()
   const { getProductById, addToCart, toggleFavorite, isFavorite } = useService()
@@ -13,7 +15,7 @@ export default function ProductPage() {
   const product = getProductById(id)
 
   if (!product) {
-    return <div className="p-8 text-center"><Button onClick={() => navigate('/shop')}>В каталог</Button></div>
+    return <div className="p-8 text-center"><Button onClick={() => navigate('/shop')}>{t('to_catalog')}</Button></div>
   }
 
   const fav = isFavorite(product.id)
@@ -22,7 +24,7 @@ export default function ProductPage() {
   return (
     <div className="px-4 py-4">
       <button type="button" onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-gp-blue-600 mb-4">
-        <ChevronLeft className="w-4 h-4" /> Назад
+        <ChevronLeft className="w-4 h-4" /> {t('back')}
       </button>
       <div className="aspect-square rounded-2xl gp-gradient mb-4 flex items-center justify-center">
         <ShoppingCart className="w-16 h-16 text-white/40" />
@@ -33,14 +35,14 @@ export default function ProductPage() {
 
       {(product.description || '').trim().length > 0 && (
         <div className="mb-4">
-          <h2 className="text-sm font-semibold text-slate-800 mb-1">Описание</h2>
+          <h2 className="text-sm font-semibold text-slate-800 mb-1">{t('description')}</h2>
           <p className="text-slate-600 text-sm whitespace-pre-wrap">{product.description}</p>
         </div>
       )}
 
       {specRows.length > 0 && (
         <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-4">
-          <h2 className="text-sm font-semibold text-slate-800 mb-2">Характеристики</h2>
+          <h2 className="text-sm font-semibold text-slate-800 mb-2">{t('specifications')}</h2>
           <dl className="space-y-2 text-sm">
             {specRows.map((row, idx) => (
               <div
@@ -56,11 +58,11 @@ export default function ProductPage() {
       )}
 
       <div className="flex gap-2 mb-4">
-        <Button className="flex-1" disabled={!product.inStock} onClick={() => addToCart(product.id, qty)}>В корзину ×{qty}</Button>
+        <Button className="flex-1" disabled={!product.inStock} onClick={() => addToCart(product.id, qty)}>{t('add_to_cart')} ×{qty}</Button>
         <Button variant={fav ? 'danger' : 'secondary'} onClick={() => toggleFavorite(product.id)}><Heart className={fav ? 'fill-current' : ''} /></Button>
       </div>
       <Button variant="outline" className="w-full" disabled={!product.inStock} onClick={() => { addToCart(product.id, qty); navigate('/shop/checkout') }}>
-        Купить сейчас
+        {t('buy_now')}
       </Button>
     </div>
   )

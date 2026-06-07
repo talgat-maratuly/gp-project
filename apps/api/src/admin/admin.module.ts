@@ -6,6 +6,7 @@ import {
   PartnerModerationLegacyController,
   StoreModerationController,
 } from './partner-moderation.controller';
+import { UsersController } from './users.controller';
 import { PartnerModerationAdminService } from './partner-moderation.service';
 import { PartnersModule } from '../partners/partners.module';
 import { NotificationsModule } from '../notifications/notifications.module';
@@ -19,6 +20,7 @@ import { OrderLifecycleModule } from '../orders/order-lifecycle.module';
     PartnerModerationController,
     PartnerModerationLegacyController,
     StoreModerationController,
+    UsersController,
   ],
   providers: [AdminService, PartnerModerationAdminService],
 })

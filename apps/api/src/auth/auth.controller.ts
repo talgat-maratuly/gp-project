@@ -30,6 +30,11 @@ export class AuthController {
     return this.auth.login(dto);
   }
 
+  @Post('legal/company/check')
+  checkLegalCompany(@Body() body: { identifier: string; companyName?: string }) {
+    return this.auth.checkLegalCompany(body);
+  }
+
   @Post('forgot-password')
   forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.auth.forgotPassword(dto);
@@ -50,5 +55,21 @@ export class AuthController {
   @Get('me')
   me(@CurrentUser() user: { id: string }) {
     return this.auth.me(user.id);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Post('legal/ecp/bind')
+  bindLegalEcp(
+    @CurrentUser() user: { id: string },
+    @Body()
+    body: {
+      ownerType: 'DIRECTOR' | 'AUTHORIZED_EMPLOYEE';
+      subject: string;
+      signature?: string;
+      provider?: 'mock' | 'ncalayer' | 'egov_mobile';
+    },
+  ) {
+    return this.auth.bindLegalEcp(user.id, body);
   }
 }

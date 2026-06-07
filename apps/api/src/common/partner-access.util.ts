@@ -69,6 +69,9 @@ export function orderCategoriesForPartnerType(type: PartnerType | null | undefin
   switch (type) {
     case PartnerType.SHOP:
       return [OrderCategory.SHOP];
+    case PartnerType.NURSERY:
+    case PartnerType.DELIVERY:
+      return [];
     case PartnerType.SEPTIC_SERVICE:
       return [OrderCategory.SEPTIC];
     case PartnerType.LAWN_MOWING:
@@ -78,7 +81,6 @@ export function orderCategoriesForPartnerType(type: PartnerType | null | undefin
     case PartnerType.CLEANING_SERVICE:
       return [OrderCategory.LAWN, OrderCategory.FILTERS];
     case PartnerType.SPECIALIST:
-    case PartnerType.DELIVERY:
     case PartnerType.OTHER:
       return [
         OrderCategory.SEPTIC,

@@ -18,7 +18,7 @@ const PATH_TAB = {
 export default function MyShopPage() {
   const { t } = useLanguage()
   const { pathname } = useLocation()
-  const { isDemoMode, notify, refreshMarket, user, refreshStores } = usePartner()
+  const { isDemoMode, notify, refreshMarket, user, refreshStores, products: apiProducts, marketOrders } = usePartner()
   const [shop, setShop] = useState(null)
   const [products, setProducts] = useState([])
   const [orders, setOrders] = useState([])
@@ -39,8 +39,11 @@ export default function MyShopPage() {
   const [apiSaving, setApiSaving] = useState(false)
 
   useEffect(() => {
-    if (!isDemoMode) refreshStores?.()
-  }, [isDemoMode, refreshStores])
+    if (!isDemoMode) {
+      refreshStores?.()
+      refreshMarket?.()
+    }
+  }, [isDemoMode, refreshStores, refreshMarket])
 
   const load = async () => {
     if (!isDemoMode) return
@@ -123,10 +126,11 @@ export default function MyShopPage() {
 
   if (!isDemoMode) {
     const storeState = user?.storeUiState
+    const approvedStore = (user?.stores || []).find((s) => s.status === 'APPROVED' || s.status === 'ACTIVE')
     return (
-      <div className="partner-card p-6 text-center partner-muted space-y-3">
+      <div className="space-y-4">
         {storeState === 'NOT_REGISTERED' && (
-          <>
+          <div className="partner-card p-6 text-center partner-muted space-y-3">
             <p>{t('market_no_shop')}</p>
             <input
               className="gp-input-kaspi w-full text-left"
@@ -142,14 +146,60 @@ export default function MyShopPage() {
             >
               {apiSaving ? '…' : t('store_register')}
             </button>
+          </div>
+        )}
+        {storeState === 'UNDER_REVIEW' && <div className="partner-card p-6 text-center partner-muted"><p>{t('store_under_review')}</p></div>}
+        {storeState === 'REJECTED' && <div className="partner-card p-6 text-center partner-muted"><p>{t('store_rejected')}</p></div>}
+        {storeState === 'APPROVED' && (
+          <>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-xl font-bold">{approvedStore?.name || t('market_my_shop')}</h1>
+                <p className="text-sm partner-muted">{approvedStore?.region?.name || ''}</p>
+              </div>
+              <Link to="/catalog/add" className="px-3 py-2 rounded-xl partner-gradient text-white text-sm font-bold">{t('nav_add_product')}</Link>
+            </div>
+            <div className="flex gap-2">
+              {['products', 'orders'].map((id) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setTab(id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold border ${tab === id ? 'border-emerald-500 bg-emerald-500/15 text-emerald-700' : 'border-[var(--gp-border)] partner-muted'}`}
+                >
+                  {id === 'products' ? t('market_products') : t('market_orders')}
+                </button>
+              ))}
+            </div>
+            {tab === 'products' && (
+              <ul className="space-y-2">
+                {apiProducts.map((p) => (
+                  <li key={p.id} className="partner-card p-3 flex justify-between items-center gap-2">
+                    <div>
+                      <p className="font-bold">{p.name}</p>
+                      <p className="text-xs partner-muted">{p.categoryId} · {t('market_stock')}: {p.stock}</p>
+                    </div>
+                    <span className="text-emerald-600 font-bold">{formatPrice(p.price)}</span>
+                  </li>
+                ))}
+                {!apiProducts.length && <p className="partner-muted text-sm">{t('market_no_products')}</p>}
+              </ul>
+            )}
+            {tab === 'orders' && (
+              <ul className="space-y-2">
+                {marketOrders.map((o) => (
+                  <li key={o.id} className="partner-card p-3">
+                    <p className="font-bold">#{o.id.slice(0, 8)}</p>
+                    <p className="text-sm partner-muted">{o.customer?.name || 'Клиент'} · {formatPrice(o.total)}</p>
+                    <p className="text-xs mt-1">{t('status')}: {t(`market_status_${o.status}`)}</p>
+                  </li>
+                ))}
+                {!marketOrders.length && <p className="partner-muted text-sm">{t('market_no_orders')}</p>}
+              </ul>
+            )}
           </>
         )}
-        {storeState === 'UNDER_REVIEW' && <p>{t('store_under_review')}</p>}
-        {storeState === 'REJECTED' && <p>{t('store_rejected')}</p>}
-        {storeState === 'APPROVED' && (
-          <Link to="/catalog/add" className="text-emerald-600 font-semibold inline-block">{t('nav_add_product')}</Link>
-        )}
-        {!storeState && <p>{t('market_api_only')}</p>}
+        {!storeState && <div className="partner-card p-6 text-center partner-muted"><p>{t('market_api_only')}</p></div>}
       </div>
     )
   }

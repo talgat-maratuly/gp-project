@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { getServiceWebUrl } from '@gp/shared/constants'
 import { WhatsappOtpLogin } from '@gp/shared/auth/whatsappOtpLogin'
 import { useLanguage } from '@gp/shared/i18n'
@@ -7,22 +7,25 @@ import { usePartner } from '../context/PartnerContext'
 
 export default function PartnerLoginPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { t } = useLanguage()
   const { login, loginViaWhatsappOtp, logout, loading, user, authReady } = usePartner()
   const [loginMethod, setLoginMethod] = useState('whatsapp')
   const [error, setError] = useState('')
   const [form, setForm] = useState({ email: '', password: '' })
+  const from = location.state?.from || new URLSearchParams(location.search).get('from') || '/'
+  const allowPasswordlessTestLogin = import.meta.env.DEV || import.meta.env.VITE_GP_TEST_MODE === 'true'
 
   const handlePasswordLogin = async (e) => {
     e.preventDefault()
     setError('')
-    if (!form.email.trim() || !form.password) {
+    if (!form.email.trim() || (!allowPasswordlessTestLogin && !form.password)) {
       setError(t('partnerEnterEmailPassword'))
       return
     }
     try {
-      await login(form.email, form.password)
-      navigate('/', { replace: true })
+      await login(form.email, form.password || undefined)
+      navigate(from, { replace: true })
     } catch (err) {
       setError(err?.message || t('partnerLoginError'))
     }
@@ -96,7 +99,7 @@ export default function PartnerLoginPage() {
               buttonClassName="w-full py-3.5 rounded-2xl gp-gradient-kaspi text-white font-bold text-sm shadow-md disabled:opacity-50"
               onVerified={async () => {
                 await loginViaWhatsappOtp()
-                navigate('/', { replace: true })
+                navigate(from, { replace: true })
               }}
             />
           ) : (
@@ -120,6 +123,11 @@ export default function PartnerLoginPage() {
               <Link to="/forgot-password" className="text-xs text-emerald-400 hover:underline block">
                 {t('auth_forgot_link')}
               </Link>
+              {allowPasswordlessTestLogin && (
+                <p className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2">
+                  DEV/test: пароль можно оставить пустым, будет использован тестовый пароль.
+                </p>
+              )}
               <button
                 type="submit"
                 disabled={loading}

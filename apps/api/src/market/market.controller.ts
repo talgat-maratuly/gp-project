@@ -83,6 +83,14 @@ export class MarketController {
     return this.market.getProductPublic(id, region.id);
   }
 
+  @Get('orders')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.CLIENT)
+  @ApiBearerAuth()
+  orders(@CurrentUser() user: User) {
+    return this.market.listOrders(user);
+  }
+
   @Post('orders')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.CLIENT)

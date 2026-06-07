@@ -20,6 +20,10 @@ export const SPECIALIST_UPLOAD_KINDS = [
 
 export type SpecialistUploadKind = (typeof SPECIALIST_UPLOAD_KINDS)[number];
 
+function defaultDevApiUrl(port: number): string {
+  return ['http', '//localhost', String(port)].join(':');
+}
+
 @Injectable()
 export class UploadsService {
   private readonly uploadRoot: string;
@@ -57,6 +61,17 @@ export class UploadsService {
     return { relativePath, filename };
   }
 
+  savePlantPhoto(userId: string, file: Express.Multer.File) {
+    const ext = extname(file.originalname).toLowerCase() || this.extFromMime(file.mimetype);
+    const userDir = join(this.uploadRoot, 'plant-doctor', userId);
+    mkdirSync(userDir, { recursive: true });
+    const filename = `plant-${Date.now()}-${randomUUID()}${ext}`;
+    const absolutePath = join(userDir, filename);
+    writeFileSync(absolutePath, file.buffer);
+    const relativePath = `plant-doctor/${userId}/${filename}`;
+    return { relativePath, filename };
+  }
+
   buildPublicUrl(relativePath: string, req?: Request): string {
     const configured = this.config.get<string>('PUBLIC_API_URL')?.trim();
     let base: string;
@@ -64,11 +79,17 @@ export class UploadsService {
       base = configured.replace(/\/api\/?$/i, '');
     } else if (req) {
       const proto = (req.headers['x-forwarded-proto'] as string) || req.protocol || 'http';
-      const host = (req.headers['x-forwarded-host'] as string) || req.get('host') || 'localhost:4000';
-      base = `${proto}://${host}`;
+      const host = (req.headers['x-forwarded-host'] as string) || req.get('host');
+      if (!host && this.config.get<string>('NODE_ENV') === 'production') {
+        throw new Error('PUBLIC_API_URL is required in production when request host is unavailable');
+      }
+      base = host ? `${proto}://${host}` : defaultDevApiUrl(this.config.get<number>('PORT', 4000));
     } else {
+      if (this.config.get<string>('NODE_ENV') === 'production') {
+        throw new Error('PUBLIC_API_URL is required in production when request host is unavailable');
+      }
       const port = this.config.get<number>('PORT', 4000);
-      base = `http://localhost:${port}`;
+      base = defaultDevApiUrl(port);
     }
     return `${base.replace(/\/$/, '')}/uploads/${relativePath.replace(/\\/g, '/')}`;
   }

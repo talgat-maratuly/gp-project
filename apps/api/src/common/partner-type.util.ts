@@ -8,8 +8,9 @@ export const PARTNER_TYPE_DEFAULT_SUBSERVICES: Record<PartnerType, string[]> = {
   IRRIGATION_SERVICE: ['irrigation-tuning', 'irrigation-maintenance', 'irrigation-mount'],
   CLEANING_SERVICE: [],
   SHOP: [GP_SHOP_SUBSERVICE_ID],
+  NURSERY: ['gp-nursery'],
   SPECIALIST: [],
-  DELIVERY: [],
+  DELIVERY: ['gp-delivery'],
   OTHER: [],
 };
 
@@ -30,7 +31,7 @@ export function mainGroupIdToPartnerType(groupId: string): PartnerType | null {
     filters: PartnerType.SPECIALIST,
     pumps: PartnerType.SPECIALIST,
     shop: PartnerType.SHOP,
-    nursery: PartnerType.SHOP,
+    nursery: PartnerType.NURSERY,
     landscape: PartnerType.SPECIALIST,
     electrical: PartnerType.SPECIALIST,
     furniture: PartnerType.SPECIALIST,

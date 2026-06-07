@@ -15,6 +15,8 @@ function mapApiProject(p) {
     totalPrice: Number(p.totalPrice ?? 0),
     status: p.status,
     partnerId: p.partnerId,
+    hunter: p.hunter || null,
+    furniture: p.furniture || null,
   }
 }
 
@@ -73,6 +75,16 @@ export default function ServiceProjectsOrdersPage({ type }) {
             <p className="font-bold">{p.clientName}</p>
             <p className="text-sm partner-muted">{p.city} · {formatPrice(p.totalPrice)}</p>
             <p className="text-xs mt-1">{t('status')}: {p.status}</p>
+            {p.hunter && (
+              <div className="mt-2 rounded-xl bg-white/5 p-2 text-xs partner-muted space-y-1">
+                <p>{p.hunter.area} м² · {p.hunter.zones} зон · {(p.hunter.sprinklers || []).length} форсунок</p>
+                {(p.hunter.aiChecks || []).slice(0, 2).map((c) => (
+                  <p key={c.code} className={c.level === 'error' ? 'text-red-400' : c.level === 'warning' ? 'text-amber-400' : 'text-emerald-400'}>
+                    {c.message}
+                  </p>
+                ))}
+              </div>
+            )}
             {FLOW[p.status] && (
               <button type="button" className="mt-2 w-full py-2 rounded-xl partner-gradient text-white text-sm font-semibold" onClick={() => advance(p.id, p.status)}>
                 {t('market_next_status')}

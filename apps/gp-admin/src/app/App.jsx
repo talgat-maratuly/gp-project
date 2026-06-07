@@ -30,6 +30,9 @@ import QrDashboardPage from '../pages/QrDashboardPage'
 import QrCreatePage from '../pages/QrCreatePage'
 import QrDetailPage from '../pages/QrDetailPage'
 import AuthReturnRedirect from '../components/AuthReturnRedirect'
+import PlantDoctorAdminPage from '../pages/PlantDoctorAdminPage'
+import NurseryAdminPage from '../pages/NurseryAdminPage'
+import DeliveryAdminPage from '../pages/DeliveryAdminPage'
 
 export default function App() {
   const { user, ready } = useAuth()
@@ -71,6 +74,11 @@ export default function App() {
         <Route path="services" element={<ServiceTypesPage />} />
         <Route path="services/hunter-irrigation" element={<ServiceProjectsAdminPage type="hunter_irrigation" />} />
         <Route path="services/furniture" element={<ServiceProjectsAdminPage type="furniture" />} />
+        <Route path="services/plant-doctor" element={<PlantDoctorAdminPage />} />
+        <Route path="nursery" element={<NurseryAdminPage />} />
+        <Route path="nursery/*" element={<NurseryAdminPage />} />
+        <Route path="delivery" element={<DeliveryAdminPage />} />
+        <Route path="delivery/*" element={<DeliveryAdminPage />} />
         <Route path="discounts" element={<DiscountsPage />} />
         <Route path="finance" element={<FinancePage />} />
         <Route path="reviews" element={<ReviewsPage />} />

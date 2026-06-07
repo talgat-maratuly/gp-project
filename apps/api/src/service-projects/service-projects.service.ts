@@ -72,7 +72,8 @@ export class ServiceProjectsService {
 
   async createHunter(userId: string, dto: {
     photo?: string; length: number; width: number; waterSource: string;
-    pressure: number; waterFlow: number; submit?: boolean;
+    pressure: number; waterFlow: number; submit?: boolean; shape?: string; sotki?: number;
+    objects?: Record<string, unknown>[]; points?: Record<string, unknown>[]; drawing?: Record<string, unknown>;
   }) {
     const client = await this.clientProfileId(userId);
     const linked = await this.prisma.product.findMany({
@@ -93,20 +94,31 @@ export class ServiceProjectsService {
         hunter: {
           create: {
             photo: dto.photo,
+            shape: calc.shape,
+            lotAreaSotka: calc.lotAreaSotka,
             length: dto.length,
             width: dto.width,
             area: calc.area,
+            lawnArea: calc.lawnArea,
+            noWaterArea: calc.noWaterArea,
             waterSource: dto.waterSource,
             pressure: dto.pressure,
             waterFlow: dto.waterFlow,
             zones: calc.zones,
+            zonesPlan: calc.zonesPlan as Prisma.InputJsonValue,
             sprinklers: calc.sprinklers as Prisma.InputJsonValue,
             pipes: calc.pipes as Prisma.InputJsonValue,
             valves: calc.valves as Prisma.InputJsonValue,
             controller: calc.controller as Prisma.InputJsonValue,
+            filter: calc.filter as Prisma.InputJsonValue,
+            fittings: calc.fittings as Prisma.InputJsonValue,
+            pump: calc.pump as Prisma.InputJsonValue,
+            materials: calc.materials as Prisma.InputJsonValue,
+            market: calc.market as Prisma.InputJsonValue,
+            aiChecks: calc.aiChecks as Prisma.InputJsonValue,
             estimate: calc.estimate as Prisma.InputJsonValue,
             drawing2D: calc.drawing2D as Prisma.InputJsonValue,
-          },
+          } as any,
         },
       },
       include: { hunter: true },
@@ -162,28 +174,110 @@ export class ServiceProjectsService {
     return project;
   }
 
-  private calcHunter(dto: { length: number; width: number }, linked: { name: string; price: Prisma.Decimal }[]) {
-    const length = dto.length;
-    const width = dto.width;
-    const area = length * width;
-    const zones = Math.max(1, Math.ceil(area / 40));
-    const sprinklers = { count: zones * 2, item: linked[0]?.name || 'Hunter MP2000' };
-    const estimate = {
-      lines: [
-        { name: sprinklers.item, qty: sprinklers.count, price: Number(linked[0]?.price || 4200) },
-        { name: 'Монтаж GP', qty: 1, price: Math.round(area * 1200) },
-      ],
+  private calcHunter(dto: {
+    length: number; width: number; pressure?: number; waterFlow?: number; shape?: string; sotki?: number;
+    objects?: Record<string, unknown>[]; points?: Record<string, unknown>[];
+  }, linked: { id: string; name: string; price: Prisma.Decimal; stock: number; inStock: boolean; brand?: string | null; category: string }[]) {
+    const n = (v: unknown, fallback: number) => {
+      const num = Number(v);
+      return Number.isFinite(num) ? num : fallback;
     };
-    const total = estimate.lines.reduce((s, l) => s + l.qty * l.price, 0);
+    const length = Math.max(1, n(dto.length, 12));
+    const width = Math.max(1, n(dto.width, 8));
+    const shape = dto.shape || 'rectangle';
+    const grossArea = dto.sotki && dto.sotki > 0
+      ? dto.sotki * 100
+      : shape === 'circle'
+        ? Math.PI * Math.pow(length / 2, 2)
+        : shape === 'oval'
+          ? Math.PI * (length / 2) * (width / 2)
+          : shape === 'triangle'
+            ? (length * width) / 2
+            : length * width;
+    const objects = Array.isArray(dto.objects) ? dto.objects : [];
+    const noWaterArea = objects
+      .filter((o) => ['house', 'path', 'no_water'].includes(String(o.type || '')))
+      .reduce((sum, o) => sum + Math.max(0, n(o.areaSqm, String(o.type) === 'house' ? Math.min(80, grossArea * 0.22) : 8)), 0);
+    const area = Math.max(1, Math.round(grossArea - noWaterArea));
+    const pressure = Math.max(0.1, n(dto.pressure, 2.5));
+    const flow = Math.max(0.1, n(dto.waterFlow, 2));
+    const sprinklerProduct = linked.find((p) => /hunter|mp|pgp|sprinkler|форсун/i.test(`${p.name} ${p.brand || ''}`));
+    const sprinkler = {
+      name: sprinklerProduct?.name || (pressure < 2.1 ? 'Hunter PSU-200' : area > 180 ? 'Hunter PGP-04' : 'Hunter MP Rotator 2000'),
+      price: Number(sprinklerProduct?.price || (area > 180 ? 6800 : 4200)),
+      radiusM: area > 180 ? 6 : pressure < 2.1 ? 3 : 4,
+      flowM3h: area > 180 ? 0.55 : 0.18,
+      minPressureBar: area > 180 ? 2.5 : 2.1,
+      productId: sprinklerProduct?.id,
+    };
+    const sprinklerCoverage = Math.max(8, Math.PI * sprinkler.radiusM * sprinkler.radiusM * 0.55);
+    const sprinklerCount = Math.max(2, Math.ceil(area / sprinklerCoverage));
+    const maxPerZone = Math.max(1, Math.floor(flow / sprinkler.flowM3h));
+    const zones = Math.max(1, Math.ceil(area / 120), Math.ceil(sprinklerCount / maxPerZone));
+    const sprinklers = Array.from({ length: sprinklerCount }, (_, i) => ({
+      id: `spr-${i + 1}`,
+      name: sprinkler.name,
+      zone: (i % zones) + 1,
+      radiusM: sprinkler.radiusM,
+      x: ((i % Math.ceil(Math.sqrt(sprinklerCount))) + 0.5) * (length / Math.ceil(Math.sqrt(sprinklerCount))),
+      y: (Math.floor(i / Math.ceil(Math.sqrt(sprinklerCount))) + 0.5) * (width / Math.ceil(sprinklerCount / Math.ceil(Math.sqrt(sprinklerCount)))),
+    }));
+    const pipeMeters = Math.max(20, Math.round((length + width) * 2 + sprinklerCount * sprinkler.radiusM * 1.15 + zones * 8));
+    const needsPump = pressure < sprinkler.minPressureBar || flow < (sprinklerCount * sprinkler.flowM3h) / zones;
+    const pipe = { name: 'Труба ПНД 25 мм', unit: 'м', qty: pipeMeters, price: 450, type: 'pipe' };
+    const valves = [{ name: 'Клапан Hunter PGV', qty: zones, price: 8500, type: 'valve' }];
+    const controller = { name: `Контроллер Hunter X2 ${zones <= 4 ? 4 : zones <= 6 ? 6 : 8} зон`, qty: 1, price: 28500, type: 'controller' };
+    const filter = { name: 'Фильтр 120 mesh для автополива', qty: 1, price: 18000, type: 'filter' };
+    const fittings = { name: 'Фитинги ПНД 25 мм', qty: Math.max(10, sprinklerCount * 2 + zones * 3), price: 1200, type: 'fitting' };
+    const pump = needsPump ? { name: 'Насос для автополива', qty: 1, price: 65000, type: 'pump' } : null;
+    const materialLines = [
+      { name: sprinkler.name, qty: sprinklerCount, price: sprinkler.price, type: 'sprinkler', productId: sprinkler.productId },
+      pipe,
+      ...valves,
+      controller,
+      filter,
+      fittings,
+      ...(pump ? [pump] : []),
+    ];
+    const market = materialLines.map((line) => {
+      const productId = (line as any).productId;
+      const found = linked.find((p) => productId === p.id || line.name.toLowerCase().split(/\s+/).some((w) => w.length > 3 && p.name.toLowerCase().includes(w)));
+      const stock = found?.stock || 0;
+      return {
+        ...line,
+        market: found
+          ? { status: stock >= line.qty ? 'available' : stock > 0 ? 'partial' : 'missing', productId: found.id, productName: found.name, price: Number(found.price), quantity: stock, storeName: 'GP Market', requestToShop: stock < line.qty }
+          : { status: 'missing', message: 'нет в наличии', requestToShop: true },
+      };
+    });
+    const aiChecks = [
+      ...(objects.some((o) => String(o.type) === 'water_point') ? [] : [{ level: 'warning', code: 'water_point_missing', message: 'Не указана точка подключения воды.' }]),
+      ...(pressure < sprinkler.minPressureBar ? [{ level: 'error', code: 'low_pressure', message: 'Давления не хватает, нужен насос или другие форсунки.' }] : []),
+      ...(Math.ceil(sprinklerCount / maxPerZone) > Math.ceil(area / 120) ? [{ level: 'warning', code: 'low_flow', message: 'Расход воды ограничивает зону, расчёт разделён на дополнительные зоны.' }] : []),
+    ];
+    if (!aiChecks.length) aiChecks.push({ level: 'ok', code: 'mvp_ok', message: 'MVP-проверка без критичных ошибок. Подтвердит специалист.' });
+    const estimate = { lines: [...market, { name: 'Проверка и монтаж специалистом GP', qty: 1, price: Math.round(area * 1100), type: 'labor' }] };
+    const total = estimate.lines.reduce((s, l) => s + Number(l.qty || 1) * Number((l as any).market?.price || l.price || 0), 0);
     return {
+      shape,
+      lotAreaSotka: Number((grossArea / 100).toFixed(2)),
       area,
+      lawnArea: area,
+      noWaterArea: Math.round(noWaterArea),
       zones,
+      zonesPlan: Array.from({ length: zones }, (_, i) => ({ id: `zone-${i + 1}`, name: `Зона ${i + 1}`, areaSqm: Math.round(area / zones), sprinklers: sprinklers.filter((s) => s.zone === i + 1).length })),
       sprinklers,
-      pipes: [],
-      valves: [],
-      controller: { name: 'Hunter X2' },
-      estimate,
-      drawing2D: { length, width, zones },
+      pipes: [pipe],
+      valves,
+      controller,
+      filter,
+      fittings,
+      pump,
+      materials: market,
+      market,
+      aiChecks,
+      estimate: { ...estimate, subtotal: total, gpCommission: Math.round(total * 0.1), total },
+      drawing2D: { shape, length, width, zones, grossArea: Math.round(grossArea), lawnArea: area, noWaterArea: Math.round(noWaterArea), objects, sprinklers: sprinklers.map((s) => ({ x: s.x, y: s.y, zone: s.zone, radiusM: s.radiusM })) },
       total,
       gpCommission: Math.round(total * 0.1),
     };

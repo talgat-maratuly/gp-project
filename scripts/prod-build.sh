@@ -5,7 +5,7 @@ cd "$ROOT"
 
 echo "▶ GP production build"
 
-export VITE_API_URL="${VITE_API_URL:-https://api.gp-service.kz/api}"
+: "${VITE_API_URL:?Set VITE_API_URL, for example https://apigp.duckdns.org/api}"
 export VITE_GP_DEMO=false
 
 npm run build:api

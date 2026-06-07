@@ -6,7 +6,7 @@ type UserWithPartner = User & {
 
 /**
  * Legacy бір `Role` + partner статусынан PortalRole[] құрастыру.
- * `portalRoles` DB-де толтырылған болса — оны қолданыңыз (RbacService).
+ * RbacService merges this mapping with DB portalRoles to keep old seeded data usable.
  */
 export function mapLegacyToPortalRoles(user: UserWithPartner): PortalRole[] {
   const roles = new Set<PortalRole>([PortalRole.CLIENT]);

@@ -39,7 +39,7 @@ export const ADMIN_PANEL_ROLES = {
   SUPPORT: 'SUPPORT',
 }
 
-export const SHOP_MAIN_GROUP_IDS = new Set(['shop', 'nursery'])
+export const SHOP_MAIN_GROUP_IDS = new Set(['shop'])
 
 export function normalizePartnerRoleInput(role) {
   if (!role) return null
@@ -61,6 +61,8 @@ export function resolvePartnerRoleFromGroups(mainGroupIds = []) {
 
 export function resolvePartnerRoleFromType(partnerType) {
   if (partnerType === 'SHOP') return PARTNER_ROLES.SHOP
+  if (partnerType === 'NURSERY') return PARTNER_ROLES.SPECIALIST
+  if (partnerType === 'DELIVERY') return PARTNER_ROLES.SPECIALIST
   if (!partnerType) return null
   return PARTNER_ROLES.SPECIALIST
 }

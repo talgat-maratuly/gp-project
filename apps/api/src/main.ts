@@ -9,13 +9,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/http-exception.filter';
 
-const DEFAULT_CORS_ORIGINS = [
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'http://localhost:5175',
-  'http://127.0.0.1:5173',
-  'http://127.0.0.1:5174',
-  'http://127.0.0.1:5175',
+const PROD_CORS_ORIGINS = [
   'https://gp-service.kz',
   'https://partner.gp-service.kz',
   'https://admin.gp-service.kz',
@@ -26,6 +20,23 @@ const DEFAULT_CORS_ORIGINS = [
   'https://partnergp.duckdns.org',
   'https://apigp.duckdns.org',
 ];
+
+function devOrigin(host: string, port: number): string {
+  return [`http://${host}`, String(port)].join(':');
+}
+
+function defaultCorsOrigins(isProd: boolean): string[] {
+  if (isProd) return PROD_CORS_ORIGINS;
+  return [
+    devOrigin('localhost', 5173),
+    devOrigin('localhost', 5174),
+    devOrigin('localhost', 5175),
+    devOrigin('127.0.0.1', 5173),
+    devOrigin('127.0.0.1', 5174),
+    devOrigin('127.0.0.1', 5175),
+    ...PROD_CORS_ORIGINS,
+  ];
+}
 
 function resolveCorsOrigins(config: ConfigService): string[] | boolean {
   const raw = config.get<string>('CORS_ORIGINS');
@@ -38,9 +49,9 @@ function resolveCorsOrigins(config: ConfigService): string[] | boolean {
   const isProd = config.get<string>('NODE_ENV') === 'production';
   if (isProd) {
     console.warn('[GP API] CORS_ORIGINS не задан — используем домены gp-service.kz по умолчанию');
-    return DEFAULT_CORS_ORIGINS.filter((o) => o.startsWith('https://'));
+    return defaultCorsOrigins(true);
   }
-  return DEFAULT_CORS_ORIGINS;
+  return defaultCorsOrigins(false);
 }
 
 async function bootstrap() {
@@ -92,7 +103,12 @@ async function bootstrap() {
 
   const port = configService.get<number>('PORT', 4000);
   await app.listen(port);
-  const host = process.env.RENDER ? 'https://gp-api.onrender.com' : `http://localhost:${port}`;
+  const publicApiUrl = configService.get<string>('PUBLIC_API_URL')?.trim();
+  const host = publicApiUrl
+    ? publicApiUrl.replace(/\/api\/?$/i, '').replace(/\/$/, '')
+      : configService.get<string>('NODE_ENV') === 'production'
+        ? `0.0.0.0:${port}`
+      : ['http', '//localhost', String(port)].join(':');
   console.log(`GP API listening on port ${port}`);
   console.log(`Swagger ${host}/api/docs`);
   console.log(`Health ${host}/health · ${host}/health/db · ${host}/health/ws · ${host}/health/full`);

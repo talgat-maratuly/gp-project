@@ -29,10 +29,8 @@ export class RbacService {
   /** DB portalRoles немесе legacy mapping */
   resolvePortalRoles(user: UserWithProfiles): PortalRole[] {
     const stored = user.portalRoles?.filter(Boolean) ?? [];
-    if (stored.length > 0) {
-      return normalizePortalRoles(stored);
-    }
-    return mapLegacyToPortalRoles(user);
+    const legacy = mapLegacyToPortalRoles(user);
+    return normalizePortalRoles([...stored, ...legacy]);
   }
 
   attachEffectiveRoles<T extends UserWithProfiles>(user: T): T & { effectivePortalRoles: PortalRole[] } {

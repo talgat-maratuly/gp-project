@@ -1,5 +1,5 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Role, User } from '@prisma/client';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -26,5 +26,29 @@ export class MarketAdminController {
   ) {
     this.regionAccess.assertCanAccessRegion(user, regionId);
     return this.marketAdmin.listRegionOrders(regionId);
+  }
+
+  @Get('market/orders')
+  @ApiQuery({ name: 'regionId', required: false })
+  @ApiQuery({ name: 'storeId', required: false })
+  marketOrders(
+    @CurrentUser() user: User,
+    @Query('regionId') regionId?: string,
+    @Query('storeId') storeId?: string,
+  ) {
+    if (regionId) this.regionAccess.assertCanAccessRegion(user, regionId);
+    return this.marketAdmin.listOrders({
+      ...(!regionId ? this.regionAccess.regionWhere(user) : { regionId }),
+      ...(storeId ? { storeId } : {}),
+    });
+  }
+
+  @Get('market/stores')
+  @ApiQuery({ name: 'regionId', required: false })
+  marketStores(@CurrentUser() user: User, @Query('regionId') regionId?: string) {
+    if (regionId) this.regionAccess.assertCanAccessRegion(user, regionId);
+    return this.marketAdmin.listStores(
+      !regionId ? this.regionAccess.regionWhere(user) : { regionId },
+    );
   }
 }

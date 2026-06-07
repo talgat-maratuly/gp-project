@@ -96,7 +96,7 @@ export default function SubserviceTypesPage() {
       if (modal === 'new') {
         await api.adminCreateSubservice(payload)
       } else {
-        await api.adminUpdateSubservice(modal, payload)
+        await api.adminUpdateStandaloneSubservice(modal, payload)
       }
       setModal(null)
       setFormError('')
@@ -108,7 +108,7 @@ export default function SubserviceTypesPage() {
 
   const remove = async (id) => {
     if (!window.confirm(t('confirmDelete'))) return
-    await api.adminRemoveSubservice(id)
+    await api.adminRemoveStandaloneSubservice(id)
     await load()
   }
 

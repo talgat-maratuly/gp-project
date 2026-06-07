@@ -30,7 +30,25 @@ export function isServicePartner(user, opts = {}) {
 
 /** Нижнее меню */
 export function getPartnerBottomNav(user, { isDemoMode = false } = {}) {
-  const { shop, service, partnerType } = getPartnerAccess(user || {}, { isDemoMode })
+  const { shop, service, nursery, delivery, partnerType } = getPartnerAccess(user || {}, { isDemoMode })
+
+  if (nursery) {
+    return [
+      { to: '/', icon: 'LayoutDashboard', labelKey: 'nav_home', end: true },
+      { to: '/nursery/requests', icon: 'ClipboardList', labelKey: 'nursery_requests' },
+      { to: '/nursery/products', icon: 'Trees', labelKey: 'nursery_products' },
+      { to: '/profile', icon: 'User', labelKey: 'nav_profile' },
+    ]
+  }
+
+  if (delivery) {
+    return [
+      { to: '/', icon: 'LayoutDashboard', labelKey: 'nav_home', end: true },
+      { to: '/delivery/orders', icon: 'ClipboardList', labelKey: 'delivery_orders' },
+      { to: '/delivery/routes', icon: 'Truck', labelKey: 'delivery_routes' },
+      { to: '/profile', icon: 'User', labelKey: 'nav_profile' },
+    ]
+  }
 
   if (!shop && !service) {
     return [
@@ -66,8 +84,8 @@ export function getPartnerBottomNav(user, { isDemoMode = false } = {}) {
 }
 
 export function getAllowedPathPrefixes(user, opts = {}) {
-  const { shop, service, partnerType } = getPartnerAccess(user || {}, opts)
-  const common = ['/apply', '/apply/specialist', '/profile']
+  const { shop, service, nursery, delivery, partnerType } = getPartnerAccess(user || {}, opts)
+  const common = ['/apply', '/apply/specialist', '/apply/nursery', '/apply/delivery', '/profile']
 
   const prefixes = ['/']
 
@@ -84,6 +102,12 @@ export function getAllowedPathPrefixes(user, opts = {}) {
       '/payouts',
     )
     if (partnerType === 'SEPTIC_SERVICE') prefixes.push('/map')
+  }
+  if (nursery) {
+    prefixes.push('/nursery')
+  }
+  if (delivery) {
+    prefixes.push('/delivery')
   }
 
   return [...new Set([...prefixes, ...common])]
@@ -102,6 +126,7 @@ export function getServiceDashboardLinks(user) {
   const type = user?.partnerType
   const base = [
     { to: '/orders', labelKey: 'nav_orders' },
+    { to: '/orders/plant-doctor', labelKey: 'plant_doctor_cases' },
     { to: '/services', labelKey: 'nav_my_services' },
     { to: '/services/add', labelKey: 'nav_add_service' },
     { to: '/schedule', labelKey: 'nav_schedule' },
@@ -132,6 +157,14 @@ export function getShopOnlyPaths() {
   return ['/shop', '/catalog', '/cabinet']
 }
 
+export function getNurseryOnlyPaths() {
+  return ['/nursery']
+}
+
+export function getDeliveryOnlyPaths() {
+  return ['/delivery']
+}
+
 export function getServiceOnlyPaths() {
   return [
     '/orders',
@@ -152,6 +185,18 @@ export function pathRequiresShop(pathname) {
 
 export function pathRequiresService(pathname) {
   return getServiceOnlyPaths().some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  )
+}
+
+export function pathRequiresNursery(pathname) {
+  return getNurseryOnlyPaths().some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  )
+}
+
+export function pathRequiresDelivery(pathname) {
+  return getDeliveryOnlyPaths().some(
     (p) => pathname === p || pathname.startsWith(`${p}/`),
   )
 }

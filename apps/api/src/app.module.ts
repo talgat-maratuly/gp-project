@@ -26,6 +26,11 @@ import { SpecialistRequestsModule } from './specialist-requests/specialist-reque
 import { SpecialistOnboardingModule } from './specialist-onboarding/specialist-onboarding.module';
 import { FranchiseCatalogModule } from './franchise-catalog/franchise-catalog.module';
 import { UploadsModule } from './uploads/uploads.module';
+import { AiAssistantModule } from './ai-assistant/ai-assistant.module';
+import { PlantDoctorModule } from './plant-doctor/plant-doctor.module';
+import { AvailabilityModule } from './availability/availability.module';
+import { NurseryModule } from './nursery/nursery.module';
+import { GpDeliveryModule } from './gp-delivery/gp-delivery.module';
 
 @Module({
   controllers: [HealthController],
@@ -63,6 +68,11 @@ import { UploadsModule } from './uploads/uploads.module';
     MarketModule,
     QrModule,
     FurnitureExecutorModule,
+    AiAssistantModule,
+    PlantDoctorModule,
+    AvailabilityModule,
+    NurseryModule,
+    GpDeliveryModule,
   ],
 })
 export class AppModule {}

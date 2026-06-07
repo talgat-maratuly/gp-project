@@ -1,10 +1,11 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { OrderActorRole, OrderStatus, Prisma, SepticStage } from '@prisma/client';
+import { OrderActorRole, OrderStatus, Prisma, SepticStage, WorkStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { GeoGateway } from '../geo/geo.gateway';
 import { ORDER_STATUS_UI, SEPTIC_STAGE_UI } from '../common/order-status-ui.util';
 import { OrderEventLogService } from './order-event-log.service';
+import { AvailabilityService } from '../availability/availability.service';
 import {
   assertTransition,
   isCancelStatus,
@@ -41,6 +42,7 @@ export class OrderLifecycleService {
     private notifications: NotificationsService,
     private events: OrderEventLogService,
     private gateway: GeoGateway,
+    private availability: AvailabilityService,
   ) {}
 
   async transition(params: TransitionParams) {
@@ -79,9 +81,40 @@ export class OrderLifecycleService {
       reason: params.reason,
       fromStatus: order.status,
     });
+    await this.syncPartnerWorkStatus(updated);
     this.broadcast(updated.id, updated.status, updated.septicStage);
 
     return updated;
+  }
+
+  private async syncPartnerWorkStatus(order: { id: string; assignedPartnerId: string | null; status: OrderStatus }) {
+    if (!order.assignedPartnerId) return;
+    if (order.status === OrderStatus.ACCEPTED || order.status === OrderStatus.ON_WAY) {
+      await this.availability.recordStatus(order.assignedPartnerId, WorkStatus.ON_ROUTE, {
+        orderId: order.id,
+        reason: 'order_on_route',
+      });
+      return;
+    }
+    if (order.status === OrderStatus.IN_PROCESS) {
+      await this.availability.recordStatus(order.assignedPartnerId, WorkStatus.BUSY, {
+        orderId: order.id,
+        reason: 'order_in_process',
+      });
+      return;
+    }
+    if (
+      order.status === OrderStatus.COMPLETED ||
+      order.status === OrderStatus.CANCELED_BY_CLIENT ||
+      order.status === OrderStatus.CANCELED_BY_SPEC ||
+      order.status === OrderStatus.NO_SHOW ||
+      order.status === OrderStatus.EXPIRED
+    ) {
+      await this.availability.recordStatus(order.assignedPartnerId, WorkStatus.ONLINE, {
+        orderId: order.id,
+        reason: 'order_finished',
+      });
+    }
   }
 
   /** Только realtime-уведомление о подстатусе септика (статус не меняется). */

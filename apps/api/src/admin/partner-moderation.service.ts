@@ -9,6 +9,7 @@ import {
   User,
 } from '@prisma/client';
 import { RegionAccessService } from '../common/region-access.service';
+import { isServicePartnerProfile } from '../common/partner-access.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { PartnersService } from '../partners/partners.service';
 import { RbacService } from '../rbac/rbac.service';
@@ -187,7 +188,14 @@ export class PartnerModerationAdminService {
 
     await this.partners.syncDirectionsFromOfferings(partnerId);
     await this.partners.syncServiceAccessFromOfferings(partnerId);
-    await this.rbac.onSpecialistApproved(profile.userId);
+    if (isServicePartnerProfile(profile)) {
+      await this.rbac.onSpecialistApproved(profile.userId);
+    } else {
+      await this.prisma.user.update({
+        where: { id: profile.userId },
+        data: { portalRoles: { set: [PortalRole.CLIENT] } },
+      });
+    }
     await this.accountStatus.systemEnsureActive(
       profile.userId,
       'Specialist application approved by admin',

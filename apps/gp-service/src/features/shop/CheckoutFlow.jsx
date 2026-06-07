@@ -87,7 +87,7 @@ export default function CheckoutFlow() {
       if (order) navigate(`/orders?success=${order.id}`)
     } catch (err) {
       if (String(err?.message || '').includes('Войдите') || String(err?.message || '').includes(t('auth_required'))) {
-        navigate('/login')
+        navigate('/login?from=%2Fshop%2Fcheckout', { state: { from: '/shop/checkout' } })
       }
     } finally {
       setProcessing(false)

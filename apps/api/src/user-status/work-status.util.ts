@@ -1,7 +1,7 @@
 import { WorkStatus } from '@prisma/client';
 
 export function workStatusToLegacyOnline(workStatus: WorkStatus): boolean {
-  return workStatus === WorkStatus.ONLINE;
+  return workStatus !== WorkStatus.OFFLINE;
 }
 
 export function legacyOnlineToWorkStatus(isOnline: boolean): WorkStatus {

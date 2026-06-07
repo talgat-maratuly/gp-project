@@ -1,4 +1,4 @@
-# Production stack: PostgreSQL + GP API
+# Production stack: PostgreSQL + GP API + 3 frontend apps
 # Usage: docker compose -f deploy/docker-compose.prod.yml --env-file apps/api/.env.production up -d
 
 services:
@@ -41,12 +41,57 @@ services:
       OTP_STORE_REVIEW_CODE: ${OTP_STORE_REVIEW_CODE:-}
       OTP_DEV_BYPASS_ENABLED: ${OTP_DEV_BYPASS_ENABLED:-false}
       OTP_DEV_BYPASS_CODE: ${OTP_DEV_BYPASS_CODE:-777777}
-      PUBLIC_API_URL: ${PUBLIC_API_URL:-}
+      PUBLIC_API_URL: ${PUBLIC_API_URL:?set PUBLIC_API_URL}
       UPLOAD_DIR: /app/uploads
     ports:
-      - '4000:4000'
+      - '127.0.0.1:${GP_API_PORT:-4000}:4000'
     volumes:
       - gp_uploads_prod:/app/uploads
+    networks:
+      - gp-net
+
+  gp-service:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.frontend
+      args:
+        GP_APP: service
+        VITE_API_URL: ${VITE_API_URL:?set VITE_API_URL}
+        VITE_APP_NAME: service
+    container_name: gp-service-prod
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:${GP_SERVICE_PORT:-5173}:80'
+    networks:
+      - gp-net
+
+  gp-partner:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.frontend
+      args:
+        GP_APP: partner
+        VITE_API_URL: ${VITE_API_URL:?set VITE_API_URL}
+        VITE_APP_NAME: partner
+    container_name: gp-partner-prod
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:${GP_PARTNER_PORT:-5174}:80'
+    networks:
+      - gp-net
+
+  gp-admin:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.frontend
+      args:
+        GP_APP: admin
+        VITE_API_URL: ${VITE_API_URL:?set VITE_API_URL}
+        VITE_APP_NAME: admin
+    container_name: gp-admin-prod
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:${GP_ADMIN_PORT:-5175}:80'
     networks:
       - gp-net
 

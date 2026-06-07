@@ -22,6 +22,7 @@ import { OrderLifecycleService } from '../orders/order-lifecycle.service';
 import { GeofenceService } from './geofence.service';
 import { GeoGateway } from './geo.gateway';
 import { GpsPointDto } from './dto/gps-point.dto';
+import { AvailabilityService } from '../availability/availability.service';
 
 @Injectable()
 export class GpsTrackingService {
@@ -31,6 +32,7 @@ export class GpsTrackingService {
     private geofence: GeofenceService,
     private gateway: GeoGateway,
     private lifecycle: OrderLifecycleService,
+    private availability: AvailabilityService,
   ) {}
 
   async ingestGps(userId: string, dto: GpsPointDto) {
@@ -77,6 +79,10 @@ export class GpsTrackingService {
     await this.prisma.partnerProfile.update({
       where: { id: profile.id },
       data: { lat: dto.lat, lng: dto.lng },
+    });
+    await this.availability.recordLocation(profile.id, dto.lat, dto.lng, {
+      orderId: order.id,
+      visibleToClient: true,
     });
 
     const zones = await this.geofence.listActive();
@@ -246,6 +252,10 @@ export class GpsTrackingService {
     await this.prisma.partnerProfile.update({
       where: { id: partnerId },
       data: { lat: dto.lat, lng: dto.lng },
+    });
+    await this.availability.recordLocation(partnerId, dto.lat, dto.lng, {
+      orderId: order.id,
+      visibleToClient: true,
     });
     await this.prisma.order.update({
       where: { id: order.id },

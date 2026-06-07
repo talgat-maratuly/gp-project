@@ -4,11 +4,12 @@ import {
   setToken,
   clearToken,
   setRefreshToken,
+  getRefreshToken,
   clearRefreshToken,
   getDeviceId,
 } from './token.js'
 import { persistAuthSession, clearAuthSession, getWebDeviceMeta } from './authSession.js'
-import { mapOrder, mapProduct, mapPartnerUser } from './mappers.js'
+import { mapOrder, mapProduct, mapPartnerUser, mapMarketOrder } from './mappers.js'
 
 function withDeviceSession(body = {}) {
   const deviceId = getDeviceId()
@@ -32,6 +33,19 @@ export const api = {
       persistAuthSession(r, { deviceId: body?.deviceId || getDeviceId() })
       return r
     }),
+
+  refreshSession: () => {
+    const refreshToken = getRefreshToken()
+    if (!refreshToken) return Promise.reject(new Error('NO_REFRESH_SESSION'))
+    return post(
+      '/auth/mobile/refresh',
+      { refreshToken, deviceId: getDeviceId(), sessionRole: 'CLIENT' },
+      { auth: false },
+    ).then((r) => {
+      persistAuthSession(r, { deviceId: getDeviceId() })
+      return r
+    })
+  },
 
   registerClient: (body) =>
     post('/auth/register/client', withDeviceSession(body), { auth: false }).then((r) => {
@@ -64,12 +78,23 @@ export const api = {
 
   me: () => get('/auth/me'),
 
+  bindLegalEcp: (body) => post('/auth/legal/ecp/bind', body),
+
+  checkLegalCompany: (body) => post('/auth/legal/company/check', body, { auth: false }),
+
   getProducts: async (params = {}) => {
     const q = new URLSearchParams(params).toString()
     const list = await get(`/products${q ? `?${q}` : ''}`, { auth: false })
     if (!Array.isArray(list)) throw new Error('Ожидался массив товаров от API')
     return list.map(mapProduct)
   },
+
+  getServiceAvailability: (params = {}) => {
+    const q = new URLSearchParams(params).toString()
+    return get(`/availability/services${q ? `?${q}` : ''}`, { auth: false })
+  },
+
+  adminAvailabilitySummary: () => get('/availability/admin/summary'),
 
   createProduct: (body) => post('/products', body).then(mapProduct),
 
@@ -120,6 +145,87 @@ export const api = {
 
   createOrder: (body) =>
     post('/orders', body).then((o) => mapOrder(o, { forClient: true })),
+
+  createMarketOrder: (body) =>
+    post('/market/orders', body).then(mapMarketOrder),
+
+  getMarketOrders: async () => {
+    const list = await get('/market/orders')
+    if (!Array.isArray(list)) return []
+    return list.map(mapMarketOrder)
+  },
+
+  getNurseryProducts: (params = {}) => {
+    const q = new URLSearchParams(params).toString()
+    return get(`/nursery/products${q ? `?${q}` : ''}`, { auth: false })
+  },
+
+  createNurseryRequest: (body) => post('/nursery/requests', body),
+
+  getMyNurseryRequests: () => get('/nursery/requests/mine'),
+
+  acceptNurseryOffer: (id) => patch(`/nursery/offers/${id}/accept`, {}),
+
+  createGrowingPreorder: (body) => post('/nursery/preorders', body),
+
+  getMyGrowingPreorders: () => get('/nursery/preorders/mine'),
+
+  acceptGrowingPreorderOffer: (id) => patch(`/nursery/preorder-offers/${id}/accept`, {}),
+
+  partnerNurseryApply: (body) => post('/partner/nursery/apply', body),
+
+  partnerNurseryMe: () => get('/partner/nursery/me'),
+
+  partnerNurseryProducts: () => get('/partner/nursery/products'),
+
+  partnerNurseryCreateProduct: (body) => post('/partner/nursery/products', body),
+
+  partnerNurseryRequestFeed: () => get('/partner/nursery/requests/feed'),
+
+  partnerNurseryCreateOffer: (requestId, body) => post(`/partner/nursery/requests/${requestId}/offers`, body),
+
+  partnerGrowingPreorderFeed: () => get('/partner/nursery/preorders/feed'),
+
+  partnerGrowingPreorderOffer: (preorderId, body) => post(`/partner/nursery/preorders/${preorderId}/offers`, body),
+
+  getDeliveryRoutes: (params = {}) => {
+    const q = new URLSearchParams(params).toString()
+    return get(`/delivery/routes${q ? `?${q}` : ''}`, { auth: false })
+  },
+
+  createDeliveryOrder: (body) => post('/delivery/orders', body),
+
+  getMyDeliveryOrders: () => get('/delivery/orders/mine'),
+
+  acceptDeliveryOffer: (id) => patch(`/delivery/offers/${id}/accept`, {}),
+
+  partnerDeliveryApply: (body) => post('/partner/delivery/apply', body),
+
+  partnerDeliveryMe: () => get('/partner/delivery/me'),
+
+  partnerDeliveryCreateRoute: (body) => post('/partner/delivery/routes', body),
+
+  partnerDeliveryOrderFeed: () => get('/partner/delivery/orders/feed'),
+
+  partnerDeliveryCreateOffer: (orderId, body) => post(`/partner/delivery/orders/${orderId}/offers`, body),
+
+  adminNurseryPartners: (status) => get(`/admin/nursery/partners${status ? `?status=${encodeURIComponent(status)}` : ''}`),
+
+  adminApproveNursery: (id) => patch(`/admin/nursery/partners/${id}/approve`, {}),
+
+  adminRejectNursery: (id) => patch(`/admin/nursery/partners/${id}/reject`, {}),
+
+  adminNurseryRequests: () => get('/admin/nursery/requests'),
+
+  adminGrowingPreorders: () => get('/admin/nursery/preorders'),
+
+  adminDeliveryPartners: (status) => get(`/admin/delivery/partners${status ? `?status=${encodeURIComponent(status)}` : ''}`),
+
+  adminApproveDeliveryPartner: (id) => patch(`/admin/delivery/partners/${id}/approve`, {}),
+
+  adminRejectDeliveryPartner: (id) => patch(`/admin/delivery/partners/${id}/reject`, {}),
+
+  adminDeliveryOrders: () => get('/admin/delivery/orders'),
 
   updateOrderStatus: (id, body) =>
     patch(`/orders/${id}/status`, body).then((o) => mapOrder(o, { forClient: false })),
@@ -182,6 +288,27 @@ export const api = {
     fd.append('file', file)
     return uploadForm(`/uploads/specialist-photo?kind=${encodeURIComponent(kind)}`, fd)
   },
+
+  createPlantCase: (file, body = {}) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    if (body.city) fd.append('city', body.city)
+    if (body.description) fd.append('description', body.description)
+    return uploadForm('/plant-doctor/cases', fd)
+  },
+
+  getMyPlantCases: () => get('/plant-doctor/cases/mine'),
+
+  getPartnerPlantCases: () => get('/plant-doctor/partner/cases'),
+
+  acceptPartnerPlantCase: (id) => patch(`/plant-doctor/partner/cases/${id}/accept`, {}),
+
+  confirmPartnerPlantCase: (id, body) => patch(`/plant-doctor/partner/cases/${id}/confirm`, body),
+
+  adminPlantCases: () => get('/plant-doctor/admin/cases'),
+
+  adminApprovePlantCase: (id, addToKnowledgeBase = false) =>
+    patch(`/plant-doctor/admin/cases/${id}/approve`, { addToKnowledgeBase }),
 
   moderatorListSpecialistRequests: (opts = {}) => {
     const params = new URLSearchParams()
@@ -296,6 +423,14 @@ export const api = {
 
   adminClients: () => get('/admin/clients'),
 
+  adminLegalClients: (status) => {
+    const q = status ? `?status=${encodeURIComponent(status)}` : ''
+    return get(`/admin/clients/legal${q}`)
+  },
+
+  adminUpdateLegalClient: (clientProfileId, body) =>
+    patch(`/admin/clients/legal/${clientProfileId}`, body),
+
   adminPartners: () => get('/admin/partners'),
 
   adminOrders: () => get('/admin/orders'),
@@ -316,6 +451,21 @@ export const api = {
     return get(`/admin/market/products${q}`)
   },
 
+  adminMarketOrders: (opts = {}) => {
+    const params = new URLSearchParams()
+    if (opts.regionId) params.set('regionId', opts.regionId)
+    if (opts.storeId) params.set('storeId', opts.storeId)
+    const q = params.toString() ? `?${params.toString()}` : ''
+    return get(`/admin/market/orders${q}`).then((list) => (Array.isArray(list) ? list.map(mapMarketOrder) : []))
+  },
+
+  adminMarketStores: (opts = {}) => {
+    const params = new URLSearchParams()
+    if (opts.regionId) params.set('regionId', opts.regionId)
+    const q = params.toString() ? `?${params.toString()}` : ''
+    return get(`/admin/market/stores${q}`)
+  },
+
   adminCreateMarketProduct: (body) => post('/admin/market/products', body),
 
   adminModerateMarketProduct: (productId, body) =>
@@ -324,6 +474,18 @@ export const api = {
   listPartnerStores: () => get('/partner/stores'),
 
   createPartnerStore: (body) => post('/partner/stores', body),
+
+  getPartnerMarketOrders: () =>
+    get('/partner/market/orders').then((list) => (Array.isArray(list) ? list.map(mapMarketOrder) : [])),
+
+  getPartnerMarketProducts: () =>
+    get('/partner/products').then((list) => (Array.isArray(list) ? list.map(mapProduct) : [])),
+
+  createPartnerMarketProduct: (body) =>
+    post('/partner/products', body).then(mapProduct),
+
+  updatePartnerMarketProduct: (id, body) =>
+    patch(`/partner/products/${id}`, body).then(mapProduct),
 
   adminOfferings: (status, opts = {}) => {
     const params = new URLSearchParams()
@@ -429,9 +591,9 @@ export const api = {
 
   adminCreateSubservice: (body) => post('/admin/subservices', body),
 
-  adminUpdateSubservice: (id, body) => patch(`/admin/subservices/${id}`, body),
+  adminUpdateStandaloneSubservice: (id, body) => patch(`/admin/subservices/${id}`, body),
 
-  adminRemoveSubservice: (id) => del(`/admin/subservices/${id}`),
+  adminRemoveStandaloneSubservice: (id) => del(`/admin/subservices/${id}`),
 
   adminCityPrices: (opts = {}) => {
     const params = new URLSearchParams()
@@ -497,4 +659,4 @@ export const api = {
   },
 }
 
-export { getToken, setToken, clearToken, setRefreshToken, clearRefreshToken, mapOrder, mapProduct, mapPartnerUser, request, get, post, patch, del }
+export { getToken, setToken, clearToken, setRefreshToken, clearRefreshToken, mapOrder, mapProduct, mapMarketOrder, mapPartnerUser, request, get, post, patch, del }

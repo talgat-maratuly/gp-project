@@ -12,3 +12,14 @@ export class RegionsController {
     return this.regions.listActive();
   }
 }
+
+@ApiTags('cities')
+@Controller('cities')
+export class CitiesController {
+  constructor(private regions: RegionsService) {}
+
+  @Get()
+  list() {
+    return this.regions.listCities();
+  }
+}

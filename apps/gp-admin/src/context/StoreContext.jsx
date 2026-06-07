@@ -400,12 +400,19 @@ export function StoreProvider({ children }) {
     }))
   }, [persist])
 
-  const updateMarketProduct = useCallback((id, patch) => {
+  const updateMarketProduct = useCallback(async (id, patch) => {
+    if (apiMode) {
+      if (patch.status === 'ACTIVE' || patch.status === 'INACTIVE') {
+        await api.adminModerateMarketProduct(id, { isActive: patch.status === 'ACTIVE' })
+        await refreshFromApi()
+        return
+      }
+    }
     persist((s) => ({
       ...s,
       marketProducts: (s.marketProducts || []).map((x) => (x.id === id ? { ...x, ...patch, updatedAt: Date.now() } : x)),
     }))
-  }, [persist])
+  }, [apiMode, persist, refreshFromApi])
 
   const value = useMemo(
     () => ({

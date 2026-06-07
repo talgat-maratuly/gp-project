@@ -1,5 +1,14 @@
 import { AccountType, Role } from '@prisma/client';
-import { IsBoolean, IsEnum, IsIn, IsOptional, IsString, Length, MinLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsIn,
+  IsOptional,
+  IsString,
+  Length,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 export const OTP_LOGIN_AS = ['client', 'partner', 'admin'] as const;
 export type OtpLoginAsDto = (typeof OTP_LOGIN_AS)[number];
@@ -52,4 +61,33 @@ export class MobileOtpVerifyDto {
   @IsOptional()
   @IsEnum(AccountType)
   accountType?: AccountType;
+
+  @IsOptional()
+  @IsIn(['IP', 'TOO', 'OTHER'])
+  legalForm?: 'IP' | 'TOO' | 'OTHER';
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(256)
+  companyName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(12)
+  bin?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
+  city?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
+  contactPerson?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(512)
+  legalAddress?: string;
 }

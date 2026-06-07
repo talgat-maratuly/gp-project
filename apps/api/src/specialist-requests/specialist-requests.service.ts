@@ -24,6 +24,7 @@ import { SpecialistRequestNotificationsService } from './specialist-request-noti
 import { assertRequestStatusTransition } from './specialist-request.transitions';
 import { ModeratorSpecialistRequestsQueryDto } from './dto/moderator-list-query.dto';
 import { SUBSERVICE_TO_DIRECTION } from '../common/partner-offerings.util';
+import { isServicePartnerProfile } from '../common/partner-access.util';
 import { requestStatusFromPartnerStatus } from '../user-status/request-status.mapper';
 
 const specialistInclude = {
@@ -363,9 +364,9 @@ export class SpecialistRequestsService {
     // Legacy fallback: SpecialistRequest жоқ, бірақ PartnerProfile APPROVED
     const profile = await this.prisma.partnerProfile.findUnique({
       where: { userId },
-      select: { status: true, requestStatus: true },
+      select: { status: true, requestStatus: true, partnerRole: true, partnerType: true },
     });
-    if (profile) {
+    if (profile && isServicePartnerProfile(profile)) {
       const effectiveRequest =
         profile.requestStatus ?? requestStatusFromPartnerStatus(profile.status);
       if (effectiveRequest === RequestStatus.APPROVED) return;

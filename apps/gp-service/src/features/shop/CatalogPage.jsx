@@ -56,7 +56,7 @@ export default function CatalogPage() {
         </button>
       </div>
       <p className="text-sm text-[var(--gp-text-muted)] mb-4">
-        {productsLoading ? 'Загрузка…' : `${filtered.length} товаров`}
+        {productsLoading ? t('loading') : `${filtered.length} ${t('products_count')}`}
       </p>
 
       <input
@@ -72,7 +72,7 @@ export default function CatalogPage() {
           to="/shop"
           className={`shrink-0 px-4 py-2.5 rounded-2xl text-sm font-semibold ${!categoryId ? 'gp-gradient-kaspi text-white shadow-md' : 'bg-[var(--gp-surface)] border border-[var(--gp-border)] text-[var(--gp-text-muted)]'}`}
         >
-          Все
+          {t('all')}
         </Link>
         {displayCategories.map((c) => (
           <Link
@@ -90,27 +90,27 @@ export default function CatalogPage() {
         onClick={() => setShowFilters(!showFilters)}
         className="flex items-center gap-2 text-sm font-bold text-emerald-600 mb-3"
       >
-        <SlidersHorizontal className="w-4 h-4" /> Фильтры
+        <SlidersHorizontal className="w-4 h-4" /> {t('filters')}
       </button>
 
       {showFilters && (
         <KaspiCard className="!p-4 mb-4 space-y-3">
-          <p className="text-xs font-bold text-[var(--gp-text-muted)] uppercase">Бренд</p>
+          <p className="text-xs font-bold text-[var(--gp-text-muted)] uppercase">{t('brand')}</p>
           <div className="flex flex-wrap gap-2">
-            <Chip active={!filters.brand} onClick={() => setFilter('brand', '')}>Все</Chip>
+            <Chip active={!filters.brand} onClick={() => setFilter('brand', '')}>{t('all')}</Chip>
             {SHOP_BRANDS.map((b) => (
               <Chip key={b} active={filters.brand === b} onClick={() => setFilter('brand', b)}>{b}</Chip>
             ))}
           </div>
-          <p className="text-xs font-bold text-[var(--gp-text-muted)] uppercase">Сортировка</p>
+          <p className="text-xs font-bold text-[var(--gp-text-muted)] uppercase">{t('sorting')}</p>
           <div className="flex flex-wrap gap-2">
             {SORT_OPTIONS.map((s) => (
-              <Chip key={s.id} active={filters.sort === s.id} onClick={() => setFilter('sort', s.id)}>{s.label}</Chip>
+              <Chip key={s.id} active={filters.sort === s.id} onClick={() => setFilter('sort', s.id)}>{t(`sort_${s.id}`)}</Chip>
             ))}
           </div>
           <label className="flex items-center gap-3 cursor-pointer font-semibold text-sm">
             <input type="checkbox" checked={filters.inStock} onChange={(e) => setFilter('inStock', e.target.checked ? '1' : '')} className="w-5 h-5 accent-emerald-600" />
-            Только в наличии
+            {t('in_stock_only')}
           </label>
         </KaspiCard>
       )}
@@ -119,7 +119,7 @@ export default function CatalogPage() {
         loading={productsLoading && !products.length}
         error={productsError}
         empty={!productsLoading && !productsError && filtered.length === 0}
-        emptyMessage="Ничего не найдено"
+        emptyMessage={t('nothing_found')}
         onRetry={refreshProducts}
       >
         <div className="grid grid-cols-2 gap-3 pb-4">
@@ -130,7 +130,7 @@ export default function CatalogPage() {
       </AsyncState>
 
       {!categoryId && recommendations.length > 0 && filtered.length === products.length && (
-        <p className="text-xs text-center text-[var(--gp-text-muted)] pb-6">Рекомендуем популярные товары выше</p>
+        <p className="text-xs text-center text-[var(--gp-text-muted)] pb-6">{t('recommended_products_hint')}</p>
       )}
     </div>
   )

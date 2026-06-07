@@ -55,7 +55,7 @@ export class VehicleDataDto {
 }
 
 export class SubmitOnboardingApplicationDto {
-  @ApiProperty({ enum: ['SEPTIC', 'LAWN', 'AUTOWATERING', 'FILTERS', 'OTHER'] })
+  @ApiProperty({ enum: ['SEPTIC', 'LAWN', 'AUTOWATERING', 'FILTERS', 'OTHER', 'LANDSCAPE'] })
   @IsString()
   mainServiceId: MainServiceId;
 
