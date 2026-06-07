@@ -109,3 +109,40 @@ Future<void> registerPartner(Map<String, dynamic> body) async {
 |-------|--------|------------|
 | client@gp.kz | password123 | GP Service |
 | partner@gp.kz | password123 | GP Partner |
+# GP Flutter Mobile
+
+Flutter workspace is available in:
+
+```text
+apps/flutter/
+```
+
+It contains:
+
+- `gp_mobile_shared` — Dart shared API/auth/session package.
+- `gp_service_app` — GP Service mobile client.
+- `gp_partner_app` — GP Partner mobile client.
+
+Run:
+
+```bash
+cd apps/flutter/gp_service_app
+flutter pub get
+flutter run --dart-define=API_URL=https://apigp.duckdns.org/api
+```
+
+For DEV OTP:
+
+```bash
+flutter run \
+  --dart-define=API_URL=http://10.0.2.2:4000/api \
+  --dart-define=GP_DEV_OTP=true
+```
+
+Use OTP:
+
+```text
+000000
+```
+
+Do not enable `GP_DEV_OTP=true` for production builds.
