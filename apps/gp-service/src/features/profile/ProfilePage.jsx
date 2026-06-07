@@ -1,16 +1,19 @@
 import { Link } from 'react-router-dom'
 import { useService } from '../../context/ServiceContext'
 import { GP_CONTACTS, getAccountTypeLabel } from '@gp/shared/constants'
+import CitySelector from '@gp/shared/components/CitySelector'
+import { useLanguage } from '../../i18n'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 
 export default function ProfilePage() {
-  const { profile, setProfile, isLoggedIn, authUser, logout } = useService()
+  const { profile, setProfile, isLoggedIn, authUser, logout, geoStore } = useService()
+  const { t } = useLanguage()
   const set = (k) => (e) => setProfile({ ...profile, [k]: e.target.value })
 
   return (
     <div className="px-4 py-4">
-      <h1 className="text-2xl font-bold mb-6">Профиль</h1>
+      <h1 className="text-2xl font-bold mb-6">{t('profileTitle')}</h1>
 
       {isLoggedIn ? (
         <div className="gp-card p-4 mb-4 bg-gp-green-50 border-gp-green-200">
@@ -22,7 +25,7 @@ export default function ProfilePage() {
                 <p className="text-sm text-gp-green-800 font-semibold">{authUser.clientProfile.companyName}</p>
               )}
               {authUser.clientProfile.bin && (
-                <p className="text-xs text-gp-green-700">БИН {authUser.clientProfile.bin}</p>
+                <p className="text-xs text-gp-green-700">{t('profileBin')} {authUser.clientProfile.bin}</p>
               )}
               {authUser.clientProfile.legalAddress && (
                 <p className="text-xs text-gp-green-700">{authUser.clientProfile.legalAddress}</p>
@@ -30,21 +33,37 @@ export default function ProfilePage() {
             </>
           )}
           <p className="text-sm text-gp-green-700">{authUser?.email}</p>
-          <Button variant="outline" size="sm" className="mt-3" onClick={logout}>Выйти</Button>
+          <Button variant="outline" size="sm" className="mt-3" onClick={logout}>{t('logout')}</Button>
         </div>
       ) : (
         <div className="gp-card p-4 mb-4">
-          <p className="text-sm text-slate-600 mb-3">Войдите, чтобы оформлять заказы</p>
-          <Link to="/login"><Button className="w-full">Войти / Регистрация</Button></Link>
+          <p className="text-sm text-slate-600 mb-3">{t('loginRequiredOrders')}</p>
+          <Link to="/login"><Button className="w-full">{t('loginRegister')}</Button></Link>
         </div>
       )}
 
       <form className="gp-card p-5 space-y-4" onSubmit={(e) => e.preventDefault()}>
-        <Input label="Имя" value={profile.name} onChange={set('name')} />
-        <Input label="Телефон" type="tel" value={profile.phone} onChange={set('phone')} />
+        <Input label={t('name')} value={profile.name} onChange={set('name')} />
+        <Input label={t('phone')} type="tel" value={profile.phone} onChange={set('phone')} />
         <Input label="Email" type="email" value={profile.email} onChange={set('email')} />
-        <Input label="Город" value={profile.city} onChange={set('city')} />
-        <Button type="submit" className="w-full">Сохранить локально</Button>
+        {geoStore ? (
+          <CitySelector
+            store={geoStore}
+            value={{ oblastId: profile.oblastId, cityId: profile.cityId }}
+            inputClassName="w-full rounded-xl border border-[var(--gp-border)] bg-[var(--gp-surface)] px-3 py-2.5 text-sm"
+            onChange={(sel) => setProfile((p) => ({
+              ...p,
+              oblastId: sel.oblastId,
+              cityId: sel.cityId,
+              city: sel.city || p.city,
+              franchiseId: sel.franchiseId || p.franchiseId,
+            }))}
+          />
+        ) : (
+          <Input label={t('city')} value={profile.city} onChange={set('city')} />
+        )}
+        <Button type="submit" className="w-full">{t('profileSaveDraft')}</Button>
+        <p className="text-xs text-slate-500">{t('profileLocalOnly')}</p>
       </form>
       <div className="gp-card p-5 mt-4 text-sm text-slate-500 space-y-1">
         <p>{GP_CONTACTS.phone}</p>

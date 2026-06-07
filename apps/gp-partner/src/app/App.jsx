@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import PartnerShell from '../components/PartnerShell'
 import { PartnerTypeRoute } from '../components/PartnerTypeRoute'
 import AuthPage from '../pages/AuthPage'
+import PartnerLoginPage from '../pages/PartnerLoginPage'
 import { ForgotPasswordScreen, ResetPasswordScreen } from '@gp/shared/auth/passwordRecovery'
 import DashboardPage from '../pages/DashboardPage'
 import OrdersPage from '../pages/OrdersPage'
@@ -14,7 +15,8 @@ import PartnerCabinetPage from '../pages/PartnerCabinetPage'
 import CabinetShopPage from '../pages/cabinet/CabinetShopPage'
 import AddProductPage from '../pages/AddProductPage'
 import ProfilePage from '../pages/ProfilePage'
-import PartnerApplyPage from '../pages/PartnerApplyPage'
+import SpecialistOnboardingPage from '../pages/SpecialistOnboardingPage'
+import ShopApplyPage from '../pages/ShopApplyPage'
 import PartnerAccessGate from '../components/PartnerAccessGate'
 import QrOrdersPage from '../pages/QrOrdersPage'
 import FurnitureExecutorOrdersPage from '../pages/FurnitureExecutorOrdersPage'
@@ -26,9 +28,9 @@ import PartnerAuthRedirect from '../components/PartnerAuthRedirect'
 export default function App() {
   return (
     <Routes>
-      <Route path="/auth" element={<AuthPage initialMode="register" />} />
-      <Route path="/register" element={<AuthPage initialMode="register" />} />
-      <Route path="/login" element={<AuthPage initialMode="login" />} />
+      <Route path="/auth" element={<Navigate to="/login" replace />} />
+      <Route path="/register" element={<AuthPage />} />
+      <Route path="/login" element={<PartnerLoginPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordScreen loginPath="/login" resetPath="/reset-password" />} />
       <Route path="/reset-password" element={<ResetPasswordScreen loginPath="/login" />} />
       <Route path="/cabinet" element={<PartnerCabinetPage />}>
@@ -45,8 +47,8 @@ export default function App() {
       <Route element={<PartnerShell />}>
         <Route path="moderation" element={<Navigate to="/profile" replace state={{ noAccess: true }} />} />
         <Route path="moderation/*" element={<Navigate to="/profile" replace state={{ noAccess: true }} />} />
-        <Route path="apply" element={<PartnerApplyPage />} />
-        <Route path="apply/specialist" element={<PartnerApplyPage specialistOnly />} />
+        <Route path="apply" element={<ShopApplyPage />} />
+        <Route path="apply/specialist" element={<SpecialistOnboardingPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route element={<PartnerAccessGate />}>
           <Route index element={<DashboardPage />} />
@@ -80,7 +82,11 @@ export default function App() {
         <Route path="payouts" element={<Navigate to="/balance" replace />} />
         <Route path="analytics" element={<Navigate to="/profile" replace />} />
       </Route>
+<<<<<<< HEAD
       <Route path="*" element={<PartnerAuthRedirect loginPath="/login" />} />
+=======
+      <Route path="*" element={<Navigate to="/login" replace />} />
+>>>>>>> 61b771f4cabb203f1a879564c1f97476256ecdb8
     </Routes>
   )
 }

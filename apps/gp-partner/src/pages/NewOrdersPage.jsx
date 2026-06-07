@@ -7,13 +7,13 @@ export default function NewOrdersPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-bold mb-2">{t('new_orders_title')}</h1>
+      <h1 className="text-xl font-bold text-[var(--gp-text)] mb-2">{t('new_orders_title')}</h1>
       {isDemoMode ? (
-        <p className="text-sm text-slate-400">{t('admin_assign_hint')}</p>
+        <p className="text-sm text-[var(--gp-text-muted)]">{t('admin_assign_hint')}</p>
       ) : (
-        <p className="text-xs text-slate-500 mb-3">{t('orders')}</p>
+        <p className="text-xs text-[var(--gp-text-muted)] mb-3">{t('orders')}</p>
       )}
-      {!newOrders.length && <p className="text-slate-500 mt-4">{t('new_orders_empty')}</p>}
+      {!newOrders.length && <p className="text-[var(--gp-text-muted)] mt-4">{t('new_orders_empty')}</p>}
     </div>
   )
 }

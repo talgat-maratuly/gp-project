@@ -4,10 +4,11 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { AccountType, PartnerRole, PartnerType } from '@prisma/client';
+import { AccountType, PartnerRole, PartnerType, RequestStatus } from '@prisma/client';
 import { GP_SHOP_SUBSERVICE_ID } from '../common/partner-offerings.util';
 import { normalizePartnerDocuments, validatePartnerRegistration } from '../common/account-type.util';
 import { resolveSubserviceIdsForPartnerType } from '../common/partner-type.util';
+import { normalizePartnerProfileForApi } from '../user-status/work-status.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { PartnerApplyDto } from './dto/partner-apply.dto';
 import { PartnerResubmitDto } from './dto/partner-resubmit.dto';
@@ -51,7 +52,7 @@ export class PartnerModerationService {
       },
     });
     if (!profile) throw new NotFoundException('Профиль партнёра не найден');
-    return profile;
+    return normalizePartnerProfileForApi(profile);
   }
 
   private resolvePartnerRole(dto: PartnerApplyDto): PartnerRole {
@@ -146,6 +147,7 @@ export class PartnerModerationService {
           partnerType: dto.partnerType,
           partnerRole: this.resolvePartnerRole(dto),
           status: PartnerStatusValue.PENDING_REVIEW,
+          requestStatus: RequestStatus.PENDING,
           accountType: dto.accountType,
           companyName,
           company: companyName,
@@ -157,8 +159,6 @@ export class PartnerModerationService {
           legalAddress: dto.legalAddress?.trim() || null,
           idDocumentNumber: dto.idDocumentNumber?.trim() || null,
           documents: documents.length ? documents : undefined,
-          vehiclePhotos: dto.vehiclePhotos ?? [],
-          equipmentPhotos: dto.equipmentPhotos ?? [],
           rejectionReason: null,
           revisionComment: null,
           rejectedAt: null,
@@ -190,8 +190,14 @@ export class PartnerModerationService {
 
   async resubmit(userId: string, dto: PartnerResubmitDto) {
     const profile = await this.partners.ensurePartnerProfile(userId);
-    if (profile.status !== PartnerStatusValue.NEEDS_REVISION) {
-      throw new BadRequestException('Повторная отправка доступна только после возврата на доработку');
+    const canResubmit =
+      profile.status === PartnerStatusValue.NEEDS_REVISION ||
+      profile.status === PartnerStatusValue.REJECTED ||
+      profile.requestStatus === RequestStatus.REJECTED;
+    if (!canResubmit) {
+      throw new BadRequestException(
+        'Повторная отправка доступна только после отклонения или возврата на доработку',
+      );
     }
     if (!dto.partnerType || !dto.regionId || !dto.companyName || !dto.fullName || !dto.phone) {
       const current = await this.getMe(userId);
@@ -210,8 +216,6 @@ export class PartnerModerationService {
         legalAddress: dto.legalAddress ?? current.legalAddress ?? undefined,
         idDocumentNumber: dto.idDocumentNumber ?? current.idDocumentNumber ?? undefined,
         documents: dto.documents,
-        vehiclePhotos: dto.vehiclePhotos ?? (current.vehiclePhotos as string[]),
-        equipmentPhotos: dto.equipmentPhotos ?? (current.equipmentPhotos as string[]),
         subserviceIds: dto.subserviceIds,
       });
     }

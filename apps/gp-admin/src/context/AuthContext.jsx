@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
-import { api, clearToken, getToken } from '@gp/shared/api'
+import { api, getToken } from '@gp/shared/api'
 import { isDemoMode } from '@gp/shared/demo'
 import { DEMO_USERS } from '../data/seedData'
 import { mapMeToAdminSession } from '../lib/adminSession'
@@ -33,11 +33,11 @@ export function AuthProvider({ children }) {
               setUser(session)
               return
             }
-            clearToken()
+            api.logout()
             setUser(loadSession())
           })
           .catch(() => {
-            clearToken()
+            api.logout()
             setUser(loadSession())
           })
           .finally(() => setReady(true))
@@ -56,7 +56,7 @@ export function AuthProvider({ children }) {
       .then((me) => {
         const session = mapMeToAdminSession(me)
         if (!session) {
-          clearToken()
+          api.logout()
           setUser(null)
           return
         }
@@ -64,10 +64,22 @@ export function AuthProvider({ children }) {
         setUser(session)
       })
       .catch(() => {
-        clearToken()
+        api.logout()
         setUser(null)
       })
       .finally(() => setReady(true))
+  }, [])
+
+  const loginViaWhatsappOtp = useCallback(async () => {
+    const me = await api.me()
+    const session = mapMeToAdminSession(me)
+    if (!session) {
+      await api.logout()
+      throw new Error('login_error')
+    }
+    localStorage.setItem(AUTH_KEY, JSON.stringify(session))
+    setUser(session)
+    return session
   }, [])
 
   const login = useCallback(async (username, password) => {
@@ -85,7 +97,7 @@ export function AuthProvider({ children }) {
             setUser(session)
             return session
           }
-          clearToken()
+          await api.logout()
         } catch {
           /* demo fallback */
         }
@@ -108,7 +120,7 @@ export function AuthProvider({ children }) {
     const me = await api.me()
     const session = mapMeToAdminSession(me)
     if (!session) {
-      clearToken()
+      await api.logout()
       throw new Error('login_error')
     }
     localStorage.setItem(AUTH_KEY, JSON.stringify(session))
@@ -116,14 +128,14 @@ export function AuthProvider({ children }) {
     return session
   }, [])
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
     localStorage.removeItem(AUTH_KEY)
-    clearToken()
+    await api.logout()
     setUser(null)
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, ready }}>
+    <AuthContext.Provider value={{ user, login, loginViaWhatsappOtp, logout, ready }}>
       {children}
     </AuthContext.Provider>
   )

@@ -17,7 +17,7 @@ export default function AdminListFilters({ value, onChange, showCity = true, sho
 
   return (
     <div className="flex flex-wrap gap-2 mb-4 items-end">
-      <label className="text-xs text-slate-400 block">
+      <label className="text-xs admin-muted block">
         {t('filter_region')}
         <select
           className="admin-input mt-1 min-w-[140px]"
@@ -31,7 +31,7 @@ export default function AdminListFilters({ value, onChange, showCity = true, sho
         </select>
       </label>
       {showCity && (
-        <label className="text-xs text-slate-400 block">
+        <label className="text-xs admin-muted block">
           {t('filter_city')}
           <input
             className="admin-input mt-1 min-w-[120px]"
@@ -42,7 +42,7 @@ export default function AdminListFilters({ value, onChange, showCity = true, sho
         </label>
       )}
       {showStatus && (
-        <label className="text-xs text-slate-400 block">
+        <label className="text-xs admin-muted block">
           {t('filter_status')}
           <select
             className="admin-input mt-1 min-w-[120px]"
@@ -56,7 +56,7 @@ export default function AdminListFilters({ value, onChange, showCity = true, sho
           </select>
         </label>
       )}
-      <label className="text-xs text-slate-400 block flex-1 min-w-[160px]">
+      <label className="text-xs admin-muted block flex-1 min-w-[160px]">
         {t('filter_search')}
         <input
           className="admin-input mt-1 w-full"

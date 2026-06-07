@@ -21,7 +21,7 @@ export default function MapPage() {
   if (!order) {
     return (
       <div className="text-center py-16">
-        <p className="text-slate-500">Нет активных заявок для карты</p>
+        <p className="text-[var(--gp-text-muted)]">Нет активных заявок для карты</p>
       </div>
     )
   }
@@ -30,8 +30,8 @@ export default function MapPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-bold text-white mb-1">Карта</h1>
-      <p className="text-sm text-slate-400 mb-3">{order.serviceName} · {getOrderStatusLabel(order.status)}</p>
+      <h1 className="text-xl font-bold text-[var(--gp-text)] mb-1">Карта</h1>
+      <p className="text-sm text-[var(--gp-text-muted)] mb-3">{order.serviceName} · {getOrderStatusLabel(order.status)}</p>
       <OrderMap
         clientLat={order.clientLat}
         clientLng={order.clientLng}
@@ -40,7 +40,7 @@ export default function MapPage() {
         statusLabel={statusText}
         className="h-[55vh] mb-4"
       />
-      <button type="button" onClick={moveDemo} className="w-full py-3 rounded-2xl partner-gradient font-semibold flex items-center justify-center gap-2">
+      <button type="button" onClick={moveDemo} className="w-full py-3 rounded-2xl partner-gradient text-white font-semibold flex items-center justify-center gap-2">
         <Navigation className="w-5 h-5" /> Обновить мою позицию
       </button>
     </div>

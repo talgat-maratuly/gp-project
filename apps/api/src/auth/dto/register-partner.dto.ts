@@ -14,9 +14,10 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { PartnerDocumentItemDto } from './partner-document.dto';
+import { DeviceSessionDto } from './device-session.dto';
 
 /** MVP: email/password/name/phone/region опциональны — подставляются на сервере; partnerRole обязателен */
-export class RegisterPartnerDto {
+export class RegisterPartnerDto extends DeviceSessionDto {
   @ApiProperty({ required: false, example: 'test_partner_123@gp.local' })
   @IsOptional()
   @ValidateIf((o) => Boolean(o.email?.trim()))

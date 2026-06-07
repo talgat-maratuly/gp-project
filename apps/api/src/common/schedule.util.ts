@@ -26,12 +26,8 @@ export function getPartnerBusySlots(
 ): BusySlot[] {
   const blocking: OrderStatus[] = [
     OrderStatus.ACCEPTED,
-    OrderStatus.ON_THE_WAY,
-    OrderStatus.ARRIVED,
-    OrderStatus.STARTED,
-    OrderStatus.LOADED,
-    OrderStatus.DISPOSAL_ARRIVED,
-    OrderStatus.DISPOSAL_COMPLETED,
+    OrderStatus.ON_WAY,
+    OrderStatus.IN_PROCESS,
     OrderStatus.COMPLETED,
   ];
 
@@ -82,13 +78,13 @@ export function haversineKm(
 }
 
 export const MAP_STATUS_LABELS: Partial<Record<OrderStatus, string>> = {
+  [OrderStatus.NEW]: 'Новый заказ',
   [OrderStatus.ACCEPTED]: 'Заказ принят',
-  [OrderStatus.ON_THE_WAY]: 'Исполнитель едет',
-  [OrderStatus.ARRIVED]: 'У клиента',
-  [OrderStatus.STARTED]: 'Откачка началась',
-  [OrderStatus.LOADED]: 'Загружен, едет на слив',
-  [OrderStatus.DISPOSAL_ARRIVED]: 'На официальном сливе',
-  [OrderStatus.DISPOSAL_COMPLETED]: 'Слив завершён',
-  [OrderStatus.COMPLETED]: 'Рейс завершён',
-  [OrderStatus.CLIENT_CONFIRMED]: 'Выполнение подтверждено',
+  [OrderStatus.ON_WAY]: 'Исполнитель в пути',
+  [OrderStatus.IN_PROCESS]: 'Работа идёт',
+  [OrderStatus.COMPLETED]: 'Заказ выполнен',
+  [OrderStatus.EXPIRED]: 'Заявка истекла',
+  [OrderStatus.NO_SHOW]: 'Неявка специалиста',
+  [OrderStatus.CANCELED_BY_CLIENT]: 'Отменён клиентом',
+  [OrderStatus.CANCELED_BY_SPEC]: 'Отменён исполнителем',
 };

@@ -5,7 +5,7 @@ import { buildServiceProjectsSeed } from './serviceProjectsSeed.js'
 import { buildQrSeed } from './qrSeed.js'
 import { buildFurnitureExecutorSeed } from './furnitureExecutorSeed.js'
 
-export const STORE_VERSION = 6
+export const STORE_VERSION = 8
 
 export const FRANCHISE_STATUS = ['ACTIVE', 'INACTIVE', 'BLOCKED']
 
@@ -45,6 +45,9 @@ export const SERVICE_ID_TO_TEMPLATE = {
   'irrigation-tuning': 'irrigation',
   'irrigation-maintenance': 'irrigation',
   'irrigation-mount': 'irrigation',
+  'pump-service': 'irrigation',
+  'landscape': 'landscape',
+  'lighting': 'landscape',
 }
 
 export const ORDER_STATUSES = [
@@ -65,23 +68,44 @@ export const DEFAULT_SETTINGS = {
 }
 
 export const FRANCHISES_SEED = [
-  { id: 'fr-uralsk', name: 'GP Уральск', city: 'Уральск', ownerName: 'Нұрлан Бек', phone: '+77011110001', status: 'ACTIVE', createdAt: '2025-01-10' },
-  { id: 'fr-aktobe', name: 'GP Актобе', city: 'Актобе', ownerName: 'Айгүл Сәрсен', phone: '+77011110002', status: 'ACTIVE', createdAt: '2025-02-15' },
-  { id: 'fr-atyrau', name: 'GP Атырау', city: 'Атырау', ownerName: 'Ерлан Қасым', phone: '+77011110003', status: 'ACTIVE', createdAt: '2025-03-01' },
-  { id: 'fr-almaty', name: 'GP Алматы', city: 'Алматы', ownerName: 'Дана Оспан', phone: '+77011110004', status: 'ACTIVE', createdAt: '2025-04-20' },
-  { id: 'fr-astana', name: 'GP Астана', city: 'Астана', ownerName: 'Арман Жұма', phone: '+77011110005', status: 'INACTIVE', createdAt: '2025-05-01' },
+  { id: 'fr-uralsk', name: 'GP Уральск', city: 'Уральск', cityId: 'city-uralsk', ownerName: 'Нұрлан Бек', phone: '+77011110001', status: 'ACTIVE', createdAt: '2025-01-10' },
+  { id: 'fr-aktobe', name: 'GP Актобе', city: 'Актобе', cityId: 'city-aktobe', ownerName: 'Айгүл Сәрсен', phone: '+77011110002', status: 'ACTIVE', createdAt: '2025-02-15' },
+  { id: 'fr-atyrau', name: 'GP Атырау', city: 'Атырау', cityId: 'city-atyrau', ownerName: 'Ерлан Қасым', phone: '+77011110003', status: 'ACTIVE', createdAt: '2025-03-01' },
+  { id: 'fr-almaty', name: 'GP Алматы', city: 'Алматы', cityId: 'city-almaty', ownerName: 'Дана Оспан', phone: '+77011110004', status: 'ACTIVE', createdAt: '2025-04-20' },
+  { id: 'fr-astana', name: 'GP Астана', city: 'Астана', cityId: 'city-astana', ownerName: 'Арман Жұма', phone: '+77011110005', status: 'INACTIVE', createdAt: '2025-05-01' },
 ]
 
-function subs(id, name, price, commission) {
-  return { id, name, price, gpCommission: commission, active: true }
+export const OBLASTS_SEED = [
+  { id: 'obl-batys', names: { ru: 'Западно-Казахстанская область', kk: 'Батыс Қазақстан облысы', en: 'West Kazakhstan Region' }, name: 'Западно-Казахстанская область', active: true },
+  { id: 'obl-atyrau', names: { ru: 'Атырауская область', kk: 'Атырау облысы', en: 'Atyrau Region' }, name: 'Атырауская область', active: true },
+  { id: 'obl-aktobe', names: { ru: 'Актобеская область', kk: 'Ақтobe облысы', en: 'Aktobe Region' }, name: 'Актобеская область', active: true },
+  { id: 'obl-almaty', names: { ru: 'Алматинская область', kk: 'Алматы облысы', en: 'Almaty Region' }, name: 'Алматинская область', active: true },
+  { id: 'obl-astana', names: { ru: 'г. Астана', kk: 'Астана қаласы', en: 'Astana city' }, name: 'г. Астана', active: true },
+]
+
+export const CITIES_SEED = [
+  { id: 'city-uralsk', oblastId: 'obl-batys', franchiseId: 'fr-uralsk', lat: 51.233, lng: 51.367, names: { ru: 'Уральск', kk: 'Орал', en: 'Uralsk' }, name: 'Уральск', active: true },
+  { id: 'city-atyrau', oblastId: 'obl-atyrau', franchiseId: 'fr-atyrau', lat: 47.116, lng: 51.883, names: { ru: 'Атырау', kk: 'Атырау', en: 'Atyrau' }, name: 'Атырау', active: true },
+  { id: 'city-aktobe', oblastId: 'obl-aktobe', franchiseId: 'fr-aktobe', lat: 50.280, lng: 57.207, names: { ru: 'Актобе', kk: 'Ақтobe', en: 'Aktobe' }, name: 'Актобе', active: true },
+  { id: 'city-almaty', oblastId: 'obl-almaty', franchiseId: 'fr-almaty', lat: 43.238, lng: 76.945, names: { ru: 'Алматы', kk: 'Алматы', en: 'Almaty' }, name: 'Алматы', active: true },
+  { id: 'city-astana', oblastId: 'obl-astana', franchiseId: 'fr-astana', lat: 51.128, lng: 71.430, names: { ru: 'Астана', kk: 'Астана', en: 'Astana' }, name: 'Астана', active: true },
+]
+
+function subs(id, names, price, commission, active = true) {
+  const n = typeof names === 'string' ? { ru: names, kk: names, en: names } : names
+  return { id, names: n, name: n.ru, price, gpCommission: commission, active }
 }
 
-function serviceTemplate(franchiseId, id, name, basePrice, gpCommission, active, subservices) {
+function serviceTemplate(franchiseId, id, names, basePrice, gpCommission, active, subservices) {
+  const franchise = FRANCHISES_SEED.find((f) => f.id === franchiseId)
+  const n = typeof names === 'string' ? { ru: names, kk: names, en: names } : names
   return {
     id: `${id}_${franchiseId}`,
     templateId: id,
     franchiseId,
-    name,
+    cityId: franchise?.cityId || null,
+    names: n,
+    name: n.ru,
     basePrice,
     gpCommission,
     active,
@@ -90,29 +114,81 @@ function serviceTemplate(franchiseId, id, name, basePrice, gpCommission, active,
 }
 
 function buildServicesForFranchise(franchiseId) {
+  if (franchiseId === 'fr-atyrau') {
+    return [
+      serviceTemplate(franchiseId, 'septic', { ru: 'Откачка септика', kk: 'Септик сорғызу', en: 'Septic pumping' }, 9000, 350, true, [
+        subs(`sub_3m_${franchiseId}`, { ru: '3 куба', kk: '3 тек', en: '3 m³' }, 9000, 350),
+        subs(`sub_5m_${franchiseId}`, { ru: '5 кубов', kk: '5 тек', en: '5 m³' }, 14000, 450),
+        subs(`sub_10m_${franchiseId}`, { ru: '10 кубов', kk: '10 тек', en: '10 m³' }, 22000, 650),
+        subs(`sub_urgent_${franchiseId}`, { ru: 'Срочный вызов', kk: 'Шұғыл шақыру', en: 'Urgent call' }, 17000, 550, false),
+        subs(`sub_night_${franchiseId}`, { ru: 'Ночной вызов', kk: 'Түнгі шақыру', en: 'Night call' }, 20000, 650),
+      ]),
+      serviceTemplate(franchiseId, 'lawn', { ru: 'Стрижка газона', kk: 'Шөп шабу', en: 'Lawn mowing' }, 18000, 1000, true, [
+        subs(`sub_100_${franchiseId}`, { ru: 'до 100 м²', kk: '100 м² дейін', en: 'up to 100 m²' }, 14000, 800),
+        subs(`sub_500_${franchiseId}`, { ru: '100–500 м²', kk: '100–500 м²', en: '100–500 m²' }, 20000, 1000),
+        subs(`sub_1000_${franchiseId}`, { ru: '500–1000 м²', kk: '500–1000 м²', en: '500–1000 m²' }, 30000, 1500, false),
+        subs(`sub_mow_${franchiseId}`, { ru: 'Покос травы', kk: 'Шөп кесу', en: 'Grass mowing' }, 11000, 600),
+        subs(`sub_haul_${franchiseId}`, { ru: 'Вывоз травы', kk: 'Шөп тасымалдау', en: 'Grass removal' }, 9000, 400),
+      ]),
+      serviceTemplate(franchiseId, 'filter', { ru: 'Замена фильтра', kk: 'Сүзгі ауыстыру', en: 'Filter replacement' }, 7000, 1000, true, [
+        subs(`sub_std_${franchiseId}`, { ru: 'Стандарт', kk: 'Стандарт', en: 'Standard' }, 7000, 1000),
+        subs(`sub_prem_${franchiseId}`, { ru: 'Премиум', kk: 'Премиум', en: 'Premium' }, 10000, 1200),
+      ]),
+      serviceTemplate(franchiseId, 'irrigation', { ru: 'Автополив', kk: 'Автосуарма', en: 'Auto irrigation' }, 22000, 1000, false, []),
+      serviceTemplate(franchiseId, 'cleaning', { ru: 'Клининг', kk: 'Тазалау', en: 'Cleaning' }, 13000, 800, true, []),
+      serviceTemplate(franchiseId, 'landscape', { ru: 'Озеленение', kk: 'Көгалдандыру', en: 'Landscaping' }, 28000, 1500, false, []),
+      serviceTemplate(franchiseId, 'rental', { ru: 'Аренда оборудования', kk: 'Жабдық жалдау', en: 'Equipment rental' }, 10000, 500, false, []),
+    ]
+  }
+
+  if (franchiseId === 'fr-aktobe') {
+    return [
+      serviceTemplate(franchiseId, 'septic', { ru: 'Откачка септика', kk: 'Септик сорғызу', en: 'Septic pumping' }, 8500, 320, true, [
+        subs(`sub_3m_${franchiseId}`, { ru: '3 куба', kk: '3 тек', en: '3 m³' }, 8500, 320),
+        subs(`sub_5m_${franchiseId}`, { ru: '5 кубов', kk: '5 тек', en: '5 m³' }, 13000, 420),
+        subs(`sub_10m_${franchiseId}`, { ru: '10 кубов', kk: '10 тек', en: '10 m³' }, 21000, 620),
+        subs(`sub_urgent_${franchiseId}`, { ru: 'Срочный вызов', kk: 'Шұғыл шақыру', en: 'Urgent call' }, 16000, 500),
+        subs(`sub_night_${franchiseId}`, { ru: 'Ночной вызов', kk: 'Түнгі шақыру', en: 'Night call' }, 19000, 600, false),
+      ]),
+      serviceTemplate(franchiseId, 'lawn', { ru: 'Стрижка газона', kk: 'Шөп шабу', en: 'Lawn mowing' }, 16000, 1000, true, [
+        subs(`sub_100_${franchiseId}`, { ru: 'до 100 м²', kk: '100 м² дейін', en: 'up to 100 m²' }, 13000, 800),
+        subs(`sub_500_${franchiseId}`, { ru: '100–500 м²', kk: '100–500 м²', en: '100–500 m²' }, 19000, 1000),
+        subs(`sub_1000_${franchiseId}`, { ru: '500–1000 м²', kk: '500–1000 m²', en: '500–1000 m²' }, 29000, 1500),
+        subs(`sub_mow_${franchiseId}`, { ru: 'Покос травы', kk: 'Шөп кесу', en: 'Grass mowing' }, 10500, 600),
+        subs(`sub_haul_${franchiseId}`, { ru: 'Вывоз травы', kk: 'Шөп тасымалдау', en: 'Grass removal' }, 8500, 400, false),
+      ]),
+      serviceTemplate(franchiseId, 'filter', { ru: 'Замена фильтра', kk: 'Сүзгі ауыстыру', en: 'Filter replacement' }, 6500, 1000, false, []),
+      serviceTemplate(franchiseId, 'irrigation', { ru: 'Автополив', kk: 'Автосуарма', en: 'Auto irrigation' }, 21000, 1000, true, []),
+      serviceTemplate(franchiseId, 'cleaning', { ru: 'Клининг', kk: 'Тазалау', en: 'Cleaning' }, 12500, 800, true, []),
+      serviceTemplate(franchiseId, 'landscape', { ru: 'Озеленение', kk: 'Көгалдандыру', en: 'Landscaping' }, 26000, 1500, true, []),
+      serviceTemplate(franchiseId, 'rental', { ru: 'Аренда оборудования', kk: 'Жабдық жалдау', en: 'Equipment rental' }, 10000, 500, false, []),
+    ]
+  }
+
+  // Уральск және басқа қалалар — базалық каталог
   return [
-    serviceTemplate(franchiseId, 'septic', 'Откачка септика', 8000, 300, true, [
-      subs(`sub_3m_${franchiseId}`, '3 куба', 8000, 300),
-      subs(`sub_5m_${franchiseId}`, '5 кубов', 12000, 400),
-      subs(`sub_10m_${franchiseId}`, '10 кубов', 20000, 600),
-      subs(`sub_urgent_${franchiseId}`, 'Срочный вызов', 15000, 500),
-      subs(`sub_night_${franchiseId}`, 'Ночной вызов', 18000, 600),
+    serviceTemplate(franchiseId, 'septic', { ru: 'Откачка септика', kk: 'Септик сорғызу', en: 'Septic pumping' }, 8000, 300, true, [
+      subs(`sub_3m_${franchiseId}`, { ru: '3 куба', kk: '3 тек', en: '3 m³' }, 8000, 300),
+      subs(`sub_5m_${franchiseId}`, { ru: '5 кубов', kk: '5 тек', en: '5 m³' }, 12000, 400),
+      subs(`sub_10m_${franchiseId}`, { ru: '10 кубов', kk: '10 тек', en: '10 m³' }, 20000, 600),
+      subs(`sub_urgent_${franchiseId}`, { ru: 'Срочный вызов', kk: 'Шұғыл шақыру', en: 'Urgent call' }, 15000, 500),
+      subs(`sub_night_${franchiseId}`, { ru: 'Ночной вызов', kk: 'Түнгі шақыру', en: 'Night call' }, 18000, 600),
     ]),
-    serviceTemplate(franchiseId, 'lawn', 'Стрижка газона', 15000, 1000, true, [
-      subs(`sub_100_${franchiseId}`, 'до 100 м²', 12000, 800),
-      subs(`sub_500_${franchiseId}`, '100–500 м²', 18000, 1000),
-      subs(`sub_1000_${franchiseId}`, '500–1000 м²', 28000, 1500),
-      subs(`sub_mow_${franchiseId}`, 'Покос травы', 10000, 600),
-      subs(`sub_haul_${franchiseId}`, 'Вывоз травы', 8000, 400),
+    serviceTemplate(franchiseId, 'lawn', { ru: 'Стрижка газона', kk: 'Шөп шабу', en: 'Lawn mowing' }, 15000, 1000, true, [
+      subs(`sub_100_${franchiseId}`, { ru: 'до 100 м²', kk: '100 м² дейін', en: 'up to 100 m²' }, 12000, 800),
+      subs(`sub_500_${franchiseId}`, { ru: '100–500 м²', kk: '100–500 м²', en: '100–500 m²' }, 18000, 1000),
+      subs(`sub_1000_${franchiseId}`, { ru: '500–1000 м²', kk: '500–1000 м²', en: '500–1000 m²' }, 28000, 1500),
+      subs(`sub_mow_${franchiseId}`, { ru: 'Покос травы', kk: 'Шөп кесу', en: 'Grass mowing' }, 10000, 600),
+      subs(`sub_haul_${franchiseId}`, { ru: 'Вывоз травы', kk: 'Шөп тасымалдау', en: 'Grass removal' }, 8000, 400),
     ]),
-    serviceTemplate(franchiseId, 'filter', 'Замена фильтра', 6000, 1000, true, [
-      subs(`sub_std_${franchiseId}`, 'Стандарт', 6000, 1000),
-      subs(`sub_prem_${franchiseId}`, 'Премиум', 9000, 1200),
+    serviceTemplate(franchiseId, 'filter', { ru: 'Замена фильтра', kk: 'Сүзгі ауыстыру', en: 'Filter replacement' }, 6000, 1000, true, [
+      subs(`sub_std_${franchiseId}`, { ru: 'Стандарт', kk: 'Стандарт', en: 'Standard' }, 6000, 1000),
+      subs(`sub_prem_${franchiseId}`, { ru: 'Премиум', kk: 'Премиум', en: 'Premium' }, 9000, 1200),
     ]),
-    serviceTemplate(franchiseId, 'irrigation', 'Автополив', 20000, 1000, true, []),
-    serviceTemplate(franchiseId, 'cleaning', 'Клининг', 12000, 800, true, []),
-    serviceTemplate(franchiseId, 'landscape', 'Озеленение', 25000, 1500, true, []),
-    serviceTemplate(franchiseId, 'rental', 'Аренда оборудования', 10000, 500, false, []),
+    serviceTemplate(franchiseId, 'irrigation', { ru: 'Автополив', kk: 'Автосуарма', en: 'Auto irrigation' }, 20000, 1000, true, []),
+    serviceTemplate(franchiseId, 'cleaning', { ru: 'Клининг', kk: 'Тазалау', en: 'Cleaning' }, 12000, 800, true, []),
+    serviceTemplate(franchiseId, 'landscape', { ru: 'Озеленение', kk: 'Көгалдандыру', en: 'Landscaping' }, 25000, 1500, true, []),
+    serviceTemplate(franchiseId, 'rental', { ru: 'Аренда оборудования', kk: 'Жабдық жалдау', en: 'Equipment rental' }, 10000, 500, false, []),
   ]
 }
 
@@ -140,6 +216,8 @@ export function createSeedState() {
     { id: 'p2', franchiseId: 'fr-uralsk', name: 'Асхат', company: 'AquaPro', phone: '+77019990011', serviceIds: [`irrigation_fr-uralsk`, `filter_fr-uralsk`], city: 'Уральск', active: true, blocked: false, rating: 4.6, completedOrders: 0, earnings: 0, gpCommissionPaid: 0 },
     { id: 'p3', franchiseId: 'fr-atyrau', name: 'Марат', company: 'Atyrau Service', phone: '+77012223344', serviceIds: [`septic_fr-atyrau`], city: 'Атырау', active: true, blocked: false, rating: 4.5, completedOrders: 0, earnings: 0, gpCommissionPaid: 0 },
     { id: 'p4', franchiseId: 'fr-aktobe', name: 'Динара', company: 'Aktobe Green', phone: '+77013332211', serviceIds: [`lawn_fr-aktobe`], city: 'Актобе', active: true, blocked: false, rating: 4.7, completedOrders: 0, earnings: 0, gpCommissionPaid: 0 },
+    { id: 'p-pending-1', franchiseId: 'fr-uralsk', name: 'Ерлан', company: 'Septic Pro Uralsk', phone: '+77016667788', serviceIds: [], city: 'Уральск', active: false, blocked: false, moderationStatus: 'PENDING_REVIEW', partnerType: 'septic', partnerRole: 'SPECIALIST', rating: 0, completedOrders: 0, earnings: 0, gpCommissionPaid: 0, createdAt: now - 86400000 },
+    { id: 'p-pending-legal', franchiseId: 'fr-atyrau', name: 'Қайрат', company: 'ИП Қайрат', phone: '+77018889900', serviceIds: [], city: 'Атырау', active: false, blocked: false, moderationStatus: 'PENDING_REVIEW', partnerType: 'legal', partnerRole: 'SPECIALIST', rating: 0, completedOrders: 0, earnings: 0, gpCommissionPaid: 0, createdAt: now - 43200000 },
   ]
 
   const septicUralsk = `septic_fr-uralsk`
@@ -179,6 +257,8 @@ export function createSeedState() {
   const state = {
     version: STORE_VERSION,
     settings: { ...DEFAULT_SETTINGS },
+    oblasts: OBLASTS_SEED.map((o) => ({ ...o })),
+    cities: CITIES_SEED.map((c) => ({ ...c })),
     franchises,
     services,
     clients,

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '@gp/shared/api'
+import { isDemoMode } from '@gp/shared/demo'
 import {
   getPartnerOfferingStatusLabel,
   getPartnerSubserviceLabel,
@@ -8,6 +9,7 @@ import {
 } from '@gp/shared/constants'
 import { SERVICE_STATUS_SPEC, partnerStatusLabel } from '@gp/shared-core/statuses'
 import { useAccess } from '../context/AccessContext'
+import { useAdminToast } from '../context/AdminToastContext'
 import { ACTIONS } from '../lib/permissions'
 import { useLanguage } from '../i18n/LanguageContext'
 import { useAdminModerationLoad } from '../hooks/useAdminModerationLoad'
@@ -20,6 +22,7 @@ const TAB_IDS = ['PENDING_MODERATION', 'ACTIVE', 'REJECTED', 'TEMPORARILY_BLOCKE
 export default function OfferingModerationPanel({ scope, title, subtitle, backTo }) {
   const { t } = useLanguage()
   const { can } = useAccess()
+  const { showToast } = useAdminToast()
   const [tab, setTab] = useState('PENDING_MODERATION')
   const [rejectNote, setRejectNote] = useState('')
   const [rejectId, setRejectId] = useState(null)
@@ -32,6 +35,10 @@ export default function OfferingModerationPanel({ scope, title, subtitle, backTo
   })
 
   const setStatus = async (id, status, moderationNote) => {
+    if (isDemoMode()) {
+      showToast(t('featureInDevelopment'))
+      return
+    }
     setError('')
     try {
       await api.adminUpdateOfferingStatus(id, {
@@ -58,7 +65,7 @@ export default function OfferingModerationPanel({ scope, title, subtitle, backTo
         </Link>
       )}
       <div>
-        <h1 className="text-xl font-bold text-white">{title}</h1>
+        <h1 className="text-xl font-bold admin-heading">{title}</h1>
         <p className="text-sm text-slate-400">{subtitle}</p>
       </div>
       {error && <p className="text-sm text-red-400">{error}</p>}
@@ -76,7 +83,7 @@ export default function OfferingModerationPanel({ scope, title, subtitle, backTo
             type="button"
             onClick={() => setTab(id)}
             className={`px-3 py-1.5 rounded-lg text-sm ${
-              tab === id ? 'bg-sky-600 text-white' : 'bg-white/10 text-slate-300'
+              tab === id ? 'admin-tab-active' : 'admin-tab'
             }`}
           >
             {PARTNER_OFFERING_STATUS_LABELS[id] || id}
@@ -91,7 +98,7 @@ export default function OfferingModerationPanel({ scope, title, subtitle, backTo
           <li key={o.id} className="rounded-xl border border-white/10 p-4 space-y-2">
             <div className="flex flex-wrap justify-between gap-2">
               <div>
-                <p className="font-semibold text-white">{getPartnerSubserviceLabel(o.subserviceId)}</p>
+                <p className="font-semibold admin-heading">{getPartnerSubserviceLabel(o.subserviceId)}</p>
                 <p className="text-xs text-slate-500 font-mono">{o.subserviceId}</p>
                 <p className="text-sm text-slate-300 mt-1">
                   {o.partner?.companyName || o.partner?.user?.name}

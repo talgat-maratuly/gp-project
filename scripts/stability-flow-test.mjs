@@ -33,7 +33,7 @@ async function main() {
   for (const s of auth.steps) record(s.name, s.ok, s.detail)
   const partner = await runPartnerFlow(auth.tokens?.partner)
   for (const s of partner.steps) record(s.name, s.ok, s.detail)
-  const mod = await runModerationFlow(auth.tokens?.admin, partner.partnerProfileId)
+  const mod = await runModerationFlow(auth.tokens?.admin, partner.partnerProfileId, partner.specialistRequestId)
   for (const s of mod.steps) record(s.name, s.ok, s.detail)
   const order = await runOrderFlow({
     clientToken: auth.tokens?.client,

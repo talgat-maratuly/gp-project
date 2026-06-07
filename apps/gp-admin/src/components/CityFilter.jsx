@@ -9,7 +9,14 @@ export default function CityFilter() {
 
   if (!isSuperAdmin) {
     return currentFranchise ? (
-      <span className="text-xs px-3 py-1.5 rounded-lg bg-sky-500/15 text-sky-200 border border-sky-500/30">
+      <span
+        className="text-xs px-3 py-1.5 rounded-lg border font-semibold"
+        style={{
+          backgroundColor: 'var(--gp-accent-soft)',
+          color: 'var(--gp-accent-text)',
+          borderColor: 'color-mix(in srgb, var(--gp-accent) 30%, var(--gp-border))',
+        }}
+      >
         {currentFranchise.city}
       </span>
     ) : null

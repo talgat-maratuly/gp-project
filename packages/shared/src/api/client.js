@@ -1,6 +1,20 @@
-import { get, post, patch, del, request, API_URL, getApiRootUrl } from './apiClient.js'
-import { setToken, clearToken, setRefreshToken, clearRefreshToken, getToken } from './token.js'
+import { get, post, patch, del, request, uploadForm, API_URL, getApiRootUrl } from './apiClient.js'
+import {
+  getToken,
+  setToken,
+  clearToken,
+  setRefreshToken,
+  clearRefreshToken,
+  getDeviceId,
+} from './token.js'
+import { persistAuthSession, clearAuthSession, getWebDeviceMeta } from './authSession.js'
 import { mapOrder, mapProduct, mapPartnerUser } from './mappers.js'
+
+function withDeviceSession(body = {}) {
+  const deviceId = getDeviceId()
+  const { deviceName, platform } = getWebDeviceMeta()
+  return { ...body, deviceId, deviceName, platform }
+}
 
 const mapOrdersForApp = (list) => {
   const forClient = import.meta.env?.VITE_APP_NAME === 'service'
@@ -10,23 +24,35 @@ const mapOrdersForApp = (list) => {
 export { API_URL, getApiRootUrl as apiUrl }
 
 export const api = {
+  sendOtp: (phone, channel = 'sms') =>
+    post('/auth/mobile/otp/send', { phone, channel }, { auth: false }),
+
+  verifyOtp: (body) =>
+    post('/auth/mobile/otp/verify', body, { auth: false }).then((r) => {
+      persistAuthSession(r, { deviceId: body?.deviceId || getDeviceId() })
+      return r
+    }),
+
   registerClient: (body) =>
-    post('/auth/register/client', body, { auth: false }).then((r) => {
-      setToken(r.accessToken)
+    post('/auth/register/client', withDeviceSession(body), { auth: false }).then((r) => {
+      persistAuthSession(r, { deviceId: getDeviceId() })
       return r
     }),
 
   registerPartner: (body) =>
-    post('/auth/register/partner', body, { auth: false }).then((r) => {
-      setToken(r.accessToken)
+    post('/auth/register/partner', withDeviceSession(body), { auth: false }).then((r) => {
+      persistAuthSession(r, { deviceId: getDeviceId() })
       return r
     }),
 
-  login: (email, password) =>
-    post('/auth/login', { email, password }, { auth: false }).then((r) => {
-      setToken(r.accessToken)
+  login: (email, password) => {
+    const deviceId = getDeviceId()
+    clearRefreshToken()
+    return post('/auth/login', withDeviceSession({ email, password }), { auth: false }).then((r) => {
+      persistAuthSession(r, { deviceId })
       return r
-    }),
+    })
+  },
 
   forgotPassword: (body) => post('/auth/forgot-password', body, { auth: false }),
 
@@ -34,10 +60,7 @@ export const api = {
 
   resetPassword: (body) => post('/auth/reset-password', body, { auth: false }),
 
-  logout: () => {
-    clearToken()
-    clearRefreshToken()
-  },
+  logout: () => clearAuthSession(),
 
   me: () => get('/auth/me'),
 
@@ -57,6 +80,39 @@ export const api = {
     return mapOrdersForApp(list)
   },
 
+  getPartnerOrders: async (params = {}) => {
+    const q = new URLSearchParams(params).toString()
+    const list = await get(`/partner/orders${q ? `?${q}` : ''}`)
+    if (!Array.isArray(list)) return []
+    return list.map((o) => mapOrder(o, { forClient: false }))
+  },
+
+  getPartnerNewOrders: async () => {
+    const list = await get('/partner/orders/new')
+    if (!Array.isArray(list)) return []
+    return list.map((o) => mapOrder(o, { forClient: false }))
+  },
+
+  // Лента доступных заказов из пула (matching на бэкенде)
+  getSpecialistFeed: async () => {
+    const list = await get('/specialist/orders/feed')
+    if (!Array.isArray(list)) return []
+    return list.map((o) => mapOrder(o, { forClient: false }))
+  },
+
+  // Приём заказа из пула (race-protection на бэкенде)
+  acceptOrderFromPool: (id) =>
+    patch(`/orders/${id}/accept`, {}).then((o) => mapOrder(o, { forClient: false })),
+
+  acceptPartnerOrder: (id) =>
+    patch(`/partner/orders/${id}/accept`, {}).then((o) => mapOrder(o, { forClient: false })),
+
+  rejectPartnerOrder: (id, cancelReason) =>
+    patch(`/partner/orders/${id}/reject`, { cancelReason }).then((o) => mapOrder(o, { forClient: false })),
+
+  updatePartnerOrderStatus: (id, body) =>
+    patch(`/partner/orders/${id}/status`, body).then((o) => mapOrder(o, { forClient: false })),
+
   getOrder: (id) =>
     get(`/orders/${id}`).then((o) =>
       mapOrder(o, { forClient: import.meta.env?.VITE_APP_NAME === 'service' }),
@@ -69,6 +125,14 @@ export const api = {
     patch(`/orders/${id}/status`, body).then((o) => mapOrder(o, { forClient: false })),
 
   confirmOrder: (id) => patch(`/orders/${id}/confirm`).then((o) => mapOrder(o, { forClient: true })),
+
+  cancelOrder: (id, cancelReason) =>
+    patch(`/orders/${id}/cancel`, { cancelReason }).then((o) => mapOrder(o, { forClient: true })),
+
+  recreateOrder: (id) =>
+    post(`/orders/${id}/recreate`, {}).then((o) => mapOrder(o, { forClient: true })),
+
+  getOrderEvents: (id) => get(`/orders/${id}/events`),
 
   getPartnerMe: () =>
     get('/partners/me').then((p) => ({
@@ -90,9 +154,54 @@ export const api = {
 
   getPartnerApplication: () => get('/partner/me'),
 
+  /** Shop partners only — specialists use submitSpecialistApplication */
   partnerApply: (body) => post('/partner/apply', body),
 
   partnerResubmit: (body) => patch('/partner/me/resubmit', body),
+
+  getSpecialistOnboardingCatalog: () =>
+    get('/specialist/onboarding/catalog', { auth: false }),
+
+  getSpecialistOnboardingSubservices: (cityId, mainServiceId) =>
+    get(
+      `/specialist/onboarding/subservices?cityId=${encodeURIComponent(cityId)}&mainServiceId=${encodeURIComponent(mainServiceId)}`,
+      { auth: false },
+    ),
+
+  getSpecialistOnboardingMainServices: (cityId) =>
+    get(`/specialist/onboarding/main-services?cityId=${encodeURIComponent(cityId)}`, { auth: false }),
+
+  getSpecialistApplications: () => get('/specialist/applications'),
+
+  getSpecialistApplication: (id) => get(`/specialist/applications/${id}`),
+
+  submitSpecialistApplication: (body) => post('/specialist/applications', body),
+
+  uploadSpecialistPhoto: (file, kind) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    return uploadForm(`/uploads/specialist-photo?kind=${encodeURIComponent(kind)}`, fd)
+  },
+
+  moderatorListSpecialistRequests: (opts = {}) => {
+    const params = new URLSearchParams()
+    if (opts.status) params.set('status', opts.status)
+    if (opts.page) params.set('page', String(opts.page))
+    if (opts.limit) params.set('limit', String(opts.limit))
+    if (opts.city) params.set('city', opts.city)
+    if (opts.specialistName) params.set('specialistName', opts.specialistName)
+    if (opts.phoneNumber) params.set('phoneNumber', opts.phoneNumber)
+    const q = params.toString() ? `?${params.toString()}` : ''
+    return get(`/moderator/specialist-requests${q}`)
+  },
+
+  moderatorGetSpecialistRequest: (id) => get(`/moderator/specialist-requests/${id}`),
+
+  moderatorApproveSpecialistRequest: (id) =>
+    patch(`/moderator/specialist-requests/${id}/approve`, {}),
+
+  moderatorRejectSpecialistRequest: (id, body) =>
+    patch(`/moderator/specialist-requests/${id}/reject`, body),
 
   getRegions: () => get('/regions', { auth: false }),
 
@@ -107,6 +216,8 @@ export const api = {
     const q = params.toString() ? `?${params.toString()}` : ''
     return get(`/admin/moderation/partners${q}`)
   },
+
+  adminModerationPending: () => get('/admin/moderation/pending'),
 
   adminModerationPartner: (id) => get(`/admin/moderation/partners/${id}`),
 
@@ -254,6 +365,89 @@ export const api = {
 
   patchQrPartnerOrderStatus: (orderId, status) =>
     patch(`/qr/partner/orders/${orderId}/status`, { status }),
+
+  getServiceCatalog: (franchiseId, cityId) => {
+    const opts = franchiseId && typeof franchiseId === 'object'
+      ? franchiseId
+      : { franchiseId, cityId }
+    const params = new URLSearchParams()
+    if (opts.franchiseId) params.set('franchiseId', opts.franchiseId)
+    if (opts.cityId) params.set('cityId', opts.cityId)
+    const q = params.toString()
+    return get(`/services/catalog${q ? `?${q}` : ''}`, { auth: false })
+  },
+
+  listServiceFranchises: () => get('/services/franchises', { auth: false }),
+
+  adminFranchises: () => get('/admin/services/franchises'),
+
+  adminServices: (franchiseId) => {
+    const q = franchiseId ? `?franchiseId=${encodeURIComponent(franchiseId)}` : ''
+    return get(`/admin/services${q}`)
+  },
+
+  adminCreateService: (body) => post('/admin/services', body),
+
+  adminUpdateService: (serviceId, body) => patch(`/admin/services/${serviceId}`, body),
+
+  adminRemoveService: (serviceId) => del(`/admin/services/${serviceId}`),
+
+  adminAddSubservice: (serviceId, body) => post(`/admin/services/${serviceId}/subservices`, body),
+
+  adminUpdateSubservice: (serviceId, subId, body) =>
+    patch(`/admin/services/${serviceId}/subservices/${subId}`, body),
+
+  adminRemoveSubservice: (serviceId, subId) =>
+    del(`/admin/services/${serviceId}/subservices/${subId}`),
+
+  adminServiceTypes: (code) => {
+    const q = code ? `?code=${encodeURIComponent(code)}` : ''
+    return get(`/admin/service-types${q}`)
+  },
+
+  adminCreateServiceType: (body) => post('/admin/service-types', body),
+
+  adminUpdateServiceType: (id, body) => patch(`/admin/service-types/${id}`, body),
+
+  adminRemoveServiceType: (id) => del(`/admin/service-types/${id}`),
+
+  adminAddSubserviceType: (serviceTypeId, body) =>
+    post(`/admin/service-types/${serviceTypeId}/subservices`, body),
+
+  adminUpdateSubserviceType: (serviceTypeId, subId, body) =>
+    patch(`/admin/service-types/${serviceTypeId}/subservices/${subId}`, body),
+
+  adminRemoveSubserviceType: (serviceTypeId, subId) =>
+    del(`/admin/service-types/${serviceTypeId}/subservices/${subId}`),
+
+  adminSubservices: (serviceCode) => {
+    const q = serviceCode ? `?serviceCode=${encodeURIComponent(serviceCode)}` : ''
+    return get(`/admin/subservices${q}`)
+  },
+
+  adminGetSubservice: (id) => get(`/admin/subservices/${id}`),
+
+  adminCreateSubservice: (body) => post('/admin/subservices', body),
+
+  adminUpdateSubservice: (id, body) => patch(`/admin/subservices/${id}`, body),
+
+  adminRemoveSubservice: (id) => del(`/admin/subservices/${id}`),
+
+  adminCityPrices: (opts = {}) => {
+    const params = new URLSearchParams()
+    if (opts.serviceCode) params.set('serviceCode', opts.serviceCode)
+    if (opts.cityId) params.set('cityId', opts.cityId)
+    if (opts.franchiseId) params.set('franchiseId', opts.franchiseId)
+    if (opts.oblastId) params.set('oblastId', opts.oblastId)
+    const q = params.toString() ? `?${params.toString()}` : ''
+    return get(`/admin/city-prices${q}`)
+  },
+
+  adminCreateCityPrice: (body) => post('/admin/city-prices', body),
+
+  adminUpdateCityPrice: (id, body) => patch(`/admin/city-prices/${id}`, body),
+
+  adminRemoveCityPrice: (id) => del(`/admin/city-prices/${id}`),
 
   healthFull: async () => {
     const url = `${getApiRootUrl()}/health/full`

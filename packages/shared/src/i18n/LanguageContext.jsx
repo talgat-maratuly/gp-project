@@ -23,9 +23,15 @@ export function LanguageProvider({ children }) {
   }, [])
 
   const t = useCallback(
-    (key) => {
+    (key, vars) => {
       const dict = translations[lang] || translations[DEFAULT_LANG]
-      return dict[key] ?? translations[DEFAULT_LANG][key] ?? key
+      let s = dict[key] ?? translations[DEFAULT_LANG][key] ?? key
+      if (vars && typeof s === 'string') {
+        Object.entries(vars).forEach(([k, v]) => {
+          s = s.replaceAll(`{${k}}`, String(v))
+        })
+      }
+      return s
     },
     [lang],
   )

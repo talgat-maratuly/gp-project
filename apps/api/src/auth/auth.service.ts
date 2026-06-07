@@ -22,6 +22,7 @@ import {
   validatePartnerRegistration,
 } from '../common/account-type.util';
 import { PrismaService } from '../prisma/prisma.service';
+import { normalizePartnerProfileForApi } from '../user-status/work-status.util';
 import { RegisterClientDto } from './dto/register-client.dto';
 import { RegisterPartnerDto } from './dto/register-partner.dto';
 import { LoginDto } from './dto/login.dto';
@@ -29,6 +30,11 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { VerifyResetOtpDto } from './dto/verify-reset-otp.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { PartnersService } from '../partners/partners.service';
+import { RbacService, UserWithProfiles } from '../rbac/rbac.service';
+import { PortalRole, WorkStatus } from '@prisma/client';
+import { UserStatusService } from '../user-status/user-status.service';
+import { MobileAuthService } from './mobile-auth.service';
+import { DeviceSessionDto } from './dto/device-session.dto';
 import { generateOtpCode, hashOtp, normalizePhone } from './mobile-auth.util';
 
 const RESET_OTP_TTL_MS = 10 * 60 * 1000;
@@ -43,21 +49,46 @@ export class AuthService {
     private prisma: PrismaService,
     private jwt: JwtService,
     private partners: PartnersService,
+    private rbac: RbacService,
+    private userStatus: UserStatusService,
+    private mobileAuth: MobileAuthService,
   ) {}
 
-  private async signToken(user: { id: string; email: string; role: Role; regionId?: string | null }) {
+  private hasDeviceSession(dto?: DeviceSessionDto) {
+    return Boolean(dto?.deviceId && dto.deviceId.length >= 8);
+  }
+
+  private async buildAuthResponse(user: UserWithProfiles, dto?: DeviceSessionDto) {
+    if (this.hasDeviceSession(dto)) {
+      return this.mobileAuth.issueCredentialSession(user, {
+        deviceId: dto!.deviceId!,
+        deviceName: dto!.deviceName,
+        platform: dto!.platform,
+      });
+    }
+    return this.signToken(user);
+  }
+
+  private async signToken(user: UserWithProfiles) {
+    const roles = this.rbac.resolvePortalRoles(user);
     return {
       accessToken: await this.jwt.signAsync({
         sub: user.id,
         email: user.email,
         role: user.role,
+        roles,
         regionId: user.regionId ?? null,
+        franchiseId: user.franchiseId ?? null,
+        accountStatus: user.accountStatus,
       }),
       user: {
         id: user.id,
         email: user.email,
         role: user.role,
+        roles,
         regionId: user.regionId ?? null,
+        franchiseId: user.franchiseId ?? null,
+        accountStatus: user.accountStatus,
       },
     };
   }
@@ -127,6 +158,7 @@ export class AuthService {
         name: displayName,
         phone,
         role: Role.CLIENT,
+        portalRoles: [PortalRole.CLIENT],
         regionId: region.id,
         clientProfile: {
           create: {
@@ -139,9 +171,9 @@ export class AuthService {
           },
         },
       },
-      include: { clientProfile: true },
+      include: { clientProfile: true, partnerProfile: true },
     });
-    return this.signToken(user);
+    return this.buildAuthResponse(user, dto);
   }
 
   /** MVP: автогенерация email/phone/password, регион по умолчанию; partnerRole обязателен */
@@ -178,11 +210,14 @@ export class AuthService {
         name: displayName,
         phone,
         role: Role.PARTNER,
+        portalRoles: [PortalRole.CLIENT],
         regionId: region.id,
         partnerProfile: {
           create: {
             regionId: region.id,
             status: PartnerStatus.DRAFT,
+            requestStatus: null,
+            workStatus: WorkStatus.OFFLINE,
             accountType,
             partnerRole,
             partnerType,
@@ -202,22 +237,24 @@ export class AuthService {
           },
         },
       },
-      include: { partnerProfile: true },
+      include: { clientProfile: true, partnerProfile: true },
     });
 
-    return this.signToken(user);
+    return this.buildAuthResponse(user, dto);
   }
 
   async login(dto: LoginDto) {
+    const email = dto.email.trim().toLowerCase();
     const user = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+      where: { email },
       include: { clientProfile: true, partnerProfile: true },
     });
     if (!user) throw new UnauthorizedException('Неверный email или пароль');
     const ok = await bcrypt.compare(dto.password, user.passwordHash);
     if (!ok) throw new UnauthorizedException('Неверный email или пароль');
-    this.logger.log(`login ok email=${user.email} role=${user.role}`);
-    return this.signToken(user);
+    this.userStatus.assertCanLogin(user);
+    this.logger.log(`login ok email=${user.email} role=${user.role} device=${!!dto.deviceId}`);
+    return this.buildAuthResponse(user, dto);
   }
 
   async me(userId: string) {
@@ -231,7 +268,14 @@ export class AuthService {
     });
     if (!user) return null;
     const { passwordHash: _, ...safe } = user;
-    return safe;
+    return {
+      ...safe,
+      partnerProfile: safe.partnerProfile
+        ? normalizePartnerProfileForApi(safe.partnerProfile)
+        : null,
+      roles: this.rbac.resolvePortalRoles(user),
+      statuses: this.userStatus.snapshot(user, user.partnerProfile ?? null),
+    };
   }
 
   private hashResetToken(token: string) {

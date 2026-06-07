@@ -1,13 +1,25 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
+import { Role } from '@prisma/client';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PrismaService } from '../prisma/prisma.service';
+import { UserStatusService } from '../user-status/user-status.service';
 
-export type JwtPayload = { sub: string; email: string; role: string };
+export type JwtPayload = {
+  sub: string;
+  email: string;
+  role: string;
+  roles?: string[];
+  regionId?: string | null;
+  franchiseId?: string | null;
+};
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private prisma: PrismaService) {
+  constructor(
+    private prisma: PrismaService,
+    private userStatus: UserStatusService,
+  ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
@@ -21,6 +33,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       include: { clientProfile: true, partnerProfile: true },
     });
     if (!user) throw new UnauthorizedException();
+    this.userStatus.assertCanLogin(user);
+    const sessionRole = payload.role as Role | undefined;
+    if (sessionRole && Object.values(Role).includes(sessionRole)) {
+      return { ...user, role: sessionRole };
+    }
     return user;
   }
 }

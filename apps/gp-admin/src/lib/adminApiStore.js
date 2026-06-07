@@ -13,15 +13,13 @@ const DEFAULT_FRANCHISE = {
 const ADMIN_ORDER_STATUS = {
   NEW: 'new',
   ACCEPTED: 'assigned',
-  ON_THE_WAY: 'in_progress',
-  ARRIVED: 'in_progress',
-  STARTED: 'in_work',
-  LOADED: 'in_work',
-  DISPOSAL_ARRIVED: 'in_work',
-  DISPOSAL_COMPLETED: 'in_work',
+  ON_WAY: 'in_progress',
+  IN_PROCESS: 'in_work',
   COMPLETED: 'completed',
-  CLIENT_CONFIRMED: 'completed',
-  CANCELLED: 'cancelled',
+  EXPIRED: 'expired',
+  CANCELED_BY_CLIENT: 'cancelled',
+  CANCELED_BY_SPEC: 'cancelled',
+  NO_SHOW: 'no_show',
 }
 
 function mapClient(u) {
@@ -142,20 +140,23 @@ function mapQrOrder(o) {
 
 export async function fetchAdminStore() {
   const seed = loadGlobalStore()
-  const [clients, partners, orders, qrStats, qrObjects, qrOrders] = await Promise.all([
+  const [clients, partners, orders, qrStats, qrObjects, qrOrders, services, franchises] = await Promise.all([
     api.adminClients(),
     api.adminPartners(),
     api.adminOrders(),
     api.adminQrStats(),
     api.adminQrObjects(),
     api.adminQrOrders(),
+    api.adminServices().catch(() => []),
+    api.adminFranchises().catch(() => []),
   ])
 
   const objectsActive = (qrObjects || []).filter((o) => o.status === 'active').length
 
   return {
     ...seed,
-    franchises: [DEFAULT_FRANCHISE],
+    franchises: franchises?.length ? franchises : seed.franchises,
+    services: Array.isArray(services) ? services : seed.services,
     clients: clients.map(mapClient),
     partners: partners.map(mapPartner),
     orders: orders.map(mapOrder),

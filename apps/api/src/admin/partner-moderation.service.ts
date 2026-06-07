@@ -11,6 +11,10 @@ import {
 import { RegionAccessService } from '../common/region-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PartnersService } from '../partners/partners.service';
+import { RbacService } from '../rbac/rbac.service';
+import { PortalRole, RequestStatus, WorkStatus } from '@prisma/client';
+import { SpecialistRequestNotificationsService } from '../specialist-requests/specialist-request-notifications.service';
+import { AccountStatusService } from '../user-status/account-status.service';
 
 @Injectable()
 export class PartnerModerationAdminService {
@@ -18,6 +22,9 @@ export class PartnerModerationAdminService {
     private prisma: PrismaService,
     private regionAccess: RegionAccessService,
     private partners: PartnersService,
+    private rbac: RbacService,
+    private specialistNotifications: SpecialistRequestNotificationsService,
+    private accountStatus: AccountStatusService,
   ) {}
 
   private regionFilter(admin: User) {
@@ -152,6 +159,7 @@ export class PartnerModerationAdminService {
         where: { id: partnerId },
         data: {
           status: PartnerStatus.APPROVED,
+          requestStatus: RequestStatus.APPROVED,
           approvedByAdminId: admin.id,
           approvedAt: new Date(),
           rejectionReason: null,
@@ -165,10 +173,26 @@ export class PartnerModerationAdminService {
         data: { status: PartnerOfferingStatus.ACTIVE, moderationNote: null },
       });
       await this.writeAudit(partnerId, admin.id, PartnerModerationAction.APPROVE);
+      await tx.specialistRequest.updateMany({
+        where: { partnerProfileId: partnerId },
+        data: {
+          status: RequestStatus.APPROVED,
+          moderatorId: admin.id,
+          approvedAt: new Date(),
+          rejectionReason: null,
+          rejectedAt: null,
+        },
+      });
     });
 
     await this.partners.syncDirectionsFromOfferings(partnerId);
     await this.partners.syncServiceAccessFromOfferings(partnerId);
+    await this.rbac.onSpecialistApproved(profile.userId);
+    await this.accountStatus.systemEnsureActive(
+      profile.userId,
+      'Specialist application approved by admin',
+    );
+    await this.specialistNotifications.notifyApproved(profile.userId);
     return this.getOne(admin, partnerId);
   }
 
@@ -181,6 +205,9 @@ export class PartnerModerationAdminService {
         where: { id: partnerId },
         data: {
           status: PartnerStatus.REJECTED,
+          requestStatus: RequestStatus.REJECTED,
+          workStatus: WorkStatus.OFFLINE,
+          isOnline: false,
           rejectionReason: reason.trim(),
           rejectedAt: new Date(),
         },
@@ -190,7 +217,21 @@ export class PartnerModerationAdminService {
         data: { status: PartnerOfferingStatus.REJECTED },
       });
       await this.writeAudit(partnerId, admin.id, PartnerModerationAction.REJECT, { reason });
+      await tx.specialistRequest.updateMany({
+        where: { partnerProfileId: partnerId },
+        data: {
+          status: RequestStatus.REJECTED,
+          moderatorId: admin.id,
+          rejectionReason: reason.trim(),
+          rejectedAt: new Date(),
+        },
+      });
+      await tx.user.update({
+        where: { id: profile.userId },
+        data: { portalRoles: { set: [PortalRole.CLIENT] } },
+      });
     });
+    await this.specialistNotifications.notifyRejected(profile.userId, reason.trim());
     return this.getOne(admin, partnerId);
   }
 
@@ -203,6 +244,7 @@ export class PartnerModerationAdminService {
         where: { id: partnerId },
         data: {
           status: PartnerStatus.NEEDS_REVISION,
+          requestStatus: RequestStatus.PENDING,
           revisionComment: comment.trim(),
         },
       });
@@ -220,6 +262,8 @@ export class PartnerModerationAdminService {
         where: { id: partnerId },
         data: {
           status: PartnerStatus.SUSPENDED,
+          requestStatus: RequestStatus.APPROVED,
+          workStatus: WorkStatus.OFFLINE,
           suspendedAt: new Date(),
           isOnline: false,
         },

@@ -1,11 +1,11 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { api, clearToken, getToken } from '@gp/shared/api'
-import { isDemoMode, subscribeGlobalStore, syncFromHub } from '@gp/shared/demo'
+import { isDemoMode, subscribeGlobalStore, syncFromHub, loadGlobalStore } from '@gp/shared/demo'
 import * as demoApi from '../lib/demoApi'
 import * as marketDemo from '../lib/marketDemoApi'
 import { subscribeGlobalOrderStatus, resetTrackingSocket } from '@gp/shared/api/trackingSocket'
 import { CATEGORY_TO_API, PAYMENT_TO_API } from '@gp/shared/api/mappers'
-import { calcServiceTotal, computeShopDeliveryFee, LAWN_SERVICE_IDS } from '@gp/shared/constants'
+import { computeShopDeliveryFee, LAWN_SERVICE_IDS } from '@gp/shared/constants'
 import { buildTestClientCredentials } from '@gp/shared/utils'
 import {
   activateTestMode,
@@ -17,6 +17,14 @@ import {
   logoutTestMode,
   registerTestClient,
 } from '@gp/shared/testMode'
+import { STATIC_GEO_STORE } from '@gp/shared/geography'
+import {
+  buildSepticServiceFromStore,
+  calcServiceTotalWithCity,
+  filterCatalogForCity,
+  getSepticVolumeOptionsForCity,
+  isServiceActiveInCity,
+} from '@gp/shared/services/cityCatalog'
 import { SERVICE_CATALOG, getServiceOrderCategory } from '../data/services'
 
 const KEYS = {
@@ -49,9 +57,94 @@ export function ServiceProvider({ children }) {
   ]))
   const [profile, setProfile] = useState(() => load(KEYS.profile, {
     name: '', phone: '', email: '', city: 'Уральск',
+    oblastId: 'obl-batys', cityId: 'city-uralsk', franchiseId: 'fr-uralsk',
   }))
   const [checkoutDraft, setCheckoutDraft] = useState(() => load(KEYS.checkout, null))
   const [toast, setToast] = useState(null)
+  const [geoStore, setGeoStore] = useState(() => (isDemoMode() ? loadGlobalStore() : null))
+  const [catalogByFranchise, setCatalogByFranchise] = useState({})
+  const [catalogLoadingFranchise, setCatalogLoadingFranchise] = useState(null)
+  const [catalogFetchedKeys, setCatalogFetchedKeys] = useState(() => new Set())
+  const catalogByFranchiseRef = useRef(catalogByFranchise)
+  catalogByFranchiseRef.current = catalogByFranchise
+
+  const catalogCacheKey = useCallback((franchiseId, cityId) => {
+    const fid = franchiseId?.trim()
+    const cid = cityId?.trim()
+    return fid || (cid ? `city:${cid}` : '')
+  }, [])
+
+  const resolveCatalogStore = useCallback((franchiseId, cityId) => {
+    if (isDemoMode()) return geoStore
+    const fid = franchiseId || profile.franchiseId
+    const cid = cityId || profile.cityId
+    const services =
+      (fid && catalogByFranchise[fid]) ||
+      (cid && catalogByFranchise[`city:${cid}`]) ||
+      null
+    if (!services?.length) return null
+    return { services }
+  }, [geoStore, catalogByFranchise, profile.franchiseId, profile.cityId])
+
+  useEffect(() => {
+    if (!isDemoMode()) return undefined
+    return subscribeGlobalStore(setGeoStore)
+  }, [])
+
+  const ensureCatalog = useCallback(async (franchiseIdOrOpts, cityIdArg) => {
+    if (isDemoMode()) return geoStore
+    let franchiseId = franchiseIdOrOpts
+    let cityId = cityIdArg
+    if (franchiseIdOrOpts && typeof franchiseIdOrOpts === 'object') {
+      franchiseId = franchiseIdOrOpts.franchiseId
+      cityId = franchiseIdOrOpts.cityId
+    }
+    const fid = franchiseId?.trim()
+    const cid = cityId?.trim()
+    const cacheKey = fid || (cid ? `city:${cid}` : '')
+    if (!cacheKey) return null
+    const cached = (fid && catalogByFranchiseRef.current[fid])
+      || catalogByFranchiseRef.current[cacheKey]
+    if (cached?.length) {
+      return { services: cached }
+    }
+    setCatalogLoadingFranchise(cacheKey)
+    try {
+      const list = await api.getServiceCatalog({ franchiseId: fid, cityId: cid })
+      const services = Array.isArray(list) ? list : []
+      const resolvedFr = services[0]?.franchiseId
+      setCatalogByFranchise((prev) => {
+        const next = { ...prev, [cacheKey]: services }
+        if (fid) next[fid] = services
+        if (resolvedFr) next[resolvedFr] = services
+        if (cid) next[`city:${cid}`] = services
+        return next
+      })
+      return services.length ? { services } : null
+    } catch {
+      return null
+    } finally {
+      setCatalogFetchedKeys((prev) => new Set(prev).add(cacheKey))
+      setCatalogLoadingFranchise((cur) => (cur === cacheKey ? null : cur))
+    }
+  }, [geoStore])
+
+  const isCatalogLoading = useCallback((franchiseId, cityId) => {
+    const key = catalogCacheKey(franchiseId, cityId)
+    return Boolean(key && catalogLoadingFranchise === key)
+  }, [catalogCacheKey, catalogLoadingFranchise])
+
+  const isCatalogFetched = useCallback((franchiseId, cityId) => {
+    const key = catalogCacheKey(franchiseId, cityId)
+    return Boolean(key && catalogFetchedKeys.has(key))
+  }, [catalogCacheKey, catalogFetchedKeys])
+
+  useEffect(() => {
+    if (isDemoMode()) return undefined
+    if (!profile.franchiseId && !profile.cityId) return undefined
+    ensureCatalog({ franchiseId: profile.franchiseId, cityId: profile.cityId })
+    return undefined
+  }, [profile.franchiseId, profile.cityId, ensureCatalog])
 
   const notify = useCallback((message, type = 'success') => setToast({ message, type }), [])
 
@@ -91,7 +184,11 @@ export function ServiceProvider({ children }) {
     }
     try {
       const me = await api.me()
-      if (me.role !== 'CLIENT' || !me.clientProfile) {
+      const roles = me.roles || []
+      const canUseService =
+        me.clientProfile &&
+        (me.role === 'CLIENT' || roles.includes('CLIENT') || roles.includes('SPECIALIST'))
+      if (!canUseService) {
         clearToken()
         setAuthUser(null)
         return
@@ -234,9 +331,9 @@ export function ServiceProvider({ children }) {
     try {
       await api.login(email, password)
       const me = await api.me()
-      if (me.role !== 'CLIENT' || !me.clientProfile) {
+      if (!me.clientProfile) {
         clearToken()
-        throw new Error('Это аккаунт партнёра. Для услуг войдите как client@gp.kz или откройте GP Partner.')
+        throw new Error('Клиент профилі жоқ. Телефон OTP арқылы кіріңіз немесе client@gp.kz')
       }
       applyTestSession(me)
       notify('Вход выполнен')
@@ -282,7 +379,26 @@ export function ServiceProvider({ children }) {
     }
   }, [syncAuth, notify, applyTestSession])
 
-  const logout = useCallback(() => {
+  const sendOtp = useCallback(async (phone, channel = 'sms') => {
+    if (!phone?.trim()) throw new Error('Телефон нөмірін енгізіңіз')
+    return api.sendOtp(phone.trim(), channel)
+  }, [])
+
+  const verifyOtp = useCallback(async (payload) => {
+    const session = await api.verifyOtp(payload)
+    const me = await api.me()
+    if (me.clientProfile) {
+      applyTestSession(me)
+    }
+    return { session, me }
+  }, [applyTestSession])
+
+  const submitPartnerApplication = useCallback(async () => {
+    notify('Маман өтінімін GP Partner қолданбасында толтырыңыз (specialist onboarding).', 'info')
+    throw new Error('Use GP Partner app: /apply/specialist')
+  }, [notify])
+
+  const logout = useCallback(async () => {
     if (isDemoMode()) {
       demoApi.demoLogout()
       setAuthUser(null)
@@ -297,7 +413,7 @@ export function ServiceProvider({ children }) {
       notify('Вы вышли', 'info')
       return
     }
-    api.logout()
+    await api.logout()
     setAuthUser(null)
     setOrders([])
     notify('Вы вышли', 'info')
@@ -309,8 +425,8 @@ export function ServiceProvider({ children }) {
       return
     }
     if (!getToken()) throw new Error('Войдите как клиент: Профиль → Вход (demo: client@gp.kz)')
-    if (authUser && authUser.role !== 'CLIENT') {
-      throw new Error('Аккаунт партнёра не подходит для заказа услуг. Используйте client@gp.kz')
+    if (authUser && !authUser.clientProfile) {
+      throw new Error('Клиент профилі жоқ. Кіріңіз немесе client@gp.kz пайдаланыңыз')
     }
   }, [authUser])
 
@@ -411,6 +527,7 @@ export function ServiceProvider({ children }) {
       total: orderTotal,
       paymentMethod: PAYMENT_TO_API[data.paymentMethod] || 'CASH_ON_DELIVERY',
       comment: commentParts.join('\n'),
+      onBehalfCity: data.city || profile.city,
       items: cartItems.map((i) => ({
         productId: i.product.id,
         name: i.product.name,
@@ -419,17 +536,86 @@ export function ServiceProvider({ children }) {
       })),
     }
     const order = await api.createOrder(payload)
+    setOrders((prev) => {
+      const mapped = { ...order, kind: order.category === 'shop' ? 'shop' : 'service' }
+      return [mapped, ...prev.filter((o) => o.id !== order.id)]
+    })
     await refreshOrders()
     clearCart()
     setCheckoutDraft(null)
     notify('Заказ оформлен! Оплата — партнёру напрямую.')
     return order
-  }, [cartItems, cartTotal, clearCart, notify, refreshOrders, requireAuth])
+  }, [cartItems, cartTotal, clearCart, notify, refreshOrders, requireAuth, profile])
+
+  const catalogStoreFor = useCallback((franchiseId, cityId) => {
+    return resolveCatalogStore(franchiseId, cityId)
+  }, [resolveCatalogStore])
+
+  const catalogStore = useMemo(
+    () => catalogStoreFor(profile.franchiseId, profile.cityId),
+    [catalogStoreFor, profile.franchiseId, profile.cityId],
+  )
+
+  const getCityCatalog = useCallback((items, lang = 'ru', franchiseId, cityId) => {
+    const store = resolveCatalogStore(franchiseId, cityId)
+    const fid = franchiseId || profile.franchiseId || store?.services?.[0]?.franchiseId
+    if (!isDemoMode()) {
+      if (!store?.services?.length || !fid) return []
+      return filterCatalogForCity(items, store, fid, lang)
+    }
+    if (!store?.services?.length || !fid) return items
+    return filterCatalogForCity(items, store, fid, lang)
+  }, [resolveCatalogStore, profile.franchiseId, profile.cityId])
+
+  const getSepticOptions = useCallback((lang = 'ru', franchiseId, cityId) => {
+    const store = resolveCatalogStore(franchiseId, cityId)
+    const fid = franchiseId || profile.franchiseId || store?.services?.[0]?.franchiseId
+    if (!store?.services?.length || !fid) return isDemoMode() ? null : []
+    return getSepticVolumeOptionsForCity(store, fid, lang)
+  }, [resolveCatalogStore, profile.franchiseId, profile.cityId])
+
+  const getApiSepticService = useCallback((lang = 'ru', franchiseId, cityId) => {
+    const store = resolveCatalogStore(franchiseId, cityId)
+    const fid = franchiseId || profile.franchiseId || store?.services?.[0]?.franchiseId
+    if (!store?.services?.length || !fid) return null
+    return buildSepticServiceFromStore(store, fid, lang)
+  }, [resolveCatalogStore, profile.franchiseId, profile.cityId])
+
+  const isServiceAvailable = useCallback((serviceId, franchiseId, cityId) => {
+    const store = resolveCatalogStore(franchiseId, cityId)
+    const fid = franchiseId || profile.franchiseId || store?.services?.[0]?.franchiseId
+    if (isDemoMode()) {
+      if (!store?.services?.length || !fid) return true
+      return isServiceActiveInCity(store, fid, serviceId)
+    }
+    if (!store?.services?.length || !fid) return false
+    return isServiceActiveInCity(store, fid, serviceId)
+  }, [resolveCatalogStore, profile.franchiseId, profile.cityId])
+
+  const calcOrderTotal = useCallback((params, lang = 'ru', franchiseId, cityId) => {
+    const store = resolveCatalogStore(franchiseId, cityId)
+    const fid = franchiseId || profile.franchiseId || store?.services?.[0]?.franchiseId
+    return calcServiceTotalWithCity({
+      store,
+      franchiseId: fid,
+      lang,
+      ...params,
+    })
+  }, [resolveCatalogStore, profile.franchiseId, profile.cityId])
 
   const placeServiceOrder = useCallback(async (data) => {
     requireAuth()
+    const geo = {
+      city: data.city || profile.city,
+      cityId: data.cityId || profile.cityId,
+      oblastId: data.oblastId || profile.oblastId,
+      franchiseId: data.franchiseId || profile.franchiseId,
+    }
+    const orderData = { ...data, ...geo }
     if (isDemoMode()) {
-      await demoApi.demoPlaceServiceOrder(data)
+      demoApi.updateDemoSession({ city: geo.city, franchiseId: geo.franchiseId })
+      setProfile((p) => ({ ...p, ...geo }))
+      await demoApi.demoPlaceServiceOrder(orderData)
       await refreshOrders()
       notify('Заявка отправлена! Партнёр увидит её в GP Partner.')
       return { id: 'demo' }
@@ -446,23 +632,35 @@ export function ServiceProvider({ children }) {
     if (LAWN_SERVICE_IDS.includes(data.serviceId) && (!data.lawnAreaSqm || Number(data.lawnAreaSqm) < 1)) {
       throw new Error('Укажите площадь участка в м²')
     }
-    const total =
-      calcServiceTotal({
-        serviceId: data.serviceId,
-        septicVolume: isSeptic ? Number(data.septicVolume) : undefined,
-        lawnAreaSqm: data.lawnAreaSqm ? Number(data.lawnAreaSqm) : undefined,
-      }) || Number(data.total) || 0
+    const store = catalogStoreFor(data.franchiseId, data.cityId)
+    const orderFranchiseId = data.franchiseId || profile.franchiseId || store?.services?.[0]?.franchiseId
+    const totalFromApi = calcServiceTotalWithCity({
+      store,
+      franchiseId: orderFranchiseId,
+      serviceId: data.serviceId,
+      septicVolume: isSeptic ? Number(data.septicVolume) : undefined,
+      lawnAreaSqm: data.lawnAreaSqm ? Number(data.lawnAreaSqm) : undefined,
+      lang: 'ru',
+    })
+    const total = totalFromApi ?? Number(data.total) ?? 0
+    if (isSeptic && total <= 0) {
+      throw new Error('Септик бағасы табылмады — қала каталогын тексеріңіз')
+    }
+
+    const commentParts = [data.comment]
+    if (data.subserviceCode) commentParts.push(`Подуслуга: ${data.subserviceCode}`)
 
     const payload = {
       category: apiCategory,
       serviceName: data.serviceName,
       serviceId: data.serviceId,
-      address: data.address || obj?.address || 'Уральск',
+      address: data.address || obj?.address || geo.city || 'Уральск',
       clientLat: Number(data.lat ?? data.clientLat) || 51.233,
       clientLng: Number(data.lng ?? data.clientLng) || 51.367,
       total,
       paymentMethod: PAYMENT_TO_API[data.paymentMethod] || 'CASH_ON_DELIVERY',
-      comment: data.comment,
+      comment: commentParts.filter(Boolean).join('\n'),
+      onBehalfCity: geo.city,
       septicVolume: isSeptic ? Number(data.septicVolume) : undefined,
       preferredDate: data.preferredDate || undefined,
       preferredTime: data.flexibleTime ? undefined : data.preferredTime,
@@ -470,10 +668,14 @@ export function ServiceProvider({ children }) {
       lawnAreaSqm: data.lawnAreaSqm ? Number(data.lawnAreaSqm) : undefined,
     }
     const order = await api.createOrder(payload)
+    setOrders((prev) => {
+      const mapped = { ...order, kind: order.category === 'shop' ? 'shop' : 'service' }
+      return [mapped, ...prev.filter((o) => o.id !== order.id)]
+    })
     await refreshOrders()
     notify('Заявка отправлена! Партнёр увидит её в GP Partner.')
     return order
-  }, [objects, notify, refreshOrders, requireAuth])
+  }, [objects, notify, refreshOrders, requireAuth, profile, catalogStoreFor])
 
   const submitPartnerLead = useCallback((data) => {
     const leads = load(KEYS.partnerLeads, [])
@@ -497,10 +699,22 @@ export function ServiceProvider({ children }) {
     toggleFavorite, isFavorite, placeShopOrder, placeServiceOrder,
     setCheckoutDraft, setProfile, setObjects, submitPartnerLead, notify,
     login, register, logout, refreshOrders,
+    sendOtp, verifyOtp, submitPartnerApplication,
     isDemoMode: isDemoMode(),
     isTestMode: isTestModeActive(),
+    geoStore: isDemoMode() && geoStore?.cities?.length ? geoStore : STATIC_GEO_STORE,
+    catalogStore,
+    ensureCatalog,
+    catalogLoadingFranchise,
+    isCatalogLoading,
+    isCatalogFetched,
+    getCityCatalog,
+    getSepticOptions,
+    getApiSepticService,
+    isServiceAvailable,
+    calcOrderTotal,
     demoFranchises: isDemoMode() ? demoApi.demoFranchises() : [],
-    cancelOrder: async (orderId) => {
+    cancelOrder: async (orderId, cancelReason) => {
       requireAuth()
       if (isDemoMode()) {
         const o = orders.find((x) => x.id === orderId)
@@ -510,7 +724,19 @@ export function ServiceProvider({ children }) {
         notify('Заявка отменена', 'info')
         return
       }
-      throw new Error('API only')
+      const reason = (cancelReason || '').trim()
+      if (reason.length < 3) throw new Error('Укажите причину отмены')
+      const order = await api.cancelOrder(orderId, reason)
+      await refreshOrders()
+      notify('Заявка отменена', 'info')
+      return order
+    },
+    recreateOrder: async (orderId) => {
+      requireAuth()
+      const order = await api.recreateOrder(orderId)
+      await refreshOrders()
+      notify('Создана новая заявка на основе предыдущей')
+      return order
     },
     updateClientOrder: async (orderId, patch) => {
       requireAuth()

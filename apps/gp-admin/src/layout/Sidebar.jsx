@@ -20,6 +20,7 @@ import {
   LayoutGrid,
   FlaskConical,
   QrCode,
+  MapPin,
   UserCog,
   UserCheck,
   ClipboardCheck,
@@ -48,6 +49,7 @@ const ICONS = {
   LayoutGrid,
   FlaskConical,
   QrCode,
+  MapPin,
   UserCog,
   UserCheck,
   ClipboardCheck,
@@ -62,22 +64,22 @@ export default function Sidebar({ role, open, onClose }) {
       {open && (
         <button
           type="button"
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 admin-overlay z-40 lg:hidden"
           aria-label={t('closeMenu')}
           onClick={onClose}
         />
       )}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-64 flex flex-col border-r border-white/10 bg-slate-950 transition-transform duration-200 ${
+        className={`admin-sidebar fixed lg:static inset-y-0 left-0 z-50 w-64 flex flex-col border-r transition-transform duration-200 ${
           open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
-        <div className="flex items-center justify-between p-4 border-b border-white/10">
+        <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: 'var(--gp-border)' }}>
           <div>
-            <p className="font-extrabold text-lg tracking-tight">{t('appName')}</p>
-            <p className="text-[10px] text-slate-500 uppercase tracking-widest">{t('appTagline')}</p>
+            <p className="font-extrabold text-lg tracking-tight admin-heading">{t('appName')}</p>
+            <p className="text-[10px] admin-muted uppercase tracking-widest">{t('appTagline')}</p>
           </div>
-          <button type="button" className="lg:hidden p-2 rounded-lg hover:bg-white/10" onClick={onClose}>
+          <button type="button" className="lg:hidden admin-btn-icon !min-h-0 !min-w-0 p-2" onClick={onClose}>
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -91,9 +93,7 @@ export default function Sidebar({ role, open, onClose }) {
                 end={navLinkEnd(item.path)}
                 onClick={onClose}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${
-                    isActive ? 'bg-sky-500/20 text-sky-200' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
-                  }`
+                  `admin-nav-link ${isActive ? 'admin-nav-link-active' : ''}`
                 }
               >
                 {Icon && <Icon className="w-4 h-4 shrink-0" />}
@@ -102,7 +102,9 @@ export default function Sidebar({ role, open, onClose }) {
             )
           })}
         </nav>
-        <p className="p-4 text-[10px] text-slate-600 border-t border-white/10">{t('demoFooter')}</p>
+        <p className="p-4 text-[10px] admin-muted border-t" style={{ borderColor: 'var(--gp-border)' }}>
+          {t('demoFooter')}
+        </p>
       </aside>
     </>
   )

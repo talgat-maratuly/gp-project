@@ -15,6 +15,16 @@ enum Role {
   REGION_ADMIN
 }
 
+/// Portal RBAC — көп рөлді қолжетімділік (UserRole spec)
+enum PortalRole {
+  CLIENT
+  SPECIALIST
+  GP_OPERATOR
+  FRANCHISE_OWNER
+  GLOBAL_OPERATOR
+  ADMIN
+}
+
 /// Физическое или юридическое лицо (клиент и партнёр)
 enum AccountType {
   INDIVIDUAL
@@ -68,6 +78,41 @@ enum PartnerStatus {
   SUSPENDED
 }
 
+/// Specialist moderation request (PartnerProfile) — PartnerStatus-тан бөлек
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum SpecialistRejectionReasonCode {
+  DOCUMENTS_UNCLEAR
+  MISSING_PHOTOS
+  INCORRECT_INFORMATION
+  VEHICLE_NOT_SUITABLE
+  OTHER
+}
+
+/// Platform access — барлық User
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+enum AccountStatusChangeType {
+  AUTO
+  OPERATOR
+  SYSTEM
+}
+
+/// Specialist availability — тек PartnerProfile
+enum WorkStatus {
+  ONLINE
+  OFFLINE
+  BUSY
+}
+
 enum PartnerModerationAction {
   APPROVE
   REJECT
@@ -105,15 +150,30 @@ enum ServiceProjectStatus {
 enum OrderStatus {
   NEW
   ACCEPTED
-  ON_THE_WAY
+  ON_WAY
+  IN_PROCESS
+  COMPLETED
+  EXPIRED
+  CANCELED_BY_CLIENT
+  CANCELED_BY_SPEC
+  NO_SHOW
+}
+
+/// Операционные под-статусы септик-рейса (только при ON_WAY / IN_PROCESS)
+enum SepticStage {
   ARRIVED
-  STARTED
+  PUMPING
   LOADED
   DISPOSAL_ARRIVED
   DISPOSAL_COMPLETED
-  COMPLETED
-  CLIENT_CONFIRMED
-  CANCELLED
+}
+
+/// Кто инициировал переход статуса (для аудита и нотификаций)
+enum OrderActorRole {
+  client
+  spec
+  system
+  admin
 }
 
 enum GeofenceZoneType {
@@ -156,10 +216,17 @@ model User {
   email        String   @unique
   passwordHash String
   role         Role
+  /// Канондық RBAC рөлдері (JWT + guards). Бос болса — legacy Role-дан resolve
+  portalRoles  PortalRole[] @default([CLIENT])
   name         String
   phone        String?
   regionId     String?
   region       Region?  @relation(fields: [regionId], references: [id])
+  franchiseId  String?
+  franchise    Franchise? @relation(fields: [franchiseId], references: [id])
+  accountStatus AccountStatus @default(ACTIVE)
+  accountStatusReason String?
+  accountStatusChangedAt DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -172,8 +239,161 @@ model User {
   marketOrders   MarketOrder[]
   approvedPartners PartnerProfile[] @relation("PartnerApprovedBy")
   moderationActions PartnerModerationAuditLog[] @relation("ModerationAdmin")
+  specialistRequests SpecialistRequest[]
+  moderatedSpecialistRequests SpecialistRequest[] @relation("SpecialistRequestModerator")
+  accountStatusLogs AccountStatusLog[] @relation("AccountStatusSubject")
+  accountStatusChanges AccountStatusLog[] @relation("AccountStatusChangedBy")
+  complaintsReceived UserComplaint[] @relation("ComplaintTarget")
+  complaintsFiled UserComplaint[] @relation("ComplaintReporter")
 
   @@index([regionId])
+  @@index([franchiseId])
+  @@index([accountStatus])
+}
+
+model AccountStatusLog {
+  id          String                  @id @default(uuid())
+  userId      String
+  user        User                    @relation("AccountStatusSubject", fields: [userId], references: [id], onDelete: Cascade)
+  oldStatus   AccountStatus
+  newStatus   AccountStatus
+  changeType  AccountStatusChangeType
+  reason      String
+  rule        String?
+  changedById String?
+  changedBy   User?                   @relation("AccountStatusChangedBy", fields: [changedById], references: [id])
+  createdAt   DateTime                @default(now())
+
+  @@index([userId])
+  @@index([newStatus])
+  @@index([changeType])
+  @@index([rule])
+  @@index([createdAt])
+}
+
+model UserComplaint {
+  id             String   @id @default(uuid())
+  targetUserId   String
+  targetUser     User     @relation("ComplaintTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+  reporterUserId String?
+  reporter       User?    @relation("ComplaintReporter", fields: [reporterUserId], references: [id], onDelete: SetNull)
+  regionId       String?
+  reason         String
+  createdAt      DateTime @default(now())
+
+  @@index([targetUserId, createdAt])
+  @@index([regionId])
+}
+
+/// Франшиза (аймақтық масштабтау)
+model Franchise {
+  id        String   @id @default(uuid())
+  name      String
+  city      String?
+  cityId    String?
+  regionId  String?
+  region    Region?  @relation(fields: [regionId], references: [id])
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users    User[]
+  services FranchiseService[]
+
+  @@index([regionId])
+}
+
+/// Қызмет түрі — франшиза/қала бойынша (3 тіл, баға, active)
+model FranchiseService {
+  id           String   @id @default(uuid())
+  franchiseId  String
+  franchise    Franchise @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
+  templateId   String
+  cityId       String?
+  names        Json
+  basePrice    Int      @default(0)
+  gpCommission Int      @default(0)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  subservices FranchiseSubservice[]
+
+  @@unique([franchiseId, templateId])
+  @@index([franchiseId])
+}
+
+/// Подуслуга — франшиза қызметі ішінде (3 тіл, баға, active)
+model FranchiseSubservice {
+  id                 String           @id @default(uuid())
+  franchiseServiceId String
+  franchiseService   FranchiseService @relation(fields: [franchiseServiceId], references: [id], onDelete: Cascade)
+  externalId         String?
+  names              Json
+  price              Int              @default(0)
+  gpCommission       Int              @default(0)
+  active             Boolean          @default(true)
+  sortOrder          Int              @default(0)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@index([franchiseServiceId])
+}
+
+/// Глобалды қызмет түрі (code + 3 тіл)
+model ServiceType {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  names     Json
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subserviceTypes SubserviceType[]
+  cityPrices      CityServicePrice[]
+}
+
+/// Глобалды подуслуга түрі
+model SubserviceType {
+  id            String      @id @default(uuid())
+  serviceTypeId String
+  serviceType   ServiceType @relation(fields: [serviceTypeId], references: [id], onDelete: Cascade)
+  code          String
+  names         Json
+  active        Boolean     @default(true)
+  sortOrder     Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  cityPrices CityServicePrice[]
+
+  @@unique([serviceTypeId, code])
+  @@index([serviceTypeId])
+}
+
+/// Қала бойынша баға (septic және басқа қызметтер)
+model CityServicePrice {
+  id               String          @id @default(uuid())
+  serviceTypeId    String
+  serviceType      ServiceType     @relation(fields: [serviceTypeId], references: [id], onDelete: Cascade)
+  subserviceTypeId String?
+  subserviceType   SubserviceType? @relation(fields: [subserviceTypeId], references: [id], onDelete: SetNull)
+  oblastId         String?
+  cityId           String
+  franchiseId      String?
+  price            Int
+  gpCommission     Int             @default(0)
+  active           Boolean         @default(true)
+  volumeStart      Int?
+  volumeEnd        Int?
+  priority         Int             @default(0)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([cityId])
+  @@index([serviceTypeId, cityId])
+  @@index([franchiseId])
 }
 
 model ClientProfile {
@@ -201,6 +421,10 @@ model PartnerProfile {
   partnerType  PartnerType?
   partnerRole  PartnerRole?
   status       PartnerStatus      @default(DRAFT)
+  /// Specialist moderation (Request Status) — status-тан тәуелсіз
+  requestStatus RequestStatus?
+  /// Specialist availability (Work Status)
+  workStatus   WorkStatus         @default(OFFLINE)
   accountType  AccountType        @default(INDIVIDUAL)
   companyName  String?
   company      String?
@@ -213,8 +437,6 @@ model PartnerProfile {
   idDocumentNumber String?
   /** Реквизиты и документы: [{ kind, number, note, url? }] */
   documents    Json?
-  vehiclePhotos Json              @default("[]")
-  equipmentPhotos Json            @default("[]")
   rejectionReason String?
   revisionComment String?
   approvedByAdminId String?
@@ -247,11 +469,63 @@ model PartnerProfile {
   trips        Trip[]
   serviceProjects ServiceProject[] @relation("AssignedPartnerProjects")
   furnitureExecutorOrders FurnitureExecutorOrder[] @relation("FurnitureExecutorPartner")
+  specialistRequests SpecialistRequest[]
 
   @@index([regionId])
   @@index([status])
   @@index([partnerType])
   @@index([partnerRole])
+}
+
+/// Specialist moderation request — бір user → бірнеше өтінім (бір негізгі қызмет / өтінім)
+model SpecialistRequest {
+  id               String        @id @default(uuid())
+  userId           String
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  partnerProfileId String
+  partnerProfile   PartnerProfile @relation(fields: [partnerProfileId], references: [id], onDelete: Cascade)
+
+  regionId         String
+  region           Region        @relation(fields: [regionId], references: [id])
+  city             String?
+  district         String?
+  /// Бір өтінім = бір негізгі қызмет (OrderCategory)
+  primaryCategory  OrderCategory
+  subserviceIds    String[]      @default([])
+  primarySubserviceId String?
+
+  status           RequestStatus
+
+  profilePhotoUrl    String?
+  idCardFrontUrl     String?
+  idCardBackUrl      String?
+  vehicleData        Json?
+  equipmentPhotoUrls String[]    @default([])
+  workExperience     String?
+  termsAcceptedAt    DateTime?
+  personalDataAcceptedAt DateTime?
+
+  moderatorId      String?
+  moderator        User?         @relation("SpecialistRequestModerator", fields: [moderatorId], references: [id])
+  approvedAt       DateTime?
+  rejectionReason  String?
+  rejectionReasonCode SpecialistRejectionReasonCode?
+  rejectedAt       DateTime?
+  resubmittedAt    DateTime?
+
+  offerings        PartnerServiceOffering[]
+
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([userId, status])
+  @@index([userId, primaryCategory])
+  @@index([partnerProfileId])
+  @@index([regionId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([city])
 }
 
 enum FurnitureServiceType {
@@ -289,6 +563,8 @@ model PartnerServiceOffering {
   id            String                @id @default(uuid())
   partnerId     String
   partner       PartnerProfile        @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  specialistRequestId String?
+  specialistRequest   SpecialistRequest? @relation(fields: [specialistRequestId], references: [id], onDelete: Cascade)
   /** Идентификатор подуслуги как в каталоге (например grass-mowing) или gp-shop для магазина */
   subserviceId  String
   status        PartnerOfferingStatus @default(PENDING_MODERATION)
@@ -298,6 +574,7 @@ model PartnerServiceOffering {
 
   @@unique([partnerId, subserviceId])
   @@index([partnerId])
+  @@index([specialistRequestId])
   @@index([status])
 }
 
@@ -413,6 +690,9 @@ model Order {
   partner           PartnerProfile? @relation("AssignedPartner", fields: [assignedPartnerId], references: [id])
   category          OrderCategory
   status            OrderStatus   @default(NEW)
+  septicStage       SepticStage?
+  city              String?
+  regionId          String?
   serviceName       String?
   serviceId         String?
   address           String?
@@ -438,6 +718,16 @@ model Order {
   acceptedAt        DateTime?
   completedAt       DateTime?
   clientConfirmedAt DateTime?
+  expiredAt         DateTime?
+  noShowAt          DateTime?
+  canceledAt        DateTime?
+  cancelReason      String?
+  canceledByRole    OrderActorRole?
+  newWarningSentAt    DateTime?
+  acceptedReminderSentAt DateTime?
+  recreatedFromId   String?
+  recreatedFrom     Order?        @relation("OrderRecreate", fields: [recreatedFromId], references: [id], onDelete: SetNull)
+  recreatedInto     Order[]       @relation("OrderRecreate")
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
@@ -449,11 +739,33 @@ model Order {
   gpsPoints     GpsPoint[]
   notifications Notification[]
   disposalEvents DisposalEvent[]
+  eventLogs     OrderEventLog[]
 
   @@index([clientId])
   @@index([assignedPartnerId])
   @@index([status])
   @@index([category])
+  @@index([createdAt])
+  @@index([recreatedFromId])
+  @@index([status, assignedPartnerId])
+  @@index([regionId])
+}
+
+/// Неизменяемый журнал событий заказа (аудит, споры, аналитика)
+model OrderEventLog {
+  id         String          @id @default(uuid())
+  orderId    String
+  order      Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  userId     String?
+  role       OrderActorRole
+  action     String
+  fromStatus OrderStatus?
+  toStatus   OrderStatus?
+  metadata   Json?
+  createdAt  DateTime        @default(now())
+
+  @@index([orderId])
+  @@index([action])
   @@index([createdAt])
 }
 
@@ -780,12 +1092,14 @@ model Region {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
 
-  users    User[]
-  partners PartnerProfile[]
-  stores   Store[]
-  products MarketProduct[]
-  stocks   Stock[]
-  orders   MarketOrder[]
+  users      User[]
+  partners   PartnerProfile[]
+  stores     Store[]
+  products   MarketProduct[]
+  stocks     Stock[]
+  orders     MarketOrder[]
+  franchises Franchise[]
+  specialistRequests SpecialistRequest[]
 }
 
 enum StoreStatus {

@@ -34,7 +34,7 @@ export default function AppShell() {
               type="button"
               onClick={toggle}
               className="p-2.5 rounded-2xl hover:bg-[var(--gp-surface-2)] text-[var(--gp-text-muted)]"
-              aria-label="Тема"
+              aria-label={t('theme')}
             >
               {dark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
@@ -42,7 +42,7 @@ export default function AppShell() {
               type="button"
               onClick={() => navigate('/favorites')}
               className="relative p-2.5 rounded-2xl hover:bg-[var(--gp-surface-2)]"
-              aria-label="Избранное"
+              aria-label={t('favorites')}
             >
               <Heart className="w-5 h-5 text-[var(--gp-text-muted)]" />
               {favorites.length > 0 && (
@@ -55,7 +55,7 @@ export default function AppShell() {
               type="button"
               onClick={() => navigate('/shop/cart')}
               className="relative p-2.5 rounded-2xl hover:bg-[var(--gp-surface-2)]"
-              aria-label="Корзина"
+              aria-label={t('cart')}
             >
               <ShoppingCart className="w-5 h-5 text-[var(--gp-text-muted)]" />
               {cartCount > 0 && (

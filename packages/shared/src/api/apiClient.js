@@ -1,4 +1,14 @@
-import { getToken, setToken, clearToken, getRefreshToken, setRefreshToken, clearRefreshToken } from './token.js'
+import {
+  getToken,
+  setToken,
+  clearToken,
+  getRefreshToken,
+  setRefreshToken,
+  clearRefreshToken,
+  getDeviceId,
+  getSessionRole,
+  clearSessionRole,
+} from './token.js'
 import { ApiError, parseApiErrorBody, formatConnectionError, isNetworkError } from './errors.js'
 
 const DEV_API_DEFAULT = 'http://localhost:4000/api'
@@ -48,7 +58,11 @@ async function tryRefreshToken() {
     refreshInFlight = fetch(`${API_URL}/auth/mobile/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken: refresh }),
+      body: JSON.stringify({
+        refreshToken: refresh,
+        deviceId: getDeviceId(),
+        ...(getSessionRole() ? { sessionRole: getSessionRole() } : {}),
+      }),
     })
       .then(async (res) => {
         const data = await parseJson(res)
@@ -60,6 +74,7 @@ async function tryRefreshToken() {
       .catch(() => {
         clearToken()
         clearRefreshToken()
+        clearSessionRole()
         return false
       })
       .finally(() => {
@@ -125,6 +140,34 @@ export function patch(path, body, opts) {
 
 export function del(path, opts) {
   return request(path, { method: 'DELETE', ...opts })
+}
+
+/** multipart/form-data (do not set Content-Type — browser adds boundary) */
+export async function uploadForm(path, formData, { auth = true, retryOn401 = true } = {}) {
+  const headers = {}
+  if (auth) {
+    const token = getToken()
+    if (token) headers.Authorization = `Bearer ${token}`
+  }
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`
+  const url = `${API_URL}${normalizedPath}`
+
+  let res
+  try {
+    res = await fetch(url, { method: 'POST', body: formData, headers })
+  } catch (err) {
+    if (isNetworkError(err)) throw new Error(formatConnectionError(url))
+    throw err
+  }
+
+  if (res.status === 401 && auth && retryOn401) {
+    const refreshed = await tryRefreshToken()
+    if (refreshed) return uploadForm(path, formData, { auth, retryOn401: false })
+  }
+
+  const data = await parseJson(res)
+  if (!res.ok) throw parseApiErrorBody(data, res.status)
+  return data
 }
 
 export { request, parseJson }

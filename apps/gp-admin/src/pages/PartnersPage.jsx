@@ -1,24 +1,28 @@
 import { useState } from 'react'
-import { Plus, Pencil, Trash2, Ban } from 'lucide-react'
+import { Plus, Pencil, Trash2, Ban, Eye } from 'lucide-react'
 import { useStore } from '../context/StoreContext'
 import { useAccess } from '../context/AccessContext'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../i18n/LanguageContext'
+import { resolveLocalizedName } from '@gp/shared/i18n'
+import CitySelector from '@gp/shared/components/CitySelector'
 import { ACTIONS } from '../lib/permissions'
 import Badge from '../components/ui/Badge'
 import Modal from '../components/ui/Modal'
 import AdminEmptyState from '../components/ui/AdminEmptyState'
 import FormActions from '../components/FormActions'
+import PageHeader from '../components/PageHeader'
 import { formatMoney } from '../lib/format'
 
 export default function PartnersPage() {
   const { scoped, effectiveFranchiseId } = useAccess()
   const { user } = useAuth()
-  const { addPartner, updatePartner, removePartner } = useStore()
+  const { addPartner, updatePartner, removePartner, store } = useStore()
   const { can } = useAccess()
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const [modal, setModal] = useState(null)
-  const [form, setForm] = useState({ name: '', company: '', phone: '', city: '', serviceIds: [], active: true, rating: 5 })
+  const [viewId, setViewId] = useState(null)
+  const [form, setForm] = useState({ name: '', company: '', phone: '', city: '', cityId: '', oblastId: '', serviceIds: [], active: true, rating: 5 })
 
   const franchiseId = effectiveFranchiseId || user.franchiseId
   const franchiseServices = scoped.services
@@ -37,10 +41,13 @@ export default function PartnersPage() {
     }))
   }
 
+  const viewPartner = viewId ? scoped.partners.find((p) => p.id === viewId) : null
+
   return (
     <div className="space-y-4">
+      <PageHeader title={t('partners')} description={t('partners_page_desc')} />
       {can(ACTIONS.PARTNER_CRUD) && (
-        <button type="button" onClick={() => { setModal('new'); setForm({ name: '', company: '', phone: '', city: scoped.orders[0]?.city || '', serviceIds: [], active: true, rating: 5 }) }} className="admin-btn-primary">
+        <button type="button" onClick={() => { setModal('new'); setForm({ name: '', company: '', phone: '', city: '', cityId: '', oblastId: '', serviceIds: [], active: true, rating: 5 }) }} className="admin-btn-primary">
           <Plus className="w-4 h-4" /> {t('addPartner')}
         </button>
       )}
@@ -62,7 +69,7 @@ export default function PartnersPage() {
             {!scoped.partners.length ? (
               <tr><td colSpan={8}><AdminEmptyState /></td></tr>
             ) : scoped.partners.map((p) => (
-              <tr key={p.id}>
+              <tr key={p.id} className="cursor-pointer hover:bg-slate-800/40" onClick={() => setViewId(p.id)}>
                 <td className="font-medium">{p.company || p.name}</td>
                 <td>{p.phone}</td>
                 <td>{p.city}</td>
@@ -71,13 +78,20 @@ export default function PartnersPage() {
                 <td>{p.completedOrders}</td>
                 <td>{formatMoney(p.earnings)}</td>
                 <td>
-                  {can(ACTIONS.PARTNER_CRUD) && (
-                    <div className="flex gap-1">
-                      <button type="button" className="admin-btn-icon" onClick={() => { setModal(p.id); setForm({ ...p, serviceIds: p.serviceIds || [] }) }}><Pencil className="w-4 h-4" /></button>
-                      <button type="button" className="admin-btn-icon" onClick={() => updatePartner(p.id, { blocked: !p.blocked })}><Ban className="w-4 h-4" /></button>
-                      <button type="button" className="admin-btn-icon text-red-400" onClick={() => removePartner(p.id)}><Trash2 className="w-4 h-4" /></button>
-                    </div>
-                  )}
+                  <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                    <button type="button" className="admin-btn-icon" onClick={() => setViewId(p.id)}><Eye className="w-4 h-4" /></button>
+                    {can(ACTIONS.PARTNER_CRUD) && (
+                      <>
+                        <button type="button" className="admin-btn-icon" onClick={() => {
+                          const city = (store.cities || []).find((c) => c.name === p.city || resolveLocalizedName(c, lang) === p.city)
+                          setModal(p.id)
+                          setForm({ ...p, serviceIds: p.serviceIds || [], cityId: p.cityId || city?.id || '', oblastId: p.oblastId || city?.oblastId || '' })
+                        }}><Pencil className="w-4 h-4" /></button>
+                        <button type="button" className="admin-btn-icon" onClick={() => updatePartner(p.id, { blocked: !p.blocked })}><Ban className="w-4 h-4" /></button>
+                        <button type="button" className="admin-btn-icon text-red-400" onClick={() => removePartner(p.id)}><Trash2 className="w-4 h-4" /></button>
+                      </>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -85,16 +99,35 @@ export default function PartnersPage() {
         </table>
       </div>
 
+      <Modal open={!!viewPartner} onClose={() => setViewId(null)} title={viewPartner?.company || viewPartner?.name} wide>
+        {viewPartner && (
+          <dl className="grid grid-cols-2 gap-3 text-sm">
+            <div><dt className="text-slate-500">{t('name')}</dt><dd>{viewPartner.name}</dd></div>
+            <div><dt className="text-slate-500">{t('phone')}</dt><dd>{viewPartner.phone}</dd></div>
+            <div><dt className="text-slate-500">{t('city')}</dt><dd>{viewPartner.city}</dd></div>
+            <div><dt className="text-slate-500">{t('rating')}</dt><dd>★ {viewPartner.rating}</dd></div>
+            <div><dt className="text-slate-500">{t('completedCount')}</dt><dd>{viewPartner.completedOrders}</dd></div>
+            <div><dt className="text-slate-500">{t('earnings')}</dt><dd>{formatMoney(viewPartner.earnings)}</dd></div>
+          </dl>
+        )}
+      </Modal>
+
       <Modal open={!!modal} onClose={() => setModal(null)} title={modal === 'new' ? t('addPartner') : t('edit')} wide>
         <div className="space-y-3 text-sm">
-          {['name', 'company', 'phone', 'city'].map((k) => (
+          {['name', 'company', 'phone'].map((k) => (
             <label key={k} className="block"><span className="text-xs text-slate-500">{t(k === 'company' ? 'companyOrName' : k)}</span><input className="admin-input mt-1" value={form[k]} onChange={(e) => setForm({ ...form, [k]: e.target.value })} /></label>
           ))}
+          <CitySelector
+            store={store}
+            value={{ oblastId: form.oblastId, cityId: form.cityId }}
+            inputClassName="admin-input mt-1 w-full"
+            onChange={(sel) => setForm((f) => ({ ...f, oblastId: sel.oblastId, cityId: sel.cityId, city: sel.city || f.city }))}
+          />
           <div>
             <span className="text-xs text-slate-500">{t('assignServices')}</span>
             <div className="flex flex-wrap gap-2 mt-2">
               {franchiseServices.map((s) => (
-                <button key={s.id} type="button" onClick={() => toggleService(s.id)} className={`px-2 py-1 rounded-lg text-xs border ${form.serviceIds?.includes(s.id) ? 'border-sky-500 bg-sky-500/20' : 'border-white/10'}`}>{s.name}</button>
+                <button key={s.id} type="button" onClick={() => toggleService(s.id)} className={`px-2 py-1 rounded-lg text-xs border ${form.serviceIds?.includes(s.id) ? 'border-sky-500 bg-sky-500/20' : 'border-white/10'}`}>{resolveLocalizedName(s, lang)}</button>
               ))}
             </div>
           </div>

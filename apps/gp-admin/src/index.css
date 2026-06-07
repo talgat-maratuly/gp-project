@@ -6,40 +6,205 @@
 }
 
 @layer base {
+  html {
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
   body {
-    @apply bg-slate-950 font-sans antialiased;
-    color: var(--gp-text, #f1f5f9);
-    background-color: var(--gp-bg, #020617);
+    @apply font-sans antialiased;
+    color: var(--gp-text);
+    background-color: var(--gp-bg);
+  }
+
+  input,
+  textarea,
+  select {
+    color: var(--gp-text);
+    background-color: var(--gp-input-bg);
+    border-color: var(--gp-input-border);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--gp-text-muted);
+    opacity: 0.85;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    outline: none;
+    border-color: var(--gp-accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--gp-accent) 35%, transparent);
+  }
+
+  select option {
+    color: var(--gp-text);
+    background-color: var(--gp-surface);
+  }
+
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  textarea:-webkit-autofill,
+  textarea:-webkit-autofill:hover,
+  textarea:-webkit-autofill:focus,
+  select:-webkit-autofill,
+  select:-webkit-autofill:hover,
+  select:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--gp-text);
+    -webkit-box-shadow: 0 0 0 1000px var(--gp-input-bg) inset;
+    transition: background-color 9999s ease-in-out 0s;
   }
 }
 
 @layer utilities {
+  .admin-shell {
+    background-color: var(--gp-bg);
+    color: var(--gp-text);
+  }
+
+  .admin-panel {
+    background-color: var(--gp-surface);
+    border-color: var(--gp-border);
+  }
+
+  .admin-heading {
+    color: var(--gp-text);
+  }
+
+  .admin-muted {
+    color: var(--gp-text-muted);
+  }
+
   .admin-card {
-    @apply rounded-2xl border border-white/10 bg-slate-900/80 p-5;
+    @apply rounded-2xl p-5;
+    background-color: var(--gp-surface);
+    border: 1px solid var(--gp-border);
+    box-shadow: var(--gp-shadow-sm);
+    color: var(--gp-text);
   }
+
   .admin-input {
-    @apply w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2.5 text-sm focus:border-sky-500/50 focus:outline-none;
-    color: var(--gp-text, #f1f5f9);
-    &::placeholder {
-      color: var(--gp-text-muted, #64748b);
-    }
+    @apply w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none;
+    color: var(--gp-text) !important;
+    -webkit-text-fill-color: var(--gp-text);
+    caret-color: var(--gp-text);
+    background-color: var(--gp-input-bg) !important;
+    border: 1px solid var(--gp-input-border);
   }
+
+  .admin-input::placeholder {
+    color: var(--gp-text-muted) !important;
+    opacity: 0.85;
+  }
+
+  .admin-input:disabled {
+    color: var(--gp-text-muted) !important;
+    -webkit-text-fill-color: var(--gp-text-muted);
+    background-color: var(--gp-surface-2) !important;
+    opacity: 0.75;
+  }
+
   .admin-table {
     @apply w-full text-left text-sm;
+    color: var(--gp-text);
   }
+
   .admin-table th {
-    @apply border-b border-white/10 px-3 py-2 font-semibold text-slate-400;
+    @apply px-3 py-2 font-semibold;
+    color: var(--gp-text-muted);
+    border-bottom: 1px solid var(--gp-border);
+    background-color: var(--gp-surface-2);
   }
+
   .admin-table td {
-    @apply border-b border-white/5 px-3 py-2 text-slate-300;
+    @apply px-3 py-2;
+    color: var(--gp-text);
+    border-bottom: 1px solid color-mix(in srgb, var(--gp-border) 70%, transparent);
   }
+
   .admin-table-wrap {
-    @apply rounded-2xl border border-white/10 bg-slate-900/60 overflow-hidden;
+    @apply rounded-2xl overflow-hidden;
+    background-color: var(--gp-surface);
+    border: 1px solid var(--gp-border);
   }
+
   .admin-btn-icon {
-    @apply p-2 min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-lg border border-white/10 hover:bg-sky-500/20 hover:border-sky-500/30 transition text-slate-300 touch-manipulation;
+    @apply p-2 min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-lg transition touch-manipulation;
+    color: var(--gp-text-muted);
+    border: 1px solid var(--gp-border);
+    background-color: transparent;
   }
+
+  .admin-btn-icon:hover {
+    color: var(--gp-accent-text);
+    background-color: var(--gp-accent-soft);
+    border-color: color-mix(in srgb, var(--gp-accent) 35%, var(--gp-border));
+  }
+
   .admin-btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl bg-sky-600 hover:bg-sky-500 text-sm font-semibold text-white disabled:opacity-50 disabled:pointer-events-none touch-manipulation;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl text-sm font-semibold text-white disabled:opacity-50 disabled:pointer-events-none touch-manipulation;
+    background-color: var(--gp-accent);
+  }
+
+  .admin-btn-primary:hover:not(:disabled) {
+    background-color: var(--gp-accent-hover);
+  }
+
+  .admin-tab {
+    @apply px-3 py-2 rounded-xl text-sm font-semibold transition;
+    background-color: var(--gp-surface-2);
+    color: var(--gp-text-muted);
+    border: 1px solid var(--gp-border);
+  }
+
+  .admin-tab:hover {
+    color: var(--gp-text);
+    background-color: color-mix(in srgb, var(--gp-surface-2) 65%, var(--gp-accent-soft));
+  }
+
+  .admin-tab-active {
+    @apply px-3 py-2 rounded-xl text-sm font-semibold text-white transition;
+    background-color: var(--gp-accent);
+    border: 1px solid transparent;
+  }
+
+  .admin-tab-active:hover {
+    background-color: var(--gp-accent-hover);
+  }
+
+  .admin-sidebar {
+    background-color: var(--gp-surface);
+    border-color: var(--gp-border);
+  }
+
+  .admin-header {
+    background-color: color-mix(in srgb, var(--gp-surface) 92%, transparent);
+    border-color: var(--gp-border);
+    backdrop-filter: blur(10px);
+  }
+
+  .admin-nav-link {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition;
+    color: var(--gp-text-muted);
+  }
+
+  .admin-nav-link:hover {
+    color: var(--gp-text);
+    background-color: var(--gp-surface-2);
+  }
+
+  .admin-nav-link-active {
+    background-color: var(--gp-nav-active-bg);
+    color: var(--gp-nav-active-text);
+  }
+
+  .admin-overlay {
+    background-color: var(--gp-overlay);
   }
 }

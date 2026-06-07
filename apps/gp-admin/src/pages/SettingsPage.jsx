@@ -7,9 +7,14 @@ import { ACTIONS } from '../lib/permissions'
 const ROLE_KEYS = [
   { id: 'SUPER_ADMIN', descKey: 'role_SUPER_ADMINDesc' },
   { id: 'FRANCHISE_ADMIN', descKey: 'role_FRANCHISE_ADMINDesc' },
+  { id: 'MODERATOR', descKey: 'role_MODERATORDesc' },
+  { id: 'DISPATCHER', descKey: 'role_DISPATCHERDesc' },
+  { id: 'VIEWER', descKey: 'role_VIEWERDesc' },
   { id: 'MANAGER', descKey: 'role_MANAGERDesc' },
   { id: 'FINANCE', descKey: 'role_FINANCEDesc' },
   { id: 'SUPPORT', descKey: 'role_SUPPORTDesc' },
+  { id: 'MARKET_MANAGER', descKey: 'role_MARKET_MANAGERDesc' },
+  { id: 'DELIVERY_MANAGER', descKey: 'role_DELIVERY_MANAGERDesc' },
 ]
 
 export default function SettingsPage() {
@@ -27,6 +32,9 @@ export default function SettingsPage() {
           <p className="text-sm text-slate-400">{t('franchise')}</p>
           <p className="font-bold">{currentFranchise.name} · {currentFranchise.city}</p>
         </div>
+      )}
+      {!can(ACTIONS.SETTINGS_EDIT) && (
+        <p className="text-sm text-slate-500">{t('settingsReadonlyHint')}</p>
       )}
       {can(ACTIONS.SETTINGS_EDIT) && (
         <section className="admin-card space-y-4">

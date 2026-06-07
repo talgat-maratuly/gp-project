@@ -3,6 +3,7 @@ import { Plus, Eye, Pencil, Ban } from 'lucide-react'
 import { useStore } from '../context/StoreContext'
 import { useAccess } from '../context/AccessContext'
 import { useLanguage } from '../i18n/LanguageContext'
+import { resolveLocalizedName } from '@gp/shared/i18n'
 import { ACTIONS } from '../lib/permissions'
 import Badge from '../components/ui/Badge'
 import Modal from '../components/ui/Modal'
@@ -15,19 +16,34 @@ const STATUS_COLORS = { ACTIVE: 'emerald', INACTIVE: 'slate', BLOCKED: 'red' }
 export default function FranchisesPage() {
   const { store, addFranchise, updateFranchise, removeFranchise } = useStore()
   const { can } = useAccess()
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const [viewId, setViewId] = useState(null)
   const [editId, setEditId] = useState(null)
-  const [form, setForm] = useState({ name: '', city: '', ownerName: '', phone: '', status: 'ACTIVE' })
+  const [form, setForm] = useState({ name: '', cityId: '', ownerName: '', phone: '', status: 'ACTIVE' })
+
+  const cities = store.cities || []
+  const cityLabel = (cityId) => {
+    const city = cities.find((c) => c.id === cityId)
+    return city ? resolveLocalizedName(city, lang) : '—'
+  }
 
   const openCreate = () => {
     setEditId('new')
-    setForm({ name: '', city: '', ownerName: '', phone: '', status: 'ACTIVE' })
+    setForm({ name: '', cityId: '', ownerName: '', phone: '', status: 'ACTIVE' })
   }
 
   const openEdit = (f) => {
     setEditId(f.id)
-    setForm({ name: f.name, city: f.city, ownerName: f.ownerName, phone: f.phone, status: f.status })
+    setForm({ name: f.name, cityId: f.cityId || '', ownerName: f.ownerName, phone: f.phone, status: f.status })
+  }
+
+  const onCityChange = (cityId) => {
+    const city = cities.find((c) => c.id === cityId)
+    setForm((f) => ({
+      ...f,
+      cityId,
+      city: city ? resolveLocalizedName(city, lang) : '',
+    }))
   }
 
   const save = () => {
@@ -70,7 +86,7 @@ export default function FranchisesPage() {
               return (
                 <tr key={f.id}>
                   <td className="font-medium">{f.name}</td>
-                  <td>{f.city}</td>
+                  <td>{f.city || cityLabel(f.cityId)}</td>
                   <td>{f.ownerName}</td>
                   <td>{f.phone}</td>
                   <td><Badge color={STATUS_COLORS[f.status]}>{t(`franchise_${f.status}`)}</Badge></td>
@@ -95,7 +111,7 @@ export default function FranchisesPage() {
       <Modal open={!!viewed} onClose={() => setViewId(null)} title={viewed?.name} wide>
         {viewed && stats && (
           <dl className="grid grid-cols-2 gap-3 text-sm">
-            <div><dt className="text-slate-500">{t('city')}</dt><dd>{viewed.city}</dd></div>
+            <div><dt className="text-slate-500">{t('city')}</dt><dd>{viewed.city || cityLabel(viewed.cityId)}</dd></div>
             <div><dt className="text-slate-500">{t('owner')}</dt><dd>{viewed.ownerName}</dd></div>
             <div><dt className="text-slate-500">{t('clients')}</dt><dd>{stats.clients}</dd></div>
             <div><dt className="text-slate-500">{t('partners')}</dt><dd>{stats.partners}</dd></div>
@@ -107,9 +123,22 @@ export default function FranchisesPage() {
 
       <Modal open={!!editId} onClose={() => setEditId(null)} title={editId === 'new' ? t('addFranchise') : t('edit')}>
         <div className="space-y-3 text-sm">
-          {['name', 'city', 'ownerName', 'phone'].map((key) => (
+          <label className="block">
+            <span className="text-xs text-slate-500">{t('franchiseName')}</span>
+            <input className="admin-input mt-1" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          </label>
+          <label className="block">
+            <span className="text-xs text-slate-500">{t('city')}</span>
+            <select className="admin-input mt-1" value={form.cityId} onChange={(e) => onCityChange(e.target.value)}>
+              <option value="">{t('selectCity')}</option>
+              {cities.filter((c) => c.active !== false).map((c) => (
+                <option key={c.id} value={c.id}>{resolveLocalizedName(c, lang)}</option>
+              ))}
+            </select>
+          </label>
+          {['ownerName', 'phone'].map((key) => (
             <label key={key} className="block">
-              <span className="text-xs text-slate-500">{t(key === 'ownerName' ? 'owner' : key === 'name' ? 'franchiseName' : key)}</span>
+              <span className="text-xs text-slate-500">{t(key === 'ownerName' ? 'owner' : key)}</span>
               <input className="admin-input mt-1" value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} />
             </label>
           ))}

@@ -12,8 +12,18 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@gp-postgres:5432/${POSTGRES_DB}?schema=public
       JWT_SECRET: ${JWT_SECRET}
       CORS_ORIGINS: ${CORS_ORIGINS}
+      WHATSAPP_SERVICE_URL: ${WHATSAPP_SERVICE_URL:-https://wp.gpartners.kz/queues/push}
+      WHATSAPP_SERVICE_TOKEN: ${WHATSAPP_SERVICE_TOKEN:-}
+      OTP_STORE_REVIEW_PHONE: ${OTP_STORE_REVIEW_PHONE:-}
+      OTP_STORE_REVIEW_CODE: ${OTP_STORE_REVIEW_CODE:-}
+      OTP_DEV_BYPASS_ENABLED: ${OTP_DEV_BYPASS_ENABLED:-false}
+      OTP_DEV_BYPASS_CODE: ${OTP_DEV_BYPASS_CODE:-777777}
+      UPLOAD_DIR: /app/uploads
+      PUBLIC_API_URL: ${PUBLIC_API_URL:-}
     ports:
       - "127.0.0.1:${GP_API_PORT:-4000}:4000"
+    volumes:
+      - gp_uploads:/app/uploads
     depends_on:
       gp-postgres:
         condition: service_healthy
@@ -97,6 +107,8 @@ services:
 volumes:
   gp_postgres_data:
     name: gp_postgres_data
+  gp_uploads:
+    name: gp_uploads
 
 networks:
   gp-network:

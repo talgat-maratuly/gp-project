@@ -45,49 +45,69 @@ export const ORDER_STATUS_SPEC = {
   created: 'NEW',
   assigned: 'NEW',
   accepted: 'ACCEPTED',
-  in_progress: 'ON_THE_WAY',
+  on_way: 'ON_WAY',
+  in_progress: 'IN_PROCESS',
   completed: 'COMPLETED',
-  cancelled: 'CANCELLED',
-  disputed: 'CANCELLED',
+  expired: 'EXPIRED',
+  cancelled: 'CANCELED_BY_CLIENT',
+  canceled_by_client: 'CANCELED_BY_CLIENT',
+  canceled_by_spec: 'CANCELED_BY_SPEC',
+  no_show: 'NO_SHOW',
+  disputed: 'CANCELED_BY_SPEC',
 }
 
 export const ORDER_STATUS_FROM_PRISMA = {
-  NEW: 'created',
+  NEW: 'new',
   ACCEPTED: 'accepted',
-  ON_THE_WAY: 'in_progress',
-  ARRIVED: 'in_progress',
-  STARTED: 'in_progress',
-  LOADED: 'in_progress',
-  DISPOSAL_ARRIVED: 'in_progress',
-  DISPOSAL_COMPLETED: 'in_progress',
+  ON_WAY: 'on_way',
+  IN_PROCESS: 'in_process',
   COMPLETED: 'completed',
-  CLIENT_CONFIRMED: 'completed',
-  CANCELLED: 'cancelled',
+  EXPIRED: 'expired',
+  CANCELED_BY_CLIENT: 'canceled_by_client',
+  CANCELED_BY_SPEC: 'canceled_by_spec',
+  NO_SHOW: 'no_show',
 }
 
 export const ADMIN_ORDER_UI_TO_PRISMA = {
   new: 'NEW',
   assigned: 'NEW',
-  in_progress: 'ON_THE_WAY',
-  in_work: 'STARTED',
+  accepted: 'ACCEPTED',
+  on_way: 'ON_WAY',
+  in_progress: 'IN_PROCESS',
+  in_work: 'IN_PROCESS',
   completed: 'COMPLETED',
-  cancelled: 'CANCELLED',
-  problem: 'CANCELLED',
+  expired: 'EXPIRED',
+  no_show: 'NO_SHOW',
+  cancelled: 'CANCELED_BY_SPEC',
+  canceled_by_client: 'CANCELED_BY_CLIENT',
+  canceled_by_spec: 'CANCELED_BY_SPEC',
+  problem: 'CANCELED_BY_SPEC',
 }
 
 export const PRISMA_ORDER_STATUS = [
   'NEW',
   'ACCEPTED',
-  'ON_THE_WAY',
-  'ARRIVED',
-  'STARTED',
-  'LOADED',
-  'DISPOSAL_ARRIVED',
-  'DISPOSAL_COMPLETED',
+  'ON_WAY',
+  'IN_PROCESS',
   'COMPLETED',
-  'CLIENT_CONFIRMED',
-  'CANCELLED',
+  'EXPIRED',
+  'CANCELED_BY_CLIENT',
+  'CANCELED_BY_SPEC',
+  'NO_SHOW',
 ]
+
+/** Терминальные статусы — переходы запрещены */
+export const TERMINAL_ORDER_STATUS = [
+  'COMPLETED',
+  'EXPIRED',
+  'CANCELED_BY_CLIENT',
+  'CANCELED_BY_SPEC',
+  'NO_SHOW',
+]
+
+export function isTerminalOrderStatus(prismaStatus) {
+  return TERMINAL_ORDER_STATUS.includes(prismaStatus)
+}
 
 export function partnerStatusToSpec(prismaStatus) {
   return PARTNER_STATUS_FROM_PRISMA[prismaStatus] || prismaStatus

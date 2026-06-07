@@ -41,6 +41,21 @@ export function buildMarketSeed() {
 
   const shops = [
     {
+      id: 'shop-pending-uralsk',
+      franchiseId: 'fr-uralsk',
+      city: 'Уральск',
+      partnerId: null,
+      shopName: 'Green Garden Uralsk',
+      ownerName: 'Айгуль',
+      phone: '+77017770011',
+      address: 'Уральск, ул. Сейфуллина 20',
+      status: 'PENDING',
+      moderationStatus: 'PENDING_REVIEW',
+      kaspiPaymentInfo: '',
+      deliveryEnabled: false,
+      createdAt: '2026-05-01',
+    },
+    {
       id: 'shop-atyrau',
       franchiseId: 'fr-atyrau',
       city: 'Атырау',

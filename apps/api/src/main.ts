@@ -2,7 +2,9 @@ import { RequestMethod, ValidationPipe } from '@nestjs/common';
 import { DomainLoggingInterceptor } from './common/domain-logging.interceptor';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { IoAdapter } from '@nestjs/platform-socket.io';
+import { join } from 'path';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/http-exception.filter';
@@ -18,6 +20,11 @@ const DEFAULT_CORS_ORIGINS = [
   'https://partner.gp-service.kz',
   'https://admin.gp-service.kz',
   'https://market.gp-service.kz',
+  // DuckDNS staging / VPS
+  'https://admingp.duckdns.org',
+  'https://servicegp.duckdns.org',
+  'https://partnergp.duckdns.org',
+  'https://apigp.duckdns.org',
 ];
 
 function resolveCorsOrigins(config: ConfigService): string[] | boolean {
@@ -37,15 +44,21 @@ function resolveCorsOrigins(config: ConfigService): string[] | boolean {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.useWebSocketAdapter(new IoAdapter(app));
   const configService = app.get(ConfigService);
+
+  const uploadDir =
+    configService.get<string>('UPLOAD_DIR') || join(process.cwd(), 'uploads');
+  app.useStaticAssets(uploadDir, { prefix: '/uploads/' });
 
   app.enableCors({
     origin: resolveCorsOrigins(configService),
     credentials: true,
   });
 
+  // Не exclude «uploads» — иначе @Controller('uploads') → POST /uploads/... без /api (404 на /api/uploads/...).
+  // Статика файлов: express useStaticAssets('/uploads/') — globalPrefix-ке тәуелсіз.
   app.setGlobalPrefix('api', {
     exclude: [
       { path: 'health', method: RequestMethod.GET },

@@ -6,6 +6,29 @@ const APP =
 
 const TOKEN_KEY = `gp-${APP}-access-token`
 const REFRESH_KEY = `gp-${APP}-refresh-token`
+const SESSION_ROLE_KEY = `gp-${APP}-session-role`
+const DEVICE_ID_KEY = `gp-${APP}-device-id`
+
+/** OTP refresh үшін (MinLength 8) */
+export function getDeviceId() {
+  try {
+    const stored = localStorage.getItem(DEVICE_ID_KEY)
+    if (stored && stored.length >= 8) return stored
+  } catch {
+    /* ignore */
+  }
+  return `gp-${APP}-web`
+}
+
+export function setDeviceId(deviceId) {
+  try {
+    if (deviceId && String(deviceId).length >= 8) {
+      localStorage.setItem(DEVICE_ID_KEY, String(deviceId))
+    }
+  } catch {
+    /* ignore */
+  }
+}
 
 export function getToken() {
   try {
@@ -39,6 +62,23 @@ export function setRefreshToken(token) {
 
 export function clearRefreshToken() {
   localStorage.removeItem(REFRESH_KEY)
+}
+
+export function setSessionRole(role) {
+  if (role) localStorage.setItem(SESSION_ROLE_KEY, role)
+  else localStorage.removeItem(SESSION_ROLE_KEY)
+}
+
+export function getSessionRole() {
+  try {
+    return localStorage.getItem(SESSION_ROLE_KEY)
+  } catch {
+    return null
+  }
+}
+
+export function clearSessionRole() {
+  localStorage.removeItem(SESSION_ROLE_KEY)
 }
 
 export function getTokenStorageKey() {

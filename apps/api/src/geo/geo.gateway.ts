@@ -19,14 +19,21 @@ export class GeoGateway implements OnGatewayConnection {
   }
 
   @SubscribeMessage('subscribe')
-  handleSubscribe(client: Socket, payload: { orderId?: string; role?: string }) {
+  handleSubscribe(
+    client: Socket,
+    payload: { orderId?: string; role?: string; partnerProfileId?: string },
+  ) {
     if (payload?.orderId) {
       client.join(`order:${payload.orderId}`);
     }
     if (payload?.role === 'admin') {
       client.join('admin:fleet');
     }
-    return { subscribed: payload?.orderId };
+    if (payload?.role === 'specialist') {
+      client.join('specialists');
+      if (payload.partnerProfileId) client.join(`partner:${payload.partnerProfileId}`);
+    }
+    return { subscribed: payload?.orderId, role: payload?.role };
   }
 
   emitOrderTracking(orderId: string, data: Record<string, unknown>) {
@@ -39,5 +46,15 @@ export class GeoGateway implements OnGatewayConnection {
 
   emitFleetUpdate(data: Record<string, unknown>) {
     this.server?.to('admin:fleet').emit('fleet:update', data);
+  }
+
+  /** Новый заказ доступен в пуле — специалисты обновляют ленту (бэкенд фильтрует по matching). */
+  emitFeedNew(data: Record<string, unknown>) {
+    this.server?.to('specialists').emit('feed:new', data);
+  }
+
+  /** Заказ принят/исчез из пула — убрать из ленты остальных. */
+  emitFeedTaken(orderId: string) {
+    this.server?.to('specialists').emit('feed:taken', { orderId });
   }
 }

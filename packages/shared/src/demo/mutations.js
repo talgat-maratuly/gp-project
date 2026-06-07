@@ -11,7 +11,7 @@ function commissionForOrder(order, services, settings) {
   return Math.round((order.amount || 0) * ((settings.defaultCommissionPercent || 12) / 100))
 }
 
-export function createClientOrder({ franchiseId, clientId, clientName, clientPhone, city, serviceTemplateId, subserviceId, serviceName, address, scheduledAt, amount, note }) {
+export function createClientOrder({ franchiseId, clientId, clientName, clientPhone, city, cityId, oblastId, serviceTemplateId, subserviceId, serviceName, address, scheduledAt, amount, note }) {
   const store = loadGlobalStore()
   const svc = store.services.find((s) => s.franchiseId === franchiseId && s.templateId === serviceTemplateId)
   const sub = subserviceId ? svc?.subservices?.find((x) => x.id === subserviceId) : null
@@ -23,6 +23,8 @@ export function createClientOrder({ franchiseId, clientId, clientName, clientPho
     clientPhone,
     address,
     city,
+    cityId: cityId || null,
+    oblastId: oblastId || null,
     serviceId: svc?.id || `${serviceTemplateId}_${franchiseId}`,
     serviceName: serviceName || svc?.name,
     subserviceId: sub?.id || null,
@@ -76,7 +78,7 @@ export function assignGlobalPartner(orderId, partnerId) {
 
 export function mapServiceOrderPayload(data, session) {
   const template = SERVICE_ID_TO_TEMPLATE[data.serviceId] || 'lawn'
-  const franchiseId = session.franchiseId
+  const franchiseId = data.franchiseId || session.franchiseId
   const store = loadGlobalStore()
   const svc = store.services.find((s) => s.franchiseId === franchiseId && s.templateId === template)
   let subserviceId = null
@@ -99,7 +101,9 @@ export function mapServiceOrderPayload(data, session) {
     clientId: session.clientId,
     clientName: session.name,
     clientPhone: session.phone || store.clients.find((c) => c.id === session.clientId)?.phone,
-    city: session.city || store.franchises.find((f) => f.id === franchiseId)?.city,
+    city: data.city || session.city || store.franchises.find((f) => f.id === franchiseId)?.city,
+    cityId: data.cityId || null,
+    oblastId: data.oblastId || null,
     serviceTemplateId: template,
     subserviceId,
     serviceName: data.serviceName,

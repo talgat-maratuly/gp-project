@@ -1,4 +1,8 @@
-import { IsBoolean, IsOptional, IsString, Length, MinLength } from 'class-validator';
+import { AccountType, Role } from '@prisma/client';
+import { IsBoolean, IsEnum, IsIn, IsOptional, IsString, Length, MinLength } from 'class-validator';
+
+export const OTP_LOGIN_AS = ['client', 'partner', 'admin'] as const;
+export type OtpLoginAsDto = (typeof OTP_LOGIN_AS)[number];
 
 export class MobileOtpVerifyDto {
   @IsString()
@@ -36,4 +40,16 @@ export class MobileOtpVerifyDto {
   @IsOptional()
   @IsString()
   regionId?: string;
+
+  @IsOptional()
+  @IsIn(OTP_LOGIN_AS)
+  loginAs?: OtpLoginAsDto;
+
+  @IsOptional()
+  @IsEnum(Role)
+  desiredRole?: Role;
+
+  @IsOptional()
+  @IsEnum(AccountType)
+  accountType?: AccountType;
 }

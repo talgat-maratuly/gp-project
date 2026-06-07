@@ -1,5 +1,5 @@
 import { useSearchParams } from 'react-router-dom'
-import PartnerModerationPanel from '../components/PartnerModerationPanel'
+import SpecialistRequestsModerationPanel from '../components/SpecialistRequestsModerationPanel'
 import OfferingModerationPanel from '../components/OfferingModerationPanel'
 import { useLanguage } from '../i18n/LanguageContext'
 
@@ -20,7 +20,7 @@ export default function SpecialistModerationPage() {
           type="button"
           onClick={() => setView('profiles')}
           className={`px-4 py-2 rounded-lg text-sm font-semibold min-h-[44px] ${
-            view === 'profiles' ? 'bg-sky-600 text-white' : 'text-slate-400 hover:text-white'
+            view === 'profiles' ? 'admin-tab-active' : 'admin-tab'
           }`}
         >
           {t('specialist_moderation')}
@@ -29,7 +29,7 @@ export default function SpecialistModerationPage() {
           type="button"
           onClick={() => setView('offerings')}
           className={`px-4 py-2 rounded-lg text-sm font-semibold min-h-[44px] ${
-            view === 'offerings' ? 'bg-sky-600 text-white' : 'text-slate-400 hover:text-white'
+            view === 'offerings' ? 'admin-tab-active' : 'admin-tab'
           }`}
         >
           {t('specialist_offerings_moderation')}
@@ -37,8 +37,7 @@ export default function SpecialistModerationPage() {
       </div>
 
       {view === 'profiles' ? (
-        <PartnerModerationPanel
-          scope="specialist"
+        <SpecialistRequestsModerationPanel
           title={t('specialist_moderation')}
           subtitle={t('specialist_moderation_desc')}
         />

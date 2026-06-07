@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { join } from 'path';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
@@ -19,11 +20,18 @@ import { QrModule } from './qr/qr.module';
 import { FurnitureExecutorModule } from './furniture-executor/furniture-executor.module';
 import { HealthController } from './health.controller';
 import { HealthModule } from './health/health.module';
+import { RbacModule } from './rbac/rbac.module';
+import { UserStatusModule } from './user-status/user-status.module';
+import { SpecialistRequestsModule } from './specialist-requests/specialist-requests.module';
+import { SpecialistOnboardingModule } from './specialist-onboarding/specialist-onboarding.module';
+import { FranchiseCatalogModule } from './franchise-catalog/franchise-catalog.module';
+import { UploadsModule } from './uploads/uploads.module';
 
 @Module({
   controllers: [HealthController],
   imports: [
     HealthModule,
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: [
@@ -35,6 +43,12 @@ import { HealthModule } from './health/health.module';
     }),
     PrismaModule,
     CommonModule,
+    RbacModule,
+    UserStatusModule,
+    SpecialistRequestsModule,
+    SpecialistOnboardingModule,
+    UploadsModule,
+    FranchiseCatalogModule,
     AuthModule,
     RegionsModule,
     PartnersModule,

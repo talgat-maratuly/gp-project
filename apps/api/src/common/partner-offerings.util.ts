@@ -12,6 +12,11 @@ export const SUBSERVICE_TO_DIRECTION: Record<string, PartnerDirection> = {
   [GP_SHOP_SUBSERVICE_ID]: PartnerDirection.SHOP,
   'gp-nursery': PartnerDirection.NURSERY,
   'septic-pumping': PartnerDirection.SEPTIC,
+  vol_3_4: PartnerDirection.SEPTIC,
+  vol_5_7: PartnerDirection.SEPTIC,
+  vol_10: PartnerDirection.SEPTIC,
+  urgent: PartnerDirection.SEPTIC,
+  night: PartnerDirection.SEPTIC,
   'grass-mowing': PartnerDirection.LAWN,
   'lawn-trim': PartnerDirection.LAWN,
   'lawn-roll-prep': PartnerDirection.LAWN,
@@ -57,7 +62,7 @@ export function expandDirectionsToSubservices(directions: PartnerDirection[]): s
  * Заказ виден партнёру только если по этой подуслуге есть хотя бы одно ACTIVE-предложение.
  */
 export function orderMatchesActiveOffering(
-  order: { category: OrderCategory; serviceId: string | null },
+  order: { category: OrderCategory; serviceId: string | null; septicVolume?: number | null },
   activeSubserviceIds: Set<string>,
 ): boolean {
   if (order.category === OrderCategory.SHOP) {
@@ -65,6 +70,12 @@ export function orderMatchesActiveOffering(
   }
   if (order.serviceId && activeSubserviceIds.has(order.serviceId)) {
     return true;
+  }
+  if (order.serviceId === 'septic-pumping' && order.category === OrderCategory.SEPTIC) {
+    for (const sid of activeSubserviceIds) {
+      if (SUBSERVICE_TO_DIRECTION[sid] === PartnerDirection.SEPTIC) return true;
+    }
+    return false;
   }
   if (order.serviceId) {
     return false;

@@ -2,24 +2,26 @@ import { useNavigate } from 'react-router-dom'
 import { Minus, Plus, Trash2 } from 'lucide-react'
 import { formatPrice } from '@gp/shared/utils'
 import { useService } from '../../context/ServiceContext'
+import { useLanguage } from '../../i18n'
 import Button from '../../components/ui/Button'
 
 export default function CartPage() {
   const navigate = useNavigate()
+  const { t } = useLanguage()
   const { cartItems, cartTotal, updateCartQty, removeFromCart } = useService()
 
   if (!cartItems.length) {
     return (
       <div className="px-4 py-16 text-center">
-        <p className="text-slate-500 mb-4">Корзина пуста</p>
-        <Button onClick={() => navigate('/shop')}>В магазин</Button>
+        <p className="text-slate-500 mb-4">{t('cartEmpty')}</p>
+        <Button onClick={() => navigate('/shop')}>{t('cartGoShop')}</Button>
       </div>
     )
   }
 
   return (
     <div className="px-4 py-4">
-      <h1 className="text-2xl font-bold mb-4">Корзина</h1>
+      <h1 className="text-2xl font-bold mb-4">{t('cart')}</h1>
       <ul className="space-y-3 mb-6">
         {cartItems.map(({ product, qty }) => (
           <li key={product.id} className="gp-card p-3 flex gap-3 items-center">
@@ -38,10 +40,10 @@ export default function CartPage() {
       </ul>
       <div className="gp-card p-4 sticky bottom-20">
         <div className="flex justify-between text-lg font-bold mb-4">
-          <span>Итого</span>
+          <span>{t('checkoutTotal')}</span>
           <span className="text-gp-green-700">{formatPrice(cartTotal)}</span>
         </div>
-        <Button size="lg" className="w-full" onClick={() => navigate('/shop/checkout')}>Оформить за 3 шага</Button>
+        <Button size="lg" className="w-full" onClick={() => navigate('/shop/checkout')}>{t('checkoutSubmit3Steps')}</Button>
       </div>
     </div>
   )

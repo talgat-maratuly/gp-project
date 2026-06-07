@@ -48,7 +48,7 @@ export default function MarketProductsModerationPanel() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-bold text-white">{t('product_moderation')}</h2>
+      <h2 className="text-lg font-bold admin-heading">{t('product_moderation')}</h2>
       <p className="text-sm text-slate-400">{t('market_tab_moderation')}</p>
       {error && <p className="text-sm text-red-400">{error}</p>}
       {loading && <p className="text-slate-400 text-sm">{t('loading')}</p>}

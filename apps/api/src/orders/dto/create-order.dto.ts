@@ -117,4 +117,30 @@ export class CreateOrderDto {
   @ValidateNested({ each: true })
   @Type(() => OrderItemDto)
   items?: OrderItemDto[];
+
+  /** GP/GLOBAL оператор: клиент телефоны (мобильді қосымшасы жоқ) */
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  onBehalfClientPhone?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  onBehalfClientName?: string;
+
+  @ApiProperty({ required: false, description: 'Оператор таңдайтын қала' })
+  @IsOptional()
+  @IsString()
+  onBehalfCity?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  regionId?: string;
+
+  @ApiProperty({ required: false, description: 'ID исходного заказа при пересоздании' })
+  @IsOptional()
+  @IsString()
+  recreatedFromId?: string;
 }

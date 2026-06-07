@@ -12,6 +12,11 @@
     "./api-contracts": "./src/api-contracts.js",
     "./ecosystem-types": "./src/ecosystem-types.js",
     "./validation": "./src/validation.js",
-    "./storeUi": "./src/storeUi.js"
+    "./storeUi": "./src/storeUi.js",
+    "./portal-roles": "./src/portal-roles.js",
+    "./user-statuses": "./src/user-statuses.js",
+    "./specialist-moderation": "./src/specialist-moderation.js",
+    "./account-status": "./src/account-status.js",
+    "./specialist-onboarding": "./src/specialist-onboarding-catalog.js"
   }
 }

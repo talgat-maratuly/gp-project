@@ -1,4 +1,4 @@
-import { MovementState, OrderStatus } from '@prisma/client';
+import { MovementState, OrderStatus, SepticStage } from '@prisma/client';
 
 export const CLIENT_GEOFENCE_RADIUS_M = 80;
 export const CLIENT_DWELL_SEC = 180;
@@ -78,18 +78,86 @@ export function estimateEtaMinutes(distanceKm: number, speedKmh = 35): number {
   return Math.max(1, Math.round((distanceKm / speedKmh) * 60));
 }
 
-/** Автоматический переход статуса для септика по GPS */
-export const SEPTIC_GPS_FLOW: OrderStatus[] = [
+/** Статусы, активно управляемые GPS-логикой септика. */
+export const SEPTIC_GPS_MANAGED_STATUSES: OrderStatus[] = [
   OrderStatus.ACCEPTED,
-  OrderStatus.ON_THE_WAY,
-  OrderStatus.ARRIVED,
-  OrderStatus.STARTED,
-  OrderStatus.LOADED,
-  OrderStatus.DISPOSAL_ARRIVED,
-  OrderStatus.DISPOSAL_COMPLETED,
-  OrderStatus.COMPLETED,
+  OrderStatus.ON_WAY,
+  OrderStatus.IN_PROCESS,
 ];
 
 export function isSepticGpsManaged(status: OrderStatus): boolean {
-  return SEPTIC_GPS_FLOW.includes(status) || status === OrderStatus.CLIENT_CONFIRMED;
+  return SEPTIC_GPS_MANAGED_STATUSES.includes(status);
+}
+
+/**
+ * Вычисляет целевые (status, septicStage) по гео-условиям септик-рейса.
+ * Возвращает null, если переход не требуется.
+ */
+export interface SepticGeoConditions {
+  status: OrderStatus;
+  septicStage: SepticStage | null;
+  movement: MovementState;
+  atClient: boolean;
+  atDisposal: boolean;
+  clientDwellSec: number;
+  disposalDwellSec: number;
+}
+
+export interface SepticTransition {
+  status: OrderStatus;
+  septicStage: SepticStage | null;
+}
+
+export function nextSepticState(c: SepticGeoConditions): SepticTransition | null {
+  // ACCEPTED → ON_WAY когда поехал
+  if (c.status === OrderStatus.ACCEPTED && c.movement === MovementState.MOVING) {
+    return { status: OrderStatus.ON_WAY, septicStage: null };
+  }
+  // ON_WAY → прибыл к клиенту (под-статус ARRIVED, основной статус не меняется)
+  if (c.status === OrderStatus.ON_WAY && c.septicStage == null && c.atClient) {
+    return { status: OrderStatus.ON_WAY, septicStage: SepticStage.ARRIVED };
+  }
+  // ARRIVED + выдержка → IN_PROCESS (откачка)
+  if (
+    c.status === OrderStatus.ON_WAY &&
+    c.septicStage === SepticStage.ARRIVED &&
+    c.atClient &&
+    c.clientDwellSec >= CLIENT_DWELL_SEC
+  ) {
+    return { status: OrderStatus.IN_PROCESS, septicStage: SepticStage.PUMPING };
+  }
+  // PUMPING → LOADED когда покинул клиента
+  if (
+    c.status === OrderStatus.IN_PROCESS &&
+    c.septicStage === SepticStage.PUMPING &&
+    !c.atClient
+  ) {
+    return { status: OrderStatus.IN_PROCESS, septicStage: SepticStage.LOADED };
+  }
+  // LOADED → DISPOSAL_ARRIVED на официальном сливе
+  if (
+    c.status === OrderStatus.IN_PROCESS &&
+    c.septicStage === SepticStage.LOADED &&
+    c.atDisposal
+  ) {
+    return { status: OrderStatus.IN_PROCESS, septicStage: SepticStage.DISPOSAL_ARRIVED };
+  }
+  // DISPOSAL_ARRIVED + выдержка → DISPOSAL_COMPLETED
+  if (
+    c.status === OrderStatus.IN_PROCESS &&
+    c.septicStage === SepticStage.DISPOSAL_ARRIVED &&
+    c.atDisposal &&
+    c.disposalDwellSec >= DISPOSAL_DWELL_SEC
+  ) {
+    return { status: OrderStatus.IN_PROCESS, septicStage: SepticStage.DISPOSAL_COMPLETED };
+  }
+  // DISPOSAL_COMPLETED → COMPLETED когда покинул слив
+  if (
+    c.status === OrderStatus.IN_PROCESS &&
+    c.septicStage === SepticStage.DISPOSAL_COMPLETED &&
+    !c.atDisposal
+  ) {
+    return { status: OrderStatus.COMPLETED, septicStage: SepticStage.DISPOSAL_COMPLETED };
+  }
+  return null;
 }

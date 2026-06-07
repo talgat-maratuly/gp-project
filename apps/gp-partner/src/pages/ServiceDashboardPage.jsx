@@ -8,13 +8,13 @@ import { usePartner } from '../context/PartnerContext'
 
 export default function ServiceDashboardPage() {
   const navigate = useNavigate()
-  const { user, newOrders, activeOrders, loading } = usePartner()
-  const links = getServiceDashboardLinks(user)
+  const { user, newOrders = [], activeOrders = [], loading } = usePartner()
+  const links = getServiceDashboardLinks(user) || []
 
   const todayEarned = useMemo(() => {
     const today = new Date().toDateString()
     return activeOrders
-      .filter((o) => ['done', 'client_confirmed'].includes(o.status) && new Date(o.updatedAt || o.createdAt).toDateString() === today)
+      .filter((o) => o.status === 'completed' && new Date(o.updatedAt || o.createdAt).toDateString() === today)
       .reduce((s, o) => s + Number(o.total || 0), 0)
   }, [activeOrders])
 

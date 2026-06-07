@@ -21,7 +21,7 @@ export default function Shell() {
   const title = titleKey ? t(titleKey) : t('appName')
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex admin-shell">
       <Sidebar role={user.role} open={menuOpen} onClose={() => setMenuOpen(false)} />
       <div className="flex-1 flex flex-col min-w-0 lg:ml-0">
         <Header title={title} onMenuClick={() => setMenuOpen(true)} />

@@ -2,6 +2,7 @@ import { ClipboardList, Users, Briefcase, Wallet, CheckCircle, XCircle, Clock } 
 import { useAccess } from '../context/AccessContext'
 import { useLanguage } from '../i18n/LanguageContext'
 import StatCard from '../components/ui/StatCard'
+import PageHeader from '../components/PageHeader'
 import { formatMoney } from '../lib/format'
 
 export default function DashboardPage() {
@@ -10,7 +11,8 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <p className="text-sm text-slate-400">
+      <PageHeader title={t('nav_home')} description={t('dashboardIntro')} />
+      <p className="text-sm text-slate-400 -mt-2">
         {isSuperAdmin ? t('networkStats') : `${t('franchise')}: ${currentFranchise?.name || ''}`}
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">

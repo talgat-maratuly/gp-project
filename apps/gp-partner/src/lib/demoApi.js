@@ -9,11 +9,69 @@ import {
 } from '@gp/shared/demo'
 
 const SESSION_KEY = 'gp-demo-partner-session'
+const OFFERINGS_KEY = 'gp-demo-partner-offerings'
+
+function loadOfferingsStore() {
+  try {
+    const raw = localStorage.getItem(OFFERINGS_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
+
+function saveOfferingsStore(store) {
+  localStorage.setItem(OFFERINGS_KEY, JSON.stringify(store))
+}
+
+export function demoGetPartnerOfferings(partnerId) {
+  return loadOfferingsStore()[partnerId] || []
+}
+
+export async function demoAddPartnerOfferings(partnerId, subserviceIds) {
+  const store = loadOfferingsStore()
+  const list = store[partnerId] || []
+  const added = subserviceIds.map((subserviceId) => ({
+    id: `off_${Date.now()}_${subserviceId}`,
+    subserviceId,
+    status: 'PENDING_MODERATION',
+  }))
+  store[partnerId] = [...list, ...added]
+  saveOfferingsStore(store)
+  return store[partnerId]
+}
+
+export async function demoSaveCustomOffering(partnerId, data) {
+  const store = loadOfferingsStore()
+  const list = store[partnerId] || []
+  const offering = {
+    id: data.id || `custom_${Date.now()}`,
+    subserviceId: data.subserviceId || `custom-${Date.now()}`,
+    custom: true,
+    category: data.category,
+    name: data.name,
+    price: Number(data.price) || 0,
+    description: data.description || '',
+    status: data.status || 'PENDING_MODERATION',
+  }
+  const idx = list.findIndex((o) => o.id === offering.id)
+  if (idx >= 0) list[idx] = { ...list[idx], ...offering }
+  else list.push(offering)
+  store[partnerId] = list
+  saveOfferingsStore(store)
+  return offering
+}
+
+function mergeSessionOfferings(session) {
+  const offerings = demoGetPartnerOfferings(session.partnerId)
+  return { ...session, serviceOfferings: offerings }
+}
 
 export function getDemoSession() {
   try {
     const raw = localStorage.getItem(SESSION_KEY)
-    return raw ? JSON.parse(raw) : null
+    const session = raw ? JSON.parse(raw) : null
+    return session ? mergeSessionOfferings(session) : null
   } catch {
     return null
   }
@@ -52,7 +110,7 @@ export async function demoLogin(username, password) {
   }
   setDemoSession(session)
   await syncFromHub()
-  return session
+  return mergeSessionOfferings(session)
 }
 
 export async function demoLogout() {
@@ -80,6 +138,18 @@ export async function demoUpdateStatus(orderId, partnerStatus, extra = {}) {
   const order = store.orders.find((o) => o.id === orderId)
   if (!order || order.franchiseId !== session.franchiseId) throw new Error('forbidden')
   const assigned = order.assignedPartnerId ?? order.partnerId
+  const isAccept = partnerStatus === 'accepted'
+  if ((!assigned || assigned !== session.partnerId) && isAccept) {
+    updateGlobalOrder(orderId, {
+      partnerId: session.partnerId,
+      assignedPartnerId: session.partnerId,
+      partnerName: session.company || session.name,
+      status: PARTNER_STATUS_MAP.accepted || 'assigned',
+      ...extra,
+    })
+    await syncFromHub()
+    return
+  }
   if (!assigned || assigned !== session.partnerId) {
     throw new Error('forbidden')
   }

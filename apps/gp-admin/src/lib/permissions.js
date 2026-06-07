@@ -3,6 +3,9 @@
 export const ROLES = {
   SUPER_ADMIN: 'SUPER_ADMIN',
   FRANCHISE_ADMIN: 'FRANCHISE_ADMIN',
+  MODERATOR: 'MODERATOR',
+  DISPATCHER: 'DISPATCHER',
+  VIEWER: 'VIEWER',
   MARKET_MANAGER: 'MARKET_MANAGER',
   DELIVERY_MANAGER: 'DELIVERY_MANAGER',
   MANAGER: 'MANAGER',
@@ -10,61 +13,118 @@ export const ROLES = {
   SUPPORT: 'SUPPORT',
 }
 
+/** Основная навигация — без дублей */
 export const NAV_ITEMS = [
   {
     path: '/',
-    labelKey: 'dashboard',
+    labelKey: 'nav_home',
     icon: 'LayoutDashboard',
-    roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MANAGER', 'FINANCE', 'SUPPORT', 'MARKET_MANAGER', 'DELIVERY_MANAGER'],
+    roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MODERATOR', 'DISPATCHER', 'VIEWER', 'MANAGER', 'FINANCE', 'SUPPORT', 'MARKET_MANAGER', 'DELIVERY_MANAGER'],
   },
-  { path: '/franchises', labelKey: 'franchises', icon: 'Building2', roles: ['SUPER_ADMIN'] },
-  { path: '/orders', labelKey: 'orders', icon: 'ClipboardList', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MANAGER'] },
-  { path: '/clients', labelKey: 'clients', icon: 'Users', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MANAGER'] },
-  { path: '/partners', labelKey: 'partners', icon: 'Briefcase', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MANAGER'] },
-  { path: '/partners/moderation', labelKey: 'partner_moderation', icon: 'UserCheck', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MANAGER'] },
-  { path: '/specialists/moderation', labelKey: 'specialist_moderation', icon: 'UserCog', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MANAGER'] },
-  { path: '/services/moderation', labelKey: 'service_moderation', icon: 'ClipboardCheck', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MANAGER'] },
-  { path: '/services', labelKey: 'services', icon: 'Wrench', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN'] },
-  { path: '/services/hunter-irrigation', labelKey: 'admin_hunter', icon: 'Droplets', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MANAGER'] },
-  { path: '/services/furniture', labelKey: 'admin_furniture', icon: 'LayoutGrid', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MANAGER'] },
-  { path: '/discounts', labelKey: 'discounts', icon: 'Percent', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN'] },
-  { path: '/finance', labelKey: 'finance', icon: 'Wallet', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'FINANCE'] },
-  { path: '/reviews', labelKey: 'reviews', icon: 'MessageSquare', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'SUPPORT'] },
-  { path: '/qr', labelKey: 'qr_service', icon: 'QrCode', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MANAGER'] },
-  { path: '/market', labelKey: 'market_dashboard', icon: 'ShoppingBag', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MARKET_MANAGER'] },
-  { path: '/market/shops', labelKey: 'market_shops', icon: 'Store', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MARKET_MANAGER'] },
-  { path: '/market/products', labelKey: 'market_products', icon: 'Package', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MARKET_MANAGER'] },
-  { path: '/market/orders', labelKey: 'market_orders', icon: 'ShoppingCart', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MARKET_MANAGER', 'DELIVERY_MANAGER'] },
-  { path: '/market/delivery', labelKey: 'market_delivery', icon: 'Truck', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MARKET_MANAGER', 'DELIVERY_MANAGER'] },
-  { path: '/settings', labelKey: 'settings', icon: 'Settings', roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN'] },
-  { path: '/testing-report', labelKey: 'qa_dashboard', icon: 'FlaskConical', roles: ['SUPER_ADMIN'] },
+  {
+    path: '/orders',
+    labelKey: 'nav_orders',
+    icon: 'ClipboardList',
+    roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MODERATOR', 'DISPATCHER', 'VIEWER', 'MANAGER', 'MARKET_MANAGER', 'DELIVERY_MANAGER'],
+  },
+  {
+    path: '/moderation',
+    labelKey: 'nav_moderation',
+    icon: 'UserCheck',
+    roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MODERATOR', 'MANAGER'],
+  },
+  {
+    path: '/partners',
+    labelKey: 'partners',
+    icon: 'Briefcase',
+    roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MODERATOR', 'VIEWER', 'MANAGER'],
+  },
+  {
+    path: '/market/shops',
+    labelKey: 'nav_shops',
+    icon: 'Store',
+    roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MODERATOR', 'VIEWER', 'MARKET_MANAGER'],
+  },
+  {
+    path: '/clients',
+    labelKey: 'clients',
+    icon: 'Users',
+    roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MODERATOR', 'VIEWER', 'MANAGER'],
+  },
+  {
+    path: '/services',
+    labelKey: 'services',
+    icon: 'Wrench',
+    roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MODERATOR', 'VIEWER'],
+  },
+  {
+    path: '/regions',
+    labelKey: 'nav_cities',
+    icon: 'MapPin',
+    roles: ['SUPER_ADMIN'],
+  },
+  {
+    path: '/finance',
+    labelKey: 'nav_reports',
+    icon: 'BarChart3',
+    roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'FINANCE'],
+  },
+  {
+    path: '/settings',
+    labelKey: 'settings',
+    icon: 'Settings',
+    roles: ['SUPER_ADMIN', 'FRANCHISE_ADMIN', 'MODERATOR', 'DISPATCHER', 'VIEWER', 'MANAGER', 'FINANCE', 'SUPPORT', 'MARKET_MANAGER', 'DELIVERY_MANAGER'],
+  },
+]
+
+/** Скрытые маршруты (доступны по URL, не в sidebar) */
+export const HIDDEN_ROUTE_PREFIXES = [
+  '/franchises',
+  '/partners/moderation',
+  '/specialists/moderation',
+  '/services/moderation',
+  '/market/products',
+  '/market/orders',
+  '/market/delivery',
+  '/market',
+  '/discounts',
+  '/reviews',
+  '/qr',
+  '/services/subservices',
+  '/services/septic-pricing',
+  '/services/hunter-irrigation',
+  '/services/furniture',
+  '/testing-report',
 ]
 
 export const PAGE_TITLE_KEYS = {
-  '/': 'dashboard',
-  '/franchises': 'franchises',
-  '/orders': 'orders',
-  '/clients': 'clients',
+  '/': 'nav_home',
+  '/orders': 'nav_orders',
+  '/moderation': 'nav_moderation',
   '/partners': 'partners',
-  '/partners/moderation': 'partner_moderation',
-  '/specialists/moderation': 'specialist_moderation',
-  '/market/products/new': 'market_product_create',
-  '/services/moderation': 'service_moderation',
-  '/services': 'services',
+  '/market/shops': 'nav_shops',
+  '/clients': 'clients',
+  '/services': 'nav_service_types',
+  '/services/subservices': 'nav_subservice_types',
+  '/services/septic-pricing': 'nav_septic_pricing',
+  '/regions': 'nav_cities',
+  '/finance': 'nav_reports',
+  '/settings': 'settings',
+  '/franchises': 'franchises',
+  '/partners/moderation': 'moderation_block_partners',
+  '/specialists/moderation': 'moderation_block_specialists',
+  '/services/moderation': 'moderation_block_offerings',
   '/services/hunter-irrigation': 'admin_hunter',
   '/services/furniture': 'admin_furniture',
   '/discounts': 'discounts',
-  '/finance': 'finance',
   '/reviews': 'reviewsFull',
   '/qr': 'qr_service',
   '/qr/create': 'qr_service',
   '/market': 'market_dashboard',
-  '/market/shops': 'market_shops',
   '/market/products': 'market_products',
   '/market/products/moderation': 'product_moderation',
   '/market/orders': 'market_orders',
   '/market/delivery': 'market_delivery',
-  '/settings': 'settings',
   '/testing-report': 'qa_dashboard',
 }
 
@@ -73,6 +133,7 @@ export const ACTIONS = {
   FRANCHISE_CREATE: 'franchise:create',
   FRANCHISE_DELETE: 'franchise:delete',
   FRANCHISE_BLOCK: 'franchise:block',
+  GEOGRAPHY_CRUD: 'geography:crud',
   CLIENT_CRUD: 'client:crud',
   PARTNER_CRUD: 'partner:crud',
   PARTNER_MODERATE: 'partner:moderate',
@@ -93,12 +154,14 @@ const ROLE_ACTIONS = {
     ACTIONS.ORDER_EDIT,
     ACTIONS.PRODUCT_MODERATE,
     ACTIONS.DISCOUNT_CRUD,
-    ACTIONS.SETTINGS_EDIT,
   ],
+  MODERATOR: [ACTIONS.PARTNER_MODERATE],
+  DISPATCHER: [ACTIONS.ORDER_EDIT],
+  VIEWER: [],
   MANAGER: [ACTIONS.ORDER_EDIT, ACTIONS.PARTNER_MODERATE],
   FINANCE: [],
   SUPPORT: [],
-  MARKET_MANAGER: [ACTIONS.ORDER_EDIT],
+  MARKET_MANAGER: [ACTIONS.ORDER_EDIT, ACTIONS.PRODUCT_MODERATE],
   DELIVERY_MANAGER: [ACTIONS.ORDER_EDIT],
 }
 
@@ -109,12 +172,15 @@ export function navForRole(role) {
 export function canAccess(role, path) {
   if (role === ROLES.SUPER_ADMIN) return true
   if (path === '/' || path === '') return true
-  return NAV_ITEMS.some(
-    (n) => (n.path === path || (n.path !== '/' && path.startsWith(n.path))) && n.roles.includes(role),
-  )
+  if (NAV_ITEMS.some((n) => (n.path === path || (n.path !== '/' && path.startsWith(n.path))) && n.roles.includes(role))) {
+    return true
+  }
+  return HIDDEN_ROUTE_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`))
+    && role !== ROLES.VIEWER
 }
 
 export function canPerform(role, action) {
+  if (action === ACTIONS.SETTINGS_EDIT) return role === ROLES.SUPER_ADMIN
   return (ROLE_ACTIONS[role] || []).includes(action)
 }
 

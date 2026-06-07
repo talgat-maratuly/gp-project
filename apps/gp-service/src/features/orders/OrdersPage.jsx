@@ -4,23 +4,46 @@ import { AuthGatePrompt } from '@gp/shared/auth/AuthGatePrompt'
 import { KaspiButton, KaspiCard, SkeletonBlock } from '@gp/shared/ui/KaspiUI'
 import { CheckCircle, Package, RefreshCw, Wrench, Pencil, X } from 'lucide-react'
 import { formatDate, formatPrice } from '@gp/shared/utils'
-import { useLanguage, useOrderStatusLabel } from '../../i18n'
+import { inferCitySelection } from '@gp/shared/geography'
+import CitySelector from '@gp/shared/components/CitySelector'
+import { useLanguage } from '../../i18n'
 import { useService } from '../../context/ServiceContext'
 import { AsyncState } from '@gp/shared'
+<<<<<<< HEAD
+=======
+import { KaspiButton, KaspiCard } from '@gp/shared/ui/KaspiUI'
+import {
+  getOrderStatusLabel,
+  getClientStatusMessage,
+  getClientStatusCta,
+  isClientCancelable,
+} from '@gp/shared/constants'
+>>>>>>> 61b771f4cabb203f1a879564c1f97476256ecdb8
 
 export default function OrdersPage() {
   const { t } = useLanguage()
-  const statusLabel = useOrderStatusLabel()
   const {
     allOrders, refreshOrders, isLoggedIn, ordersLoading, ordersError, notify,
-    isDemoMode, cancelOrder, updateClientOrder,
+    isDemoMode, cancelOrder, recreateOrder, confirmOrder, updateClientOrder, geoStore,
   } = useService()
+
+  const handleCancel = async (id) => {
+    const reason = window.prompt('Укажите причину отмены заказа:')
+    if (!reason || reason.trim().length < 3) return
+    try { await cancelOrder(id, reason.trim()) } catch (e) { notify(e.message, 'error') }
+  }
+  const handleRecreate = async (id) => {
+    try { await recreateOrder(id) } catch (e) { notify(e.message, 'error') }
+  }
+  const handleConfirm = async (id) => {
+    try { await confirmOrder(id) } catch (e) { notify(e.message, 'error') }
+  }
   const [params, setParams] = useSearchParams()
   const [success, setSuccess] = useState(null)
   const [expanded, setExpanded] = useState(null)
   const [refreshing, setRefreshing] = useState(false)
   const [editId, setEditId] = useState(null)
-  const [editForm, setEditForm] = useState({ address: '', note: '' })
+  const [editForm, setEditForm] = useState({ address: '', note: '', oblastId: '', cityId: '', city: '', franchiseId: null })
 
   useEffect(() => {
     const id = params.get('success')
@@ -44,11 +67,25 @@ export default function OrdersPage() {
   }
 
   const openEdit = (o) => {
+    const geo = geoStore
+      ? inferCitySelection(geoStore, { city: o.city, cityId: o.cityId, oblastId: o.oblastId, franchiseId: o.franchiseId })
+      : { oblastId: o.oblastId || '', cityId: o.cityId || '', city: o.city || '', franchiseId: o.franchiseId || null }
     setEditId(o.id)
-    setEditForm({ address: o.address || '', note: o.note || '' })
+    setEditForm({
+      address: o.address || '',
+      note: o.note || '',
+      oblastId: geo.oblastId || '',
+      cityId: geo.cityId || '',
+      city: geo.city || o.city || '',
+      franchiseId: geo.franchiseId || o.franchiseId || null,
+    })
   }
 
   const saveEdit = async () => {
+    if (!editForm.cityId) {
+      notify(t('selectCity'), 'error')
+      return
+    }
     try {
       await updateClientOrder(editId, editForm)
       setEditId(null)
@@ -115,13 +152,7 @@ export default function OrdersPage() {
                       <span className="text-xs px-2.5 py-1 rounded-full bg-[var(--gp-surface-2)] font-bold">
                         {o.kind === 'market'
                           ? t(`market_status_${st}`)
-                          : statusLabel(
-                            st === 'done' ? 'completed'
-                            : st === 'accepted' ? 'assigned'
-                            : st === 'on_way' ? 'in_progress'
-                            : st === 'in_work' ? 'in_work'
-                            : st,
-                          )}
+                          : getOrderStatusLabel(st)}
                       </span>
                     </div>
                     <p className="font-extrabold">{o.serviceName || o.id}</p>
@@ -129,21 +160,40 @@ export default function OrdersPage() {
                     <p className="text-xs text-[var(--gp-text-muted)] mt-1">{formatDate(o.createdAt)}</p>
                   </button>
                   {open && (
-                    <div className="px-4 pb-4 border-t border-[var(--gp-border)] pt-4 space-y-2">
+                    <div className="px-4 pb-4 border-t border-[var(--gp-border)] pt-4 space-y-3">
                       <p className="text-sm">{o.address}</p>
                       {o.partnerName && <p className="text-xs text-[var(--gp-text-muted)]">{t('partner')}: {o.partnerName}</p>}
+                      <p className="text-sm text-[var(--gp-text-muted)]">{getClientStatusMessage(st)}</p>
+                      {o.cancelReason && (
+                        <p className="text-xs text-red-600">Причина: {o.cancelReason}</p>
+                      )}
+                      {o.kind !== 'market' && o.kind !== 'shop' && (() => {
+                        const cta = getClientStatusCta(st, { clientConfirmed: o.clientConfirmed })
+                        return (
+                          <div className="flex flex-col gap-2">
+                            {st === 'completed' && !o.clientConfirmed && (
+                              <KaspiButton onClick={() => handleConfirm(o.id)}>
+                                {t('confirm') || 'Подтвердить выполнение'}
+                              </KaspiButton>
+                            )}
+                            {cta?.action === 'recreate' && (
+                              <KaspiButton onClick={() => handleRecreate(o.id)}>{cta.label}</KaspiButton>
+                            )}
+                            {isClientCancelable(st) && (
+                              <button
+                                type="button"
+                                className="flex items-center justify-center gap-2 text-sm text-red-600 font-semibold py-2 rounded-xl border border-red-200 dark:border-red-900/50"
+                                onClick={() => handleCancel(o.id)}
+                              >
+                                <X className="w-4 h-4" /> {t('cancelOrder') || 'Отменить заказ'}
+                              </button>
+                            )}
+                          </div>
+                        )
+                      })()}
                       {isDemoMode && o.canEdit && (
                         <button type="button" className="flex items-center gap-2 text-sm text-sky-600 font-semibold" onClick={() => openEdit(o)}>
                           <Pencil className="w-4 h-4" /> {t('editOrder')}
-                        </button>
-                      )}
-                      {isDemoMode && o.canCancel && st === 'new' && (
-                        <button
-                          type="button"
-                          className="flex items-center gap-2 text-sm text-red-600 font-semibold"
-                          onClick={() => cancelOrder(o.id)}
-                        >
-                          <X className="w-4 h-4" /> {t('cancelOrder')}
                         </button>
                       )}
                     </div>
@@ -164,6 +214,20 @@ export default function OrdersPage() {
               <span className="text-xs text-[var(--gp-text-muted)]">{t('address')}</span>
               <input className="w-full mt-1 rounded-xl border px-3 py-2" value={editForm.address} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} />
             </label>
+            {geoStore && (
+              <CitySelector
+                store={geoStore}
+                value={{ oblastId: editForm.oblastId, cityId: editForm.cityId }}
+                inputClassName="w-full mt-1 rounded-xl border px-3 py-2 bg-[var(--gp-surface)]"
+                onChange={(sel) => setEditForm((f) => ({
+                  ...f,
+                  oblastId: sel.oblastId,
+                  cityId: sel.cityId,
+                  city: sel.city || f.city,
+                  franchiseId: sel.franchiseId || f.franchiseId,
+                }))}
+              />
+            )}
             <label className="block text-sm">
               <span className="text-xs text-[var(--gp-text-muted)]">{t('comment')}</span>
               <textarea className="w-full mt-1 rounded-xl border px-3 py-2" rows={2} value={editForm.note} onChange={(e) => setEditForm({ ...editForm, note: e.target.value })} />

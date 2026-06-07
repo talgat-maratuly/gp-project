@@ -8,14 +8,18 @@ import {
   PartnerRole,
   PaymentMethod,
   PrismaClient,
+  RequestStatus,
   Role,
   StoreStatus,
+  WorkStatus,
 } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { expandDirectionsToSubservices } from '../src/common/partner-offerings.util';
 import { FURNITURE_EXECUTOR_ACCESS_IDS } from '../src/common/furniture-executor.util';
 import { MARKET_REGIONS } from './market-regions';
 import { SHOP_CATALOG, toProductSeedRow } from './shop-catalog';
+import { seedFranchiseCatalog } from './service-catalog.seed';
+import { seedServiceTypes } from './service-types.seed';
 
 const prisma = new PrismaClient();
 
@@ -29,29 +33,37 @@ async function main() {
       create: r,
     });
   }
-  const uralskRegion = await prisma.region.findUniqueOrThrow({ where: { code: 'uralsk' } });
-  const atyrauRegion = await prisma.region.findUniqueOrThrow({ where: { code: 'atyrau' } });
+  const regionByCode: Record<string, { id: string }> = {};
+  for (const r of MARKET_REGIONS) {
+    regionByCode[r.code] = await prisma.region.findUniqueOrThrow({ where: { code: r.code } });
+  }
+  await seedFranchiseCatalog(prisma, regionByCode);
+  await seedServiceTypes(prisma);
+  const uralskRegion = regionByCode.uralsk;
+  const atyrauRegion = regionByCode.atyrau;
 
   const admin = await prisma.user.upsert({
     where: { email: 'admin@gp.kz' },
-    update: { role: Role.SUPER_ADMIN, regionId: null },
+    update: { role: Role.SUPER_ADMIN, regionId: null, phone: '+77001110001' },
     create: {
       email: 'admin@gp.kz',
       passwordHash,
       name: 'GP Super Admin',
       role: Role.SUPER_ADMIN,
+      phone: '+77001110001',
     },
   });
 
   await prisma.user.upsert({
     where: { email: 'uralsk_admin@gp.kz' },
-    update: { role: Role.REGION_ADMIN, regionId: uralskRegion.id },
+    update: { role: Role.REGION_ADMIN, regionId: uralskRegion.id, phone: '+77001110002' },
     create: {
       email: 'uralsk_admin@gp.kz',
       passwordHash,
       name: 'Админ Уральск',
       role: Role.REGION_ADMIN,
       regionId: uralskRegion.id,
+      phone: '+77001110002',
     },
   });
 
@@ -107,7 +119,8 @@ async function main() {
             PartnerDirection.SHOP,
           ],
           balance: 15000,
-          isOnline: true,
+          isOnline: false,
+          workStatus: WorkStatus.OFFLINE,
           lat: 51.243,
           lng: 51.377,
         },
@@ -121,8 +134,9 @@ async function main() {
     data: {
       regionId: uralskRegion.id,
       status: PartnerStatus.APPROVED,
-      partnerType: PartnerType.SHOP,
-      partnerRole: PartnerRole.SHOP,
+      requestStatus: RequestStatus.APPROVED,
+      partnerType: PartnerType.SPECIALIST,
+      partnerRole: PartnerRole.MIXED_PARTNER,
       companyName: 'GP Услуги Уральск',
       fullName: partnerUser.name,
       approvedAt: new Date(),
@@ -240,6 +254,8 @@ async function main() {
         serviceName: 'Откачка септика',
         serviceId: 'septic-pumping',
         address: 'Уральск, ул. Мухит 112',
+        city: 'Уральск',
+        regionId: uralskRegion.id,
         clientName: clientUser.name,
         clientPhone: clientUser.phone,
         clientLat: 51.233,

@@ -7,13 +7,15 @@ import {
   SEPTIC_VOLUME_OPTIONS,
   LAWN_SERVICE_IDS,
   CONSULTATION_SERVICE_IDS,
-  calcServiceTotal,
 } from '@gp/shared/constants'
 import { getServiceById, getLawnPricing } from '../../data/services'
 import { useService } from '../../context/ServiceContext'
+import { useLanguage } from '../../i18n'
+import OrderLocationFields from '@gp/shared/components/OrderLocationFields'
 import PaymentMethodPicker from '../../components/PaymentMethodPicker'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
+import { PageHeader } from '@gp/shared/ui/KaspiUI'
 
 const NEEDS_SCHEDULE = new Set([
   'septic-pumping',
@@ -29,9 +31,17 @@ const NEEDS_SCHEDULE = new Set([
 export default function ServiceOrderPage() {
   const { serviceId } = useParams()
   if (serviceId === 'septic-pumping') return <SepticOrderFlow />
+  return <GenericServiceOrder serviceId={serviceId} />
+}
+
+function GenericServiceOrder({ serviceId }) {
   const navigate = useNavigate()
-  const { placeServiceOrder, objects, profile, isLoggedIn, authReady } = useService()
-  const service = getServiceById(serviceId)
+  const { t, lang } = useLanguage()
+  const {
+    placeServiceOrder, objects, profile, geoStore, isLoggedIn, authReady,
+    getCityCatalog, isServiceAvailable, calcOrderTotal, ensureCatalog, isDemoMode,
+  } = useService()
+  const baseService = getServiceById(serviceId)
   const isSeptic = serviceId === 'septic-pumping'
   const isLawn = LAWN_SERVICE_IDS.includes(serviceId)
   const isConsultation = CONSULTATION_SERVICE_IDS.has(serviceId)
@@ -53,9 +63,30 @@ export default function ServiceOrderPage() {
     paymentMethod: 'kaspi_partner',
     septicVolume: 4,
     lawnAreaSqm: '',
+    oblastId: profile.oblastId || '',
+    cityId: profile.cityId || '',
+    city: profile.city || '',
+    franchiseId: profile.franchiseId || null,
+    address: objects[0]?.address || '',
+    lat: 51.233,
+    lng: 51.367,
   })
   const [processing, setProcessing] = useState(false)
   const [error, setError] = useState('')
+
+  const available = isServiceAvailable(serviceId, form.franchiseId, form.cityId)
+
+  useEffect(() => {
+    if (!form.franchiseId && !form.cityId) return
+    ensureCatalog({ franchiseId: form.franchiseId, cityId: form.cityId })
+  }, [form.franchiseId, form.cityId, ensureCatalog])
+
+  const cityService = useMemo(() => {
+    const list = getCityCatalog(baseService ? [baseService] : [], lang, form.franchiseId, form.cityId)
+    if (list[0]) return list[0]
+    return isDemoMode ? baseService : null
+  }, [getCityCatalog, baseService, lang, form.franchiseId, form.cityId, isDemoMode])
+  const service = cityService
 
   useEffect(() => {
     setForm((f) => ({
@@ -63,30 +94,42 @@ export default function ServiceOrderPage() {
       name: f.name || profile.name || '',
       phone: f.phone || profile.phone || '',
       objectId: f.objectId || objects[0]?.id || '',
+      oblastId: f.oblastId || profile.oblastId || '',
+      cityId: f.cityId || profile.cityId || '',
+      city: f.city || profile.city || '',
+      franchiseId: f.franchiseId || profile.franchiseId || null,
+      objectId: f.objectId || objects[0]?.id || '',
+      address: f.address || objects.find((o) => o.id === (f.objectId || objects[0]?.id))?.address || '',
     }))
-  }, [profile.name, profile.phone, objects])
+  }, [profile.name, profile.phone, profile.oblastId, profile.cityId, profile.city, profile.franchiseId, objects])
 
   const estimatedTotal = useMemo(() => {
     if (!serviceId) return 0
-    return calcServiceTotal({
+    return calcOrderTotal({
       serviceId,
       septicVolume: isSeptic ? form.septicVolume : undefined,
       lawnAreaSqm: isLawn && form.lawnAreaSqm ? Number(form.lawnAreaSqm) : undefined,
-    })
-  }, [serviceId, isSeptic, isLawn, form.septicVolume, form.lawnAreaSqm])
+    }, lang, form.franchiseId, form.cityId)
+  }, [serviceId, isSeptic, isLawn, form.septicVolume, form.lawnAreaSqm, form.franchiseId, form.cityId, calcOrderTotal, lang])
 
-  if (!service) {
+  if (!baseService) {
     return (
       <div className="px-4 py-8 text-center">
-        <p className="text-slate-500 mb-4">Услуга не найдена</p>
-        <Button onClick={() => navigate('/services')}>К списку услуг</Button>
+        <p className="text-slate-500 mb-4">{t('serviceNotFound')}</p>
+        <Button onClick={() => navigate(-1)}>{t('back')}</Button>
       </div>
     )
   }
 
-  const septicOption = SEPTIC_VOLUME_OPTIONS.find(
-    (o) => o.volumes?.includes(form.septicVolume) || o.value === form.septicVolume,
-  )
+  if (!available || !service) {
+    return (
+      <div className="px-4 py-8 text-center">
+        <p className="text-slate-500 mb-4">{t('serviceUnavailableInCity')}</p>
+        {profile.city && <p className="text-xs text-slate-400 mb-4">{profile.city}</p>}
+        <Button onClick={() => navigate('/services')}>{t('nav_services')}</Button>
+      </div>
+    )
+  }
 
   const submit = async (e) => {
     e.preventDefault()
@@ -96,13 +139,25 @@ export default function ServiceOrderPage() {
     }
     setProcessing(true)
     setError('')
+    if (!form.cityId) {
+      setError(t('selectCity'))
+      setProcessing(false)
+      return
+    }
+    if (!form.address?.trim()) {
+      setError(t('address'))
+      setProcessing(false)
+      return
+    }
     try {
+      const obj = objects.find((o) => o.id === form.objectId)
       await placeServiceOrder({
         serviceId: service.id,
         serviceName: service.name,
         priceFrom: service.priceFrom,
         total: estimatedTotal,
         ...form,
+        address: form.address || obj?.address,
         lawnAreaSqm: form.lawnAreaSqm ? Number(form.lawnAreaSqm) : undefined,
       })
       navigate('/orders')
@@ -119,36 +174,38 @@ export default function ServiceOrderPage() {
 
   return (
     <div className="px-4 py-4">
-      <h1 className="text-xl font-bold mb-1">{service.name}</h1>
+      <PageHeader title={service.name} subtitle={t('orderFormSubtitle')} onBack={() => navigate(-1)} />
       {service.priceNote && <p className="text-sm text-gp-green-700 font-semibold mb-1">{service.priceNote}</p>}
-      <p className="text-gp-green-700 font-bold mb-2">от {formatPrice(service.priceFrom)}</p>
+      <p className="text-gp-green-700 font-bold mb-2">{t('priceFrom')} {formatPrice(service.priceFrom)}</p>
       {service.description && <p className="text-sm text-slate-500 mb-4">{service.description}</p>}
 
       {authReady && !isLoggedIn && (
         <div className="gp-card p-4 mb-4 border-amber-200 bg-amber-50 text-sm">
-          <p className="font-semibold text-amber-900 mb-2">Войдите как клиент</p>
+          <p className="font-semibold text-amber-900 mb-2">{t('loginAsClient')}</p>
           <p className="text-amber-800 text-xs mb-3">
-            Demo: <strong>client@gp.kz</strong> / password123
+            {t('demo_login_hint')}
           </p>
           <Link to="/login" state={{ from: `/services/${serviceId}` }} className="inline-block py-2 px-4 rounded-xl gp-gradient text-white text-sm font-semibold">
-            Войти
+            {t('login')}
           </Link>
         </div>
       )}
 
       <form onSubmit={submit} className="gp-card p-5 space-y-4">
-        <Input label="Имя" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-        <Input label="Телефон" type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required />
-        <label className="block text-sm">
-          <span className="font-medium">Адрес</span>
-          <select value={form.objectId} onChange={(e) => setForm({ ...form, objectId: e.target.value })} className="w-full mt-1 p-3 rounded-xl border">
-            {objects.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-          </select>
-        </label>
+        <Input label={t('name')} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+        <Input label={t('phone')} type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required />
+        <OrderLocationFields
+          store={geoStore}
+          profile={profile}
+          objects={objects}
+          value={form}
+          onChange={(patch) => setForm((f) => ({ ...f, ...patch }))}
+          showObjectPicker
+        />
 
         {isSeptic && (
           <label className="block text-sm">
-            <span className="font-medium">Объём септика</span>
+            <span className="font-medium">{t('septicVolume')}</span>
             <select
               value={form.septicVolume}
               onChange={(e) => setForm({ ...form, septicVolume: Number(e.target.value) })}
@@ -166,7 +223,7 @@ export default function ServiceOrderPage() {
 
         {isLawn && lawnPricing && (
           <Input
-            label={`Площадь, м² (${formatPrice(lawnPricing.pricePerSqm)}/м²)`}
+            label={t('lawnAreaLabel').replace('{rate}', formatPrice(lawnPricing.pricePerSqm))}
             type="number"
             min={1}
             value={form.lawnAreaSqm}
@@ -177,14 +234,14 @@ export default function ServiceOrderPage() {
 
         {isConsultation && (
           <p className="text-sm text-slate-600 bg-slate-50 rounded-xl p-3 border">
-            Выезд специалиста — <strong>{formatPrice(estimatedTotal)}</strong>. Стоимость работ определит мастер на месте.
+            {t('consultationHint').replace('{price}', formatPrice(estimatedTotal))}
           </p>
         )}
 
         {needsSchedule && (
           <>
             <Input
-              label="Желаемая дата"
+              label={t('visitDate')}
               type="date"
               min={defaultDate}
               value={form.preferredDate}
@@ -198,11 +255,11 @@ export default function ServiceOrderPage() {
                 onChange={(e) => setForm({ ...form, flexibleTime: e.target.checked })}
                 className="accent-gp-green-600"
               />
-              Любое свободное время
+              {t('flexibleTime')}
             </label>
             {!form.flexibleTime && (
               <label className="block text-sm">
-                <span className="font-medium">Время визита</span>
+                <span className="font-medium">{t('visitTime')}</span>
                 <div className="grid grid-cols-3 gap-2 mt-2">
                   {PREFERRED_TIME_SLOTS.map((slot) => (
                     <button
@@ -224,16 +281,16 @@ export default function ServiceOrderPage() {
           </>
         )}
 
-        <Input label="Комментарий" value={form.comment} onChange={(e) => setForm({ ...form, comment: e.target.value })} />
+        <Input label={t('comment')} value={form.comment} onChange={(e) => setForm({ ...form, comment: e.target.value })} />
         <div>
-          <p className="text-sm font-medium text-slate-700 mb-2">Оплата исполнителю</p>
+          <p className="text-sm font-medium text-slate-700 mb-2">{t('payToPartner')}</p>
           <PaymentMethodPicker value={form.paymentMethod} onChange={(paymentMethod) => setForm({ ...form, paymentMethod })} />
         </div>
 
         {estimatedTotal > 0 && (
           <div className="rounded-xl bg-gp-green-50 border border-gp-green-100 p-3 text-sm">
             <p className="font-semibold text-gp-green-800">
-              К оплате партнёру: {formatPrice(estimatedTotal)}
+              {t('toPayPartner')}: {formatPrice(estimatedTotal)}
             </p>
             {isLawn && lawnPricing && form.lawnAreaSqm && (
               <p className="text-xs text-slate-600 mt-1">
@@ -247,7 +304,7 @@ export default function ServiceOrderPage() {
 
         {error && <p className="text-red-600 text-sm">{error}</p>}
         <Button type="submit" size="lg" className="w-full" disabled={processing}>
-          {processing ? 'Отправка…' : isSeptic ? 'Вызвать ассенизатора' : isConsultation ? 'Заказать выезд' : 'Отправить заявку'}
+          {processing ? t('sending') : isSeptic ? t('callSeptic') : isConsultation ? t('orderConsultation') : t('sendRequest')}
         </Button>
       </form>
     </div>

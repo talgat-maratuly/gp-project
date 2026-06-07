@@ -14,7 +14,7 @@ export default function PartnerShell() {
   const { t } = useLanguage()
 
   const access = getPartnerAccess(user || {}, { isDemoMode: isDemoMode() })
-  const nav = getPartnerBottomNav(user, { isDemoMode: isDemoMode() })
+  const nav = getPartnerBottomNav(user, { isDemoMode: isDemoMode() }) || []
 
   if (!authReady) {
     return (
@@ -23,7 +23,11 @@ export default function PartnerShell() {
       </div>
     )
   }
+<<<<<<< HEAD
   if (!user) return <PartnerAuthRedirect loginPath="/login" />
+=======
+  if (!user) return <Navigate to="/login" replace />
+>>>>>>> 61b771f4cabb203f1a879564c1f97476256ecdb8
 
   const showOnlineToggle = access.service
 

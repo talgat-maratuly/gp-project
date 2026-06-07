@@ -7,12 +7,14 @@ import { ForgotPasswordScreen, ResetPasswordScreen } from '@gp/shared/auth/passw
 import Shell from '../layout/Shell'
 import DashboardPage from '../pages/DashboardPage'
 import FranchisesPage from '../pages/FranchisesPage'
+import RegionsPage from '../pages/RegionsPage'
 import ClientsPage from '../pages/ClientsPage'
 import PartnersPage from '../pages/PartnersPage'
-import PartnerModerationPage from '../pages/PartnerModerationPage'
-import SpecialistModerationPage from '../pages/SpecialistModerationPage'
+import ModerationPage from '../pages/ModerationPage'
 import OrdersPage from '../pages/OrdersPage'
-import ServicesPage from '../pages/ServicesPage'
+import ServiceTypesPage from '../pages/ServiceTypesPage'
+import SubserviceTypesPage from '../pages/SubserviceTypesPage'
+import SepticCityPricingPage from '../pages/SepticCityPricingPage'
 import DiscountsPage from '../pages/DiscountsPage'
 import FinancePage from '../pages/FinancePage'
 import ReviewsPage from '../pages/ReviewsPage'
@@ -20,7 +22,6 @@ import SettingsPage from '../pages/SettingsPage'
 import MarketDashboardPage from '../pages/MarketDashboardPage'
 import MarketShopsPage from '../pages/MarketShopsPage'
 import MarketProductsPage from '../pages/MarketProductsPage'
-import OfferingModerationPage from '../pages/OfferingModerationPage'
 import MarketOrdersPage from '../pages/MarketOrdersPage'
 import MarketDeliveryPage from '../pages/MarketDeliveryPage'
 import ServiceProjectsAdminPage from '../pages/ServiceProjectsAdminPage'
@@ -35,7 +36,7 @@ export default function App() {
   const { t } = useLanguage()
 
   if (!ready) {
-    return <div className="min-h-screen flex items-center justify-center text-slate-500 text-sm">{t('loading')}</div>
+    return <div className="min-h-screen flex items-center justify-center admin-muted text-sm">{t('loading')}</div>
   }
 
   if (!user) {
@@ -54,14 +55,18 @@ export default function App() {
       <Route element={<Shell />}>
         <Route index element={<DashboardPage />} />
         <Route path="franchises" element={<FranchisesPage />} />
+        <Route path="regions" element={<RegionsPage />} />
         <Route path="orders" element={<OrdersPage />} />
+        <Route path="moderation" element={<ModerationPage />} />
         <Route path="clients" element={<ClientsPage />} />
         <Route path="partners" element={<PartnersPage />} />
-        <Route path="partners/moderation" element={<PartnerModerationPage />} />
-        <Route path="specialists/moderation" element={<SpecialistModerationPage />} />
-        <Route path="specialists/offerings" element={<Navigate to="/specialists/moderation?view=offerings" replace />} />
-        <Route path="services/moderation" element={<OfferingModerationPage />} />
-        <Route path="services" element={<ServicesPage />} />
+        <Route path="partners/moderation" element={<Navigate to="/moderation" replace />} />
+        <Route path="specialists/moderation" element={<Navigate to="/moderation?block=specialists" replace />} />
+        <Route path="specialists/offerings" element={<Navigate to="/moderation?block=offerings" replace />} />
+        <Route path="services/moderation" element={<Navigate to="/moderation?block=offerings" replace />} />
+        <Route path="services/septic-pricing" element={<SepticCityPricingPage />} />
+        <Route path="services/subservices" element={<SubserviceTypesPage />} />
+        <Route path="services" element={<ServiceTypesPage />} />
         <Route path="services/hunter-irrigation" element={<ServiceProjectsAdminPage type="hunter_irrigation" />} />
         <Route path="services/furniture" element={<ServiceProjectsAdminPage type="furniture" />} />
         <Route path="discounts" element={<DiscountsPage />} />

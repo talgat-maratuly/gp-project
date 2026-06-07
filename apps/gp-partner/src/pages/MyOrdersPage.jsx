@@ -40,7 +40,7 @@ export default function MyOrdersPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-bold mb-4">{t('myOrders')}</h1>
+      <h1 className="text-xl font-bold text-[var(--gp-text)] mb-4">{t('myOrders')}</h1>
       <AsyncState
         loading={ordersLoading && !myOrders.length}
         error={ordersError}
@@ -54,7 +54,7 @@ export default function MyOrdersPage() {
             key={st}
             type="button"
             onClick={() => setFilter(st)}
-            className={`px-3 py-1.5 rounded-lg text-xs border ${filter === st ? 'border-emerald-500 bg-emerald-500/20' : 'border-white/10'}`}
+            className={`px-3 py-1.5 rounded-lg text-xs border ${filter === st ? 'border-emerald-500 bg-emerald-500/20 text-emerald-600' : 'border-[var(--gp-border)] text-[var(--gp-text-muted)]'}`}
           >
             {st === 'all' ? t('all') : t(`status_${st}`) || statusLabel(st)}
           </button>
@@ -65,12 +65,12 @@ export default function MyOrdersPage() {
           const step = FLOW.find((f) => f.from === o.status)
           return (
             <li key={o.id} className="partner-card p-4">
-              <p className="font-bold">{o.serviceName}</p>
-              <p className="text-sm text-slate-400">{o.clientName} · {o.city}</p>
-              <p className="text-emerald-400 font-bold mt-1">{formatPrice(o.total)}</p>
-              <p className="text-xs text-slate-500 mt-1">{t('status')}: {statusLabel(o.status === 'completed' ? 'completed' : o.status === 'en_route' ? 'in_progress' : o.status === 'accepted' ? 'assigned' : o.status)}</p>
+              <p className="font-bold text-[var(--gp-text)]">{o.serviceName}</p>
+              <p className="text-sm text-[var(--gp-text-muted)]">{o.clientName} · {o.city}</p>
+              <p className="text-emerald-600 font-bold mt-1">{formatPrice(o.total)}</p>
+              <p className="text-xs text-[var(--gp-text-muted)] mt-1">{t('status')}: {statusLabel(o.status === 'completed' ? 'completed' : o.status === 'en_route' ? 'in_progress' : o.status === 'accepted' ? 'assigned' : o.status)}</p>
               {step && (
-                <button type="button" onClick={() => updateOrderStatus(o.id, step.to)} className="mt-3 w-full py-2.5 rounded-xl partner-gradient font-semibold text-sm">
+                <button type="button" onClick={() => updateOrderStatus(o.id, step.to)} className="mt-3 w-full py-2.5 rounded-xl partner-gradient text-white font-semibold text-sm">
                   {t(step.key)}
                 </button>
               )}
@@ -82,8 +82,8 @@ export default function MyOrdersPage() {
                 onBlur={() => saveComment(o.id)}
               />
               <div className="flex gap-2 mt-2">
-                <button type="button" className="text-xs text-sky-400" onClick={() => addPhoto(o.id, 'before')}>{t('photoBefore')}</button>
-                <button type="button" className="text-xs text-sky-400" onClick={() => addPhoto(o.id, 'after')}>{t('photoAfter')}</button>
+                <button type="button" className="text-xs text-sky-600" onClick={() => addPhoto(o.id, 'before')}>{t('photoBefore')}</button>
+                <button type="button" className="text-xs text-sky-600" onClick={() => addPhoto(o.id, 'after')}>{t('photoAfter')}</button>
               </div>
             </li>
           )

@@ -4,6 +4,7 @@ import { ADMIN_ORDER_UI_TO_PRISMA } from '@gp/shared-core/statuses'
 import { ORDER_STATUSES, recalcAggregates } from '../data/seedData'
 import { uid } from '../lib/id'
 import { fetchAdminStore } from '../lib/adminApiStore'
+import { withLocalizedName, resolveLocalizedName, DEFAULT_LANG } from '@gp/shared/i18n'
 import {
   isDemoMode,
   loadGlobalStore,
@@ -36,8 +37,8 @@ function syncOrderFromRefs(order, state) {
     clientName: client?.name ?? order.clientName,
     clientPhone: client?.phone ?? order.clientPhone,
     city: order.city || client?.city,
-    serviceName: svc?.name ?? order.serviceName,
-    subserviceName: sub?.name ?? order.subserviceName ?? null,
+    serviceName: resolveLocalizedName(svc, DEFAULT_LANG) || order.serviceName,
+    subserviceName: (resolveLocalizedName(sub, DEFAULT_LANG) || order.subserviceName) ?? null,
     partnerName: partner ? partner.company || partner.name : order.partnerName,
   }
 }
@@ -104,6 +105,66 @@ export function StoreProvider({ children }) {
     }))
   }, [persist])
 
+  const addOblast = useCallback((data) => {
+    const payload = withLocalizedName(data)
+    persist((s) => ({
+      ...s,
+      oblasts: [...(s.oblasts || []), { ...payload, id: uid('obl'), active: payload.active !== false }],
+    }))
+  }, [persist])
+
+  const updateOblast = useCallback((id, patch) => {
+    const payload = withLocalizedName(patch)
+    persist((s) => ({
+      ...s,
+      oblasts: (s.oblasts || []).map((o) => (o.id === id ? { ...o, ...payload } : o)),
+    }))
+  }, [persist])
+
+  const removeOblast = useCallback((id) => {
+    persist((s) => ({
+      ...s,
+      oblasts: (s.oblasts || []).filter((o) => o.id !== id),
+      cities: (s.cities || []).filter((c) => c.oblastId !== id),
+    }))
+  }, [persist])
+
+  const addCity = useCallback((data) => {
+    const payload = withLocalizedName(data)
+    persist((s) => {
+      const city = { ...payload, id: uid('city'), active: payload.active !== false }
+      let franchises = s.franchises
+      if (city.franchiseId) {
+        franchises = franchises.map((f) =>
+          f.id === city.franchiseId ? { ...f, cityId: city.id, city: city.name } : f,
+        )
+      }
+      return { ...s, cities: [...(s.cities || []), city], franchises }
+    })
+  }, [persist])
+
+  const updateCity = useCallback((id, patch) => {
+    const payload = withLocalizedName(patch)
+    persist((s) => {
+      const cities = (s.cities || []).map((c) => (c.id === id ? { ...c, ...payload } : c))
+      const updated = cities.find((c) => c.id === id)
+      let franchises = s.franchises
+      if (updated?.franchiseId) {
+        franchises = franchises.map((f) =>
+          f.id === updated.franchiseId ? { ...f, cityId: updated.id, city: updated.name } : f,
+        )
+      }
+      return { ...s, cities, franchises }
+    })
+  }, [persist])
+
+  const removeCity = useCallback((id) => {
+    persist((s) => ({
+      ...s,
+      cities: (s.cities || []).filter((c) => c.id !== id),
+    }))
+  }, [persist])
+
   const addClient = useCallback((data) => {
     persist((s) => ({
       ...s,
@@ -145,54 +206,111 @@ export function StoreProvider({ children }) {
     persist((s) => ({ ...s, partners: s.partners.filter((p) => p.id !== id) }))
   }, [persist])
 
-  const addService = useCallback((data) => {
+  const addService = useCallback(async (data) => {
+    const payload = withLocalizedName(data)
+    if (apiMode) {
+      await api.adminCreateService({
+        franchiseId: data.franchiseId,
+        templateId: payload.templateId,
+        cityId: data.cityId,
+        names: payload.names,
+        basePrice: payload.basePrice,
+        gpCommission: payload.gpCommission,
+        active: payload.active !== false,
+      })
+      await refreshFromApi()
+      return
+    }
     persist((s) => ({
       ...s,
-      services: [...s.services, { ...data, id: uid('svc'), templateId: data.templateId || uid('tpl'), subservices: data.subservices || [] }],
+      services: [...s.services, { ...payload, id: uid('svc'), templateId: payload.templateId || uid('tpl'), subservices: payload.subservices || [] }],
     }))
-  }, [persist])
+  }, [apiMode, persist, refreshFromApi])
 
-  const updateService = useCallback((serviceId, patch) => {
+  const updateService = useCallback(async (serviceId, patch) => {
+    const payload = withLocalizedName(patch)
+    if (apiMode) {
+      await api.adminUpdateService(serviceId, {
+        names: payload.names,
+        basePrice: payload.basePrice,
+        gpCommission: payload.gpCommission,
+        active: payload.active,
+      })
+      await refreshFromApi()
+      return
+    }
     persist((s) => ({
       ...s,
-      services: s.services.map((x) => (x.id === serviceId ? { ...x, ...patch } : x)),
+      services: s.services.map((x) => (x.id === serviceId ? { ...x, ...payload } : x)),
     }))
-  }, [persist])
+  }, [apiMode, persist, refreshFromApi])
 
-  const removeService = useCallback((serviceId) => {
+  const removeService = useCallback(async (serviceId) => {
+    if (apiMode) {
+      await api.adminRemoveService(serviceId)
+      await refreshFromApi()
+      return
+    }
     persist((s) => ({ ...s, services: s.services.filter((x) => x.id !== serviceId) }))
-  }, [persist])
+  }, [apiMode, persist, refreshFromApi])
 
-  const addSubservice = useCallback((serviceId, data) => {
+  const addSubservice = useCallback(async (serviceId, data) => {
+    const payload = withLocalizedName(data)
+    if (apiMode) {
+      await api.adminAddSubservice(serviceId, {
+        names: payload.names,
+        price: payload.price,
+        gpCommission: payload.gpCommission,
+        active: payload.active !== false,
+      })
+      await refreshFromApi()
+      return
+    }
     persist((s) => ({
       ...s,
       services: s.services.map((svc) =>
         svc.id === serviceId
-          ? { ...svc, subservices: [...(svc.subservices || []), { ...data, id: data.id || uid('sub'), active: data.active !== false }] }
+          ? { ...svc, subservices: [...(svc.subservices || []), { ...payload, id: payload.id || uid('sub'), active: payload.active !== false }] }
           : svc,
       ),
     }))
-  }, [persist])
+  }, [apiMode, persist, refreshFromApi])
 
-  const updateSubservice = useCallback((serviceId, subId, patch) => {
+  const updateSubservice = useCallback(async (serviceId, subId, patch) => {
+    const payload = withLocalizedName(patch)
+    if (apiMode) {
+      await api.adminUpdateSubservice(serviceId, subId, {
+        names: payload.names,
+        price: payload.price,
+        gpCommission: payload.gpCommission,
+        active: payload.active,
+      })
+      await refreshFromApi()
+      return
+    }
     persist((s) => ({
       ...s,
       services: s.services.map((svc) =>
         svc.id === serviceId
-          ? { ...svc, subservices: (svc.subservices || []).map((sub) => (sub.id === subId ? { ...sub, ...patch } : sub)) }
+          ? { ...svc, subservices: (svc.subservices || []).map((sub) => (sub.id === subId ? { ...sub, ...payload } : sub)) }
           : svc,
       ),
     }))
-  }, [persist])
+  }, [apiMode, persist, refreshFromApi])
 
-  const removeSubservice = useCallback((serviceId, subId) => {
+  const removeSubservice = useCallback(async (serviceId, subId) => {
+    if (apiMode) {
+      await api.adminRemoveSubservice(serviceId, subId)
+      await refreshFromApi()
+      return
+    }
     persist((s) => ({
       ...s,
       services: s.services.map((svc) =>
         svc.id === serviceId ? { ...svc, subservices: (svc.subservices || []).filter((sub) => sub.id !== subId) } : svc,
       ),
     }))
-  }, [persist])
+  }, [apiMode, persist, refreshFromApi])
 
   const addOrder = useCallback((data) => {
     persist((s) => {
@@ -205,7 +323,11 @@ export function StoreProvider({ children }) {
   const updateOrder = useCallback(async (orderId, patch) => {
     if (apiMode && patch.status) {
       const prismaStatus = ADMIN_ORDER_UI_TO_PRISMA[patch.status] || patch.status
-      await api.adminUpdateOrderStatus(orderId, { status: prismaStatus })
+      const body = { status: prismaStatus }
+      if (['CANCELED_BY_CLIENT', 'CANCELED_BY_SPEC'].includes(prismaStatus)) {
+        body.cancelReason = patch.cancelReason || 'Отменено администратором'
+      }
+      await api.adminUpdateOrderStatus(orderId, body)
       await refreshFromApi()
       return
     }
@@ -294,6 +416,12 @@ export function StoreProvider({ children }) {
       addFranchise,
       updateFranchise,
       removeFranchise,
+      addOblast,
+      updateOblast,
+      removeOblast,
+      addCity,
+      updateCity,
+      removeCity,
       addClient,
       updateClient,
       removeClient,
@@ -327,6 +455,12 @@ export function StoreProvider({ children }) {
       addFranchise,
       updateFranchise,
       removeFranchise,
+      addOblast,
+      updateOblast,
+      removeOblast,
+      addCity,
+      updateCity,
+      removeCity,
       addClient,
       updateClient,
       removeClient,

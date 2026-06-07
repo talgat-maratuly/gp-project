@@ -42,13 +42,18 @@ function StepDots({ step }) {
   )
 }
 
-export default function AuthPage({ initialMode = 'register' }) {
+/** Тіркелу (3 қадам). Кіру — жеке `/login` (PartnerLoginPage). */
+export default function AuthPage() {
   const navigate = useNavigate()
+<<<<<<< HEAD
   const location = useLocation()
   const { register, login, loading, user, authReady } = usePartner()
   const { t } = useLanguage()
   const returnPath = resolveAuthReturnPath('partner', location)
   const [mode, setMode] = useState(initialMode)
+=======
+  const { register, loading, user, authReady } = usePartner()
+>>>>>>> 61b771f4cabb203f1a879564c1f97476256ecdb8
   const [regStep, setRegStep] = useState(1)
   const [selectedMainIds, setSelectedMainIds] = useState(() => new Set(['lawn']))
   const [selectedSubIds, setSelectedSubIds] = useState(() => new Set())
@@ -72,6 +77,7 @@ export default function AuthPage({ initialMode = 'register' }) {
   const [passwordStarted, setPasswordStarted] = useState(false)
 
   useEffect(() => {
+<<<<<<< HEAD
     setMode(initialMode)
   }, [initialMode])
 
@@ -80,6 +86,10 @@ export default function AuthPage({ initialMode = 'register' }) {
       navigate(consumeAuthReturnPath('partner', returnPath), { replace: true })
     }
   }, [authReady, user, navigate, returnPath])
+=======
+    if (authReady && user?.partnerStatus === 'APPROVED') navigate('/', { replace: true })
+  }, [authReady, user, navigate])
+>>>>>>> 61b771f4cabb203f1a879564c1f97476256ecdb8
 
   useEffect(() => {
     if (import.meta.env.DEV) console.log('[GP Partner] API_URL =', API_URL)
@@ -145,7 +155,7 @@ export default function AuthPage({ initialMode = 'register' }) {
       setError(err)
       return
     }
-    const allowed = new Set(visibleGroups.flatMap((g) => g.subs.map((s) => s.id)))
+    const allowed = new Set(visibleGroups.flatMap((g) => (g.subs || []).map((s) => s.id)))
     setSelectedSubIds((prev) => new Set([...prev].filter((id) => allowed.has(id))))
     setPasswordStarted(false)
     setRegStep(2)
@@ -226,30 +236,16 @@ export default function AuthPage({ initialMode = 'register' }) {
           ? [{ kind: form.docKind, number: form.docNumber.trim() }]
           : undefined,
       })
+      const shopOnly = [...selectedMainIds].length > 0 && [...selectedMainIds].every((id) => id === 'shop')
+      navigate(shopOnly ? '/apply' : '/apply/specialist', { replace: true })
     } catch (err) {
       setError(err?.message || 'Ошибка регистрации')
     }
   }
 
-  const handleLogin = async (e) => {
-    e.preventDefault()
-    setError('')
-    const pwdErr = validatePassword()
-    if (pwdErr) {
-      setError(pwdErr)
-      return
-    }
-    try {
-      await login(form.email, form.password)
-    } catch (err) {
-      setError(err?.message || 'Ошибка входа')
-    }
-  }
-
   const onFormSubmit = (e) => {
     e.preventDefault()
-    if (mode === 'login') handleLogin(e)
-    else if (regStep === 3) finishRegister()
+    if (regStep === 3) finishRegister()
   }
 
   if (!authReady) {
@@ -264,6 +260,7 @@ export default function AuthPage({ initialMode = 'register' }) {
     <div className="min-h-screen px-4 py-6 max-w-md mx-auto gp-app-bg">
       <div className="mb-6 gp-animate-in">
         <h1 className="text-2xl font-extrabold gp-text-gradient">GP Partner</h1>
+<<<<<<< HEAD
         <p className="text-[var(--gp-text-muted)] text-sm mt-1">
           {mode === 'register' ? 'Регистрация специалиста' : 'Вход в аккаунт'}
         </p>
@@ -274,13 +271,17 @@ export default function AuthPage({ initialMode = 'register' }) {
           </p>
         )}
         {import.meta.env.DEV && mode === 'register' && (
+=======
+        <p className="text-[var(--gp-text-muted)] text-sm mt-1">Регистрация специалиста</p>
+        {import.meta.env.DEV && (
+>>>>>>> 61b771f4cabb203f1a879564c1f97476256ecdb8
           <p className="text-[11px] text-emerald-600/90 mt-2">
             MVP: email, телефон и пароль можно оставить пустыми — подставятся тестовые значения. Регион не обязателен.
           </p>
         )}
       </div>
 
-      {import.meta.env.DEV && mode === 'register' && (
+      {import.meta.env.DEV && (
         <div className="flex flex-wrap gap-2 mb-4">
           <button type="button" disabled={loading} onClick={() => quickTestRegister('specialist')} className="text-xs px-3 py-2 rounded-xl bg-white/10 border border-white/20">
             Тест: specialist
@@ -294,26 +295,18 @@ export default function AuthPage({ initialMode = 'register' }) {
         </div>
       )}
 
-      <div className="flex bg-[var(--gp-surface)] rounded-2xl p-1 mb-5 border border-[var(--gp-border)] shadow-sm">
-        {['register', 'login'].map((m) => (
-          <button
-            key={m}
-            type="button"
-            onClick={() => { setMode(m); setError(''); resetRegister() }}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition ${
-              mode === m ? 'gp-gradient-kaspi text-white shadow-md' : 'text-[var(--gp-text-muted)]'
-            }`}
-          >
-            {m === 'register' ? 'Регистрация' : 'Вход'}
-          </button>
-        ))}
-      </div>
+      <p className="text-center text-sm text-[var(--gp-text-muted)] mb-4">
+        Аккаунтыңыз бар ма?{' '}
+        <Link to="/login" className="text-emerald-500 font-semibold hover:underline">
+          Кіру
+        </Link>
+      </p>
 
-      {mode === 'register' && <StepDots step={regStep} />}
+      <StepDots step={regStep} />
 
       <form onSubmit={onFormSubmit} noValidate className="gp-card-kaspi p-5 space-y-4">
         {/* ——— Регистрация: шаг 1 — услуги ——— */}
-        {mode === 'register' && regStep === 1 && (
+        {regStep === 1 && (
           <div className="space-y-4">
             <div>
               <p className="text-sm font-semibold text-white">Какие услуги вы оказываете?</p>
@@ -354,7 +347,7 @@ export default function AuthPage({ initialMode = 'register' }) {
                     <div key={g.id} className="rounded-xl border border-white/5 bg-[#0a0f1a]/50 p-3">
                       <p className="text-xs font-medium text-emerald-400/90 mb-2">{g.title}</p>
                       <div className="space-y-1">
-                        {g.subs.map((s) => (
+                        {(g.subs || []).map((s) => (
                           <label
                             key={s.id}
                             className={`flex items-center gap-2 py-1.5 px-2 rounded-lg cursor-pointer text-sm ${
@@ -380,7 +373,7 @@ export default function AuthPage({ initialMode = 'register' }) {
         )}
 
         {/* ——— Регистрация: шаг 2 — контакты ——— */}
-        {mode === 'register' && regStep === 2 && (
+        {regStep === 2 && (
           <div className="gp-form-stack">
             <div>
               <p className="text-sm font-semibold text-[var(--gp-text)]">Ваши контакты</p>
@@ -441,7 +434,7 @@ export default function AuthPage({ initialMode = 'register' }) {
         )}
 
         {/* ——— Регистрация: шаг 3 — компания и подтверждение ——— */}
-        {mode === 'register' && regStep === 3 && (
+        {regStep === 3 && (
           <div className="space-y-4">
             <div>
               <p className="text-sm font-bold">Тип регистрации</p>
@@ -600,31 +593,6 @@ export default function AuthPage({ initialMode = 'register' }) {
           </div>
         )}
 
-        {/* ——— Вход ——— */}
-        {mode === 'login' && (
-          <div className="gp-form-stack">
-            <input
-              type="text"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="gp-input-kaspi"
-              placeholder="uralsk_partner или partner@gp.kz"
-              autoComplete="username"
-              required
-            />
-            <input
-              type="password"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              className="gp-input-kaspi"
-              placeholder="Пароль"
-              autoComplete="current-password"
-            />
-            <p className="text-[11px] text-slate-500">API: partner@gp.kz / password123 · Demo: uralsk_partner / 1234</p>
-            <Link to="/forgot-password" className="text-xs text-emerald-400 hover:underline">Забыли пароль?</Link>
-          </div>
-        )}
-
         {error && (
           <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2" role="alert">
             {error}
@@ -632,7 +600,7 @@ export default function AuthPage({ initialMode = 'register' }) {
         )}
 
         <div className="flex gap-2 pt-1">
-          {mode === 'register' && regStep > 1 && (
+          {regStep > 1 && (
             <button
               type="button"
               onClick={() => { setError(''); setRegStep((s) => s - 1) }}
@@ -641,7 +609,7 @@ export default function AuthPage({ initialMode = 'register' }) {
               <ChevronLeft className="w-4 h-4" /> Назад
             </button>
           )}
-          {mode === 'register' && regStep === 1 && (
+          {regStep === 1 && (
             <button
               type="button"
               onClick={goNextFromStep1}
@@ -650,7 +618,7 @@ export default function AuthPage({ initialMode = 'register' }) {
               Далее <ChevronRight className="w-4 h-4" />
             </button>
           )}
-          {mode === 'register' && regStep === 2 && (
+          {regStep === 2 && (
             <button
               type="button"
               onClick={goNextFromStep2}
@@ -659,31 +627,25 @@ export default function AuthPage({ initialMode = 'register' }) {
               Далее <ChevronRight className="w-4 h-4" />
             </button>
           )}
-          {(mode === 'login' || (mode === 'register' && regStep === 3)) && (
+          {regStep === 3 ? (
             <button
               type="submit"
               disabled={loading}
               className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl gp-gradient-kaspi text-white font-bold text-sm shadow-md disabled:opacity-50"
             >
-              {loading ? (
-                '…'
-              ) : mode === 'login' ? (
-                'Войти'
-              ) : (
+              {loading ? '…' : (
                 <>
                   <Check className="w-4 h-4" /> Зарегистрироваться
                 </>
               )}
             </button>
-          )}
+          ) : null}
         </div>
       </form>
 
-      {mode === 'register' && (
-        <p className="text-center text-[11px] text-slate-600 mt-4">
-          Шаг {regStep} из {REG_STEPS}
-        </p>
-      )}
+      <p className="text-center text-[11px] text-slate-600 mt-4">
+        Шаг {regStep} из {REG_STEPS}
+      </p>
 
       <p className="text-center text-xs text-slate-600 mt-6">
         <a href={getServiceWebUrl()} className="text-emerald-500 hover:underline">GP Service</a> — для клиентов

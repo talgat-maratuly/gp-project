@@ -33,7 +33,7 @@ export default function QrDashboardPage() {
           </h1>
           <p className="text-sm text-slate-400 mt-1">Наклейки на объекты · скан → заявка</p>
         </div>
-        <Link to="/qr/create" className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-600 text-white font-semibold text-sm">
+        <Link to="/qr/create" className="inline-flex items-center gap-2 px-4 py-2 rounded-xl admin-btn-primary font-semibold text-sm">
           <Plus className="w-4 h-4" /> Создать QR
         </Link>
       </div>

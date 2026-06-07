@@ -70,47 +70,62 @@ export async function runPartnerFlow(partnerToken) {
   const steps = []
   const chain = { id: 'partner', apps: ['gp-partner', 'gp-api'], rootCause: null }
   try {
-    await req('/partner/apply', {
+    const regions = await req('/regions')
+    const regionId = regions.find((r) => r.code === 'uralsk')?.id || regions[0]?.id
+    const app = await req('/specialist/applications', {
       method: 'POST',
       token: partnerToken,
       body: {
-        partnerType: 'OTHER',
-        partnerRole: 'SPECIALIST',
-        accountType: 'INDIVIDUAL',
+        mainServiceId: 'LAWN',
         subserviceIds: ['grass-mowing'],
+        regionId,
+        city: 'Уральск',
+        fullName: 'E2E Specialist',
+        phone: '+77000009999',
+        accountType: 'INDIVIDUAL',
+        profilePhotoUrl: 'https://example.com/profile.jpg',
+        idCardFrontUrl: 'https://example.com/id-front.jpg',
+        idCardBackUrl: 'https://example.com/id-back.jpg',
+        equipmentPhotoUrls: ['https://example.com/tool1.jpg'],
+        termsAccepted: true,
+        personalDataAccepted: true,
       },
     })
     const me = await req('/auth/me', { token: partnerToken })
-    const ok = me.partnerProfile?.status === 'PENDING_REVIEW'
-    steps.push({ name: 'partner apply', ok, detail: me.partnerProfile?.status })
-    if (!ok) chain.rootCause = `unexpected status ${me.partnerProfile?.status}`
-    return { ok, steps, chain, partnerProfileId: me.partnerProfile?.id }
+    const ok = me.partnerProfile?.status === 'PENDING_REVIEW' && app?.status === 'PENDING'
+    steps.push({
+      name: 'specialist application',
+      ok,
+      detail: `${me.partnerProfile?.status} / ${app?.status}`,
+    })
+    if (!ok) chain.rootCause = `unexpected profile=${me.partnerProfile?.status} app=${app?.status}`
+    return { ok, steps, chain, partnerProfileId: me.partnerProfile?.id, specialistRequestId: app?.id }
   } catch (e) {
     chain.rootCause = e.message
-    steps.push({ name: 'partner apply', ok: false, detail: e.message })
+    steps.push({ name: 'specialist application', ok: false, detail: e.message })
     return { ok: false, steps, chain, error: e.message }
   }
 }
 
-export async function runModerationFlow(adminToken, partnerProfileId) {
+export async function runModerationFlow(adminToken, _partnerProfileId, specialistRequestId) {
   const steps = []
   const chain = { id: 'moderation', apps: ['gp-admin', 'gp-api'], rootCause: null }
-  if (!partnerProfileId) {
-    chain.rootCause = 'no partner profile id'
+  if (!specialistRequestId) {
+    chain.rootCause = 'no specialist request id'
     return { ok: false, steps, chain, error: chain.rootCause }
   }
   try {
-    const approved = await req(`/admin/moderation/partners/${partnerProfileId}/approve`, {
+    const approved = await req(`/moderator/specialist-requests/${specialistRequestId}/approve`, {
       method: 'PATCH',
       token: adminToken,
     })
     const ok = approved.status === 'APPROVED'
-    steps.push({ name: 'admin approve partner', ok, detail: approved.status })
+    steps.push({ name: 'moderator approve specialist request', ok, detail: approved.status })
     if (!ok) chain.rootCause = `status ${approved.status}`
     return { ok, steps, chain }
   } catch (e) {
     chain.rootCause = e.message
-    steps.push({ name: 'admin approve partner', ok: false, detail: e.message })
+    steps.push({ name: 'moderator approve specialist request', ok: false, detail: e.message })
     return { ok: false, steps, chain, error: e.message }
   }
 }
