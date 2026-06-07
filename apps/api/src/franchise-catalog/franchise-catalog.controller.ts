@@ -20,19 +20,35 @@ export class FranchiseCatalogController {
     @Query('cityId') cityId?: string,
   ) {
     const cid = cityId?.trim();
+    const mergeByTemplateId = (
+      cityPrices: Array<Record<string, unknown>>,
+      legacy: Array<Record<string, unknown>>,
+    ) => {
+      const templates = new Set(
+        cityPrices.map((service) => String(service.templateId || '')).filter(Boolean),
+      );
+      return [
+        ...cityPrices,
+        ...legacy.filter((service) => !templates.has(String(service.templateId || ''))),
+      ];
+    };
+
     if (cid) {
       let fid = franchiseId?.trim();
       if (!fid) {
         fid = (await this.catalogBuilder.resolveFranchiseIdForCity(cid)) ?? undefined;
       }
       const fromCity = await this.catalogBuilder.buildForCity(cid, fid);
-      if (fromCity.length) return fromCity;
+      const legacy = fid ? await this.legacyCatalog.listServices(fid) : [];
+      if (fromCity.length) return mergeByTemplateId(fromCity, legacy);
+      if (legacy.length) return legacy;
     }
     if (!franchiseId?.trim()) return [];
     const fid = franchiseId.trim();
     const fromCityPrices = await this.catalogBuilder.buildForFranchise(fid);
-    if (fromCityPrices.length) return fromCityPrices;
-    return this.legacyCatalog.listServices(fid);
+    const legacy = await this.legacyCatalog.listServices(fid);
+    if (fromCityPrices.length) return mergeByTemplateId(fromCityPrices, legacy);
+    return legacy;
   }
 
   @Get('franchises')

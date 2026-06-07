@@ -199,6 +199,12 @@ export class CatalogBuilderService {
           volumeEnd: p.volumeEnd,
         };
       });
+    const fallbackRows = FALLBACK_ONBOARDING_SUBSERVICES[mainServiceId] ?? [];
+    const fallbackIds = new Set(fallbackRows.map((s) => s.id));
+    const hasBusinessSubservice = catalogRows.some((row) => fallbackIds.has(row.id));
+    if (catalogRows.length && fallbackRows.length && !hasBusinessSubservice) {
+      return fallbackRows;
+    }
     return catalogRows.length ? catalogRows : (FALLBACK_ONBOARDING_SUBSERVICES[mainServiceId] ?? []);
   }
 

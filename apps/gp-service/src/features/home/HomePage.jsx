@@ -6,7 +6,6 @@ import {
   Heart,
   MapPin,
   Package,
-  Sparkles,
   Sprout,
   Truck,
   Zap,
@@ -14,7 +13,6 @@ import {
 import { formatPrice } from '@gp/shared/utils'
 import { KaspiButton, KaspiCard, SkeletonBlock } from '@gp/shared/ui/KaspiUI'
 import { SERVICE_CATALOG } from '../../data/services'
-import ProductCard from '../shop/ProductCard'
 import { useService } from '../../context/ServiceContext'
 import * as demoApi from '../../lib/demoApi'
 import CitySelector from '@gp/shared/components/CitySelector'
@@ -43,7 +41,7 @@ export default function HomePage() {
   const navigate = useNavigate()
   const { t, lang } = useLanguage()
   const {
-    recommendations, products, productsLoading, orders, ordersLoading, favorites, refreshOrders,
+    orders, ordersLoading, favorites, refreshOrders,
     isDemoMode, profile, setProfile, isLoggedIn, geoStore, getCityCatalog,
   } = useService()
 
@@ -242,34 +240,6 @@ export default function HomePage() {
             </button>
           </div>
         </KaspiCard>
-      </section>
-
-      <section className="px-4 mt-6 mb-2">
-        <div className="flex justify-between items-center mb-3">
-          <h2 className="font-extrabold text-lg flex items-center gap-1.5">
-            <Sparkles className="w-5 h-5 text-amber-500" />
-            {t('popularProducts')}
-          </h2>
-          <button type="button" onClick={() => navigate('/shop')} className="text-sm font-bold text-emerald-600">
-            {t('catalogLink')}
-          </button>
-        </div>
-        {productsLoading && !products.length ? (
-          <div className="grid grid-cols-2 gap-3">
-            <SkeletonBlock className="h-52" />
-            <SkeletonBlock className="h-52" />
-          </div>
-        ) : recommendations.length > 0 ? (
-          <div className="grid grid-cols-2 gap-3">
-            {recommendations.slice(0, 4).map((p) => (
-              <ProductCard key={p.id} product={p} />
-            ))}
-          </div>
-        ) : (
-          <KaspiCard className="!p-5 text-sm text-[var(--gp-text-muted)] text-center">
-            {t('catalogSoon')}
-          </KaspiCard>
-        )}
       </section>
     </div>
   )
