@@ -37,7 +37,7 @@ class _OtpLoginScreenState extends State<OtpLoginScreen> {
       setState(() {
         _sent = true;
         _devCode = result.devCode;
-        if (widget.devOtpEnabled && _otp.text.isEmpty) _otp.text = result.devCode ?? '000000';
+        if (widget.devOtpEnabled && _otp.text.isEmpty) _otp.text = result.devCode ?? '0000';
       });
     } catch (e) {
       setState(() => _error = e.toString());
@@ -94,7 +94,7 @@ class _OtpLoginScreenState extends State<OtpLoginScreen> {
               ],
               if (widget.devOtpEnabled || _devCode != null) ...[
                 const SizedBox(height: 12),
-                Text('DEV режим: используйте код ${_devCode ?? '000000'}'),
+                Text('DEV режим: используйте код ${_devCode ?? '0000'}'),
               ],
               if (_error != null) ...[
                 const SizedBox(height: 12),

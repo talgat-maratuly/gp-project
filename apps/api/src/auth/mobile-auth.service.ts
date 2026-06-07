@@ -48,7 +48,8 @@ const OTP_COOLDOWN_MS = 60 * 1000;
 const MAX_ATTEMPTS = 5;
 const ACCESS_TTL = process.env.MOBILE_ACCESS_EXPIRES_IN || '15m';
 const REFRESH_DAYS = Number(process.env.MOBILE_REFRESH_DAYS || 30);
-const DEV_OTP_CODE = '000000';
+const DEV_OTP_CODE = '0000';
+const LEGACY_DEV_OTP_CODE = '000000';
 
 @Injectable()
 export class MobileAuthService {
@@ -75,7 +76,7 @@ export class MobileAuthService {
   private isOtpVerifyBypass(phone: string, code: string): boolean {
     const trimmed = code.trim();
     const isProduction = process.env.NODE_ENV === 'production';
-    if (trimmed === DEV_OTP_CODE) {
+    if (trimmed === DEV_OTP_CODE || trimmed === LEGACY_DEV_OTP_CODE) {
       return !isProduction;
     }
     const storeReview = this.getStoreReviewCredentials();
@@ -356,7 +357,9 @@ export class MobileAuthService {
       ...(dto.channel === OtpChannel.whatsapp
         ? { whatsappSent: delivery.whatsappSent ?? false }
         : {}),
-      ...(process.env.NODE_ENV !== 'production' ? { devCode: code, devBypassCode: DEV_OTP_CODE } : {}),
+      ...(process.env.NODE_ENV !== 'production'
+        ? { devCode: DEV_OTP_CODE, realDevCode: code, devBypassCode: DEV_OTP_CODE }
+        : {}),
     };
   }
 

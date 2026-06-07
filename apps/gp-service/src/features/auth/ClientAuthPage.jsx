@@ -39,7 +39,7 @@ const copy = {
     egovVerified: 'Компания проверена через {provider}',
     egovUnavailable: 'eGov недоступен, заявка уйдет на ручную проверку',
     ecpHint: 'После регистрации Admin проверит БИН, документы и ЭЦП. ЭЦП понадобится для договоров, актов и юридически значимых действий.',
-    devHint: 'DEV режим: используйте код 000000',
+    devHint: 'DEV режим: используйте код 0000',
     devCode: 'DEV OTP код',
   },
   kk: {
@@ -72,7 +72,7 @@ const copy = {
     egovVerified: 'Компания {provider} арқылы тексерілді',
     egovUnavailable: 'eGov қолжетімсіз, өтінім қолмен тексеріледі',
     ecpHint: 'Тіркелгеннен кейін Admin БИН, құжаттар және ЭЦП тексереді. ЭЦП шарттар, актілер және заңды әрекеттер үшін қолданылады.',
-    devHint: 'DEV режим: 000000 кодын пайдаланыңыз',
+    devHint: 'DEV режим: 0000 кодын пайдаланыңыз',
     devCode: 'DEV OTP коды',
   },
   en: {
@@ -105,7 +105,7 @@ const copy = {
     egovVerified: 'Company checked via {provider}',
     egovUnavailable: 'eGov is unavailable, application will go to manual review',
     ecpHint: 'After registration Admin checks BIN, documents and EDS. EDS is used for contracts, acts and legally significant actions.',
-    devHint: 'DEV mode: use code 000000',
+    devHint: 'DEV mode: use code 0000',
     devCode: 'DEV OTP code',
   },
 }

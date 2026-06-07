@@ -39,10 +39,10 @@ For local/dev testing only:
 Then use code:
 
 ```text
-000000
+0000
 ```
 
-Production backend rejects `000000` when `NODE_ENV=production`.
+Production backend rejects `0000` when `NODE_ENV=production`.
 
 ## Run
 
