@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import {
+  consumeAuthReturnPath,
+  resolveAuthReturnPath,
+} from '@gp/shared/auth/redirect'
 import { Check, ChevronLeft, ChevronRight } from 'lucide-react'
 import {
   PARTNER_REGISTRATION_GROUPS,
@@ -13,6 +17,7 @@ import {
 } from '@gp/shared/constants'
 import { API_URL } from '@gp/shared/api'
 import { usePartner } from '../context/PartnerContext'
+import { useLanguage } from '../i18n'
 
 const SERVICE_GROUPS = [
   ...PARTNER_REGISTRATION_GROUPS,
@@ -39,7 +44,10 @@ function StepDots({ step }) {
 
 export default function AuthPage({ initialMode = 'register' }) {
   const navigate = useNavigate()
+  const location = useLocation()
   const { register, login, loading, user, authReady } = usePartner()
+  const { t } = useLanguage()
+  const returnPath = resolveAuthReturnPath('partner', location)
   const [mode, setMode] = useState(initialMode)
   const [regStep, setRegStep] = useState(1)
   const [selectedMainIds, setSelectedMainIds] = useState(() => new Set(['lawn']))
@@ -68,8 +76,10 @@ export default function AuthPage({ initialMode = 'register' }) {
   }, [initialMode])
 
   useEffect(() => {
-    if (authReady && user) navigate('/', { replace: true })
-  }, [authReady, user, navigate])
+    if (authReady && user) {
+      navigate(consumeAuthReturnPath('partner', returnPath), { replace: true })
+    }
+  }, [authReady, user, navigate, returnPath])
 
   useEffect(() => {
     if (import.meta.env.DEV) console.log('[GP Partner] API_URL =', API_URL)
@@ -257,6 +267,12 @@ export default function AuthPage({ initialMode = 'register' }) {
         <p className="text-[var(--gp-text-muted)] text-sm mt-1">
           {mode === 'register' ? 'Регистрация специалиста' : 'Вход в аккаунт'}
         </p>
+        {returnPath && returnPath !== '/' && mode === 'login' && (
+          <p className="text-sm text-emerald-400/90 mt-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+            {t('auth_return_hint')}
+            <span className="block text-xs text-[var(--gp-text-muted)] mt-1 truncate">{returnPath}</span>
+          </p>
+        )}
         {import.meta.env.DEV && mode === 'register' && (
           <p className="text-[11px] text-emerald-600/90 mt-2">
             MVP: email, телефон и пароль можно оставить пустыми — подставятся тестовые значения. Регион не обязателен.

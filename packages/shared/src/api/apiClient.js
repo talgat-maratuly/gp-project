@@ -2,7 +2,7 @@ import { getToken, setToken, clearToken, getRefreshToken, setRefreshToken, clear
 import { ApiError, parseApiErrorBody, formatConnectionError, isNetworkError } from './errors.js'
 
 const DEV_API_DEFAULT = 'http://localhost:4000/api'
-const PROD_API_DEFAULT = 'https://api.gp-service.kz/api'
+const PROD_API_DEFAULT = 'https://apigp.duckdns.org/api'
 
 /**
  * Базовый URL API (с суффиксом /api, без слэша в конце).

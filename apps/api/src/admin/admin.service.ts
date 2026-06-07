@@ -104,8 +104,20 @@ export class AdminService {
     });
   }
 
-  listOrders() {
+  private orderRegionWhere(admin: User) {
+    const { regionId } = this.regionAccess.regionWhere(admin);
+    if (!regionId) return {};
+    return {
+      OR: [
+        { client: { user: { regionId } } },
+        { partner: { regionId } },
+      ],
+    };
+  }
+
+  listOrders(admin: User) {
     return this.prisma.order.findMany({
+      where: this.orderRegionWhere(admin),
       include: {
         client: { include: { user: { select: { name: true, phone: true } } } },
         partner: { include: { user: { select: { name: true, phone: true } } } },

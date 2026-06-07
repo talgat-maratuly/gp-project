@@ -1,4 +1,5 @@
-import { Link, NavLink, Navigate, Outlet } from 'react-router-dom'
+import { Link, NavLink, Outlet } from 'react-router-dom'
+import PartnerAuthRedirect from './PartnerAuthRedirect'
 import * as Icons from 'lucide-react'
 import LanguageSwitcher from '@gp/shared/components/LanguageSwitcher'
 import { getPartnerAccess, getPartnerBottomNav } from '@gp/shared/constants'
@@ -22,7 +23,7 @@ export default function PartnerShell() {
       </div>
     )
   }
-  if (!user) return <Navigate to="/auth" replace />
+  if (!user) return <PartnerAuthRedirect loginPath="/login" />
 
   const showOnlineToggle = access.service
 

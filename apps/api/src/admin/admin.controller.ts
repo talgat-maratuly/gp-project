@@ -36,8 +36,8 @@ export class AdminController {
   }
 
   @Get('orders')
-  orders() {
-    return this.admin.listOrders();
+  orders(@CurrentUser() admin: User) {
+    return this.admin.listOrders(admin);
   }
 
   @Get('commissions')

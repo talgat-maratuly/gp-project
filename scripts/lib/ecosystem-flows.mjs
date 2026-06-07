@@ -115,6 +115,19 @@ export async function runModerationFlow(adminToken, partnerProfileId) {
   }
 }
 
+async function resolveSeededPartner() {
+  try {
+    const login = await req('/auth/login', {
+      method: 'POST',
+      body: { email: 'partner@gp.kz', password: 'password123' },
+    })
+    const me = await req('/auth/me', { token: login.accessToken })
+    return { token: login.accessToken, profileId: me.partnerProfile?.id }
+  } catch {
+    return { token: null, profileId: null }
+  }
+}
+
 export async function runOrderFlow({ clientToken, partnerToken, adminToken, partnerProfileId }) {
   const steps = []
   const chain = {
@@ -124,6 +137,12 @@ export async function runOrderFlow({ clientToken, partnerToken, adminToken, part
   }
   let orderId
   try {
+    const seeded = await resolveSeededPartner()
+    const assignPartnerId = seeded.profileId || partnerProfileId
+    const acceptToken = seeded.token || partnerToken
+    if (!assignPartnerId) {
+      throw new Error('no partner profile id for assign')
+    }
     const tomorrow = new Date()
     tomorrow.setDate(tomorrow.getDate() + 1)
     const order = await req('/orders', {
@@ -150,24 +169,24 @@ export async function runOrderFlow({ clientToken, partnerToken, adminToken, part
     const assigned = await req(`/admin/orders/${orderId}/assign`, {
       method: 'PATCH',
       token: adminToken,
-      body: { assignedPartnerId: partnerProfileId },
+      body: { assignedPartnerId: assignPartnerId },
     })
     steps.push({
       name: 'admin assign',
-      ok: (assigned.assignedPartnerId ?? assigned.partnerId) === partnerProfileId,
+      ok: (assigned.assignedPartnerId ?? assigned.partnerId) === assignPartnerId,
       detail: assigned.assignedPartnerId ?? assigned.partnerId,
     })
 
     const accepted = await req(`/orders/${orderId}/status`, {
       method: 'PATCH',
-      token: partnerToken,
+      token: acceptToken,
       body: { status: 'ACCEPTED', executorLat: 51.24, executorLng: 51.38 },
     })
     steps.push({ name: 'partner accept', ok: accepted.status === 'ACCEPTED', detail: accepted.status })
 
     const clientOrders = await req('/orders', { token: clientToken })
     const adminOrders = await req('/admin/orders', { token: adminToken })
-    const partnerOrders = await req('/orders', { token: partnerToken })
+    const partnerOrders = await req('/orders', { token: acceptToken })
     const co = clientOrders.find((o) => o.id === orderId)
     const ao = adminOrders.find((o) => o.id === orderId)
     const po = partnerOrders.find((o) => o.id === orderId)
@@ -178,6 +197,32 @@ export async function runOrderFlow({ clientToken, partnerToken, adminToken, part
       ok: synced,
       detail: `client=${co?.status} admin=${ao?.status} partner=${po?.status}`,
     })
+
+    steps.push({
+      name: 'partner visibility',
+      ok: !!po,
+      detail: po ? po.status : 'not in partner list',
+    })
+
+    try {
+      const regionalLogin = await req('/auth/login', {
+        method: 'POST',
+        body: { email: 'uralsk_admin@gp.kz', password: 'password123' },
+      })
+      const regionalOrders = await req('/admin/orders', { token: regionalLogin.accessToken })
+      const ro = regionalOrders.find((o) => o.id === orderId)
+      steps.push({
+        name: 'regional admin visibility',
+        ok: !!ro && ro.status === 'ACCEPTED',
+        detail: ro ? `uralsk_admin sees ${ro.status}` : 'uralsk_admin missing order',
+      })
+    } catch (e) {
+      steps.push({
+        name: 'regional admin visibility',
+        ok: false,
+        detail: e.message,
+      })
+    }
 
     const ok = steps.every((s) => s.ok)
     if (!ok) chain.rootCause = steps.find((s) => !s.ok)?.detail || steps.find((s) => !s.ok)?.name

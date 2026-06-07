@@ -28,6 +28,7 @@ import TestingReportPage from '../pages/TestingReportPage'
 import QrDashboardPage from '../pages/QrDashboardPage'
 import QrCreatePage from '../pages/QrCreatePage'
 import QrDetailPage from '../pages/QrDetailPage'
+import AuthReturnRedirect from '../components/AuthReturnRedirect'
 
 export default function App() {
   const { user, ready } = useAuth()
@@ -43,7 +44,7 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordScreen loginPath="/login" resetPath="/reset-password" className="min-h-screen flex items-center" />} />
         <Route path="/reset-password" element={<ResetPasswordScreen loginPath="/login" className="min-h-screen flex items-center" />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<AuthReturnRedirect />} />
       </Routes>
     )
   }

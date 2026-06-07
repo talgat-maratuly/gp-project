@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
+import { AuthGatePrompt } from '@gp/shared/auth/AuthGatePrompt'
+import { KaspiButton, KaspiCard, SkeletonBlock } from '@gp/shared/ui/KaspiUI'
 import { CheckCircle, Package, RefreshCw, Wrench, Pencil, X } from 'lucide-react'
 import { formatDate, formatPrice } from '@gp/shared/utils'
 import { useLanguage, useOrderStatusLabel } from '../../i18n'
 import { useService } from '../../context/ServiceContext'
 import { AsyncState } from '@gp/shared'
-import { KaspiButton, KaspiCard, SkeletonBlock } from '@gp/shared/ui/KaspiUI'
 
 export default function OrdersPage() {
   const { t } = useLanguage()
@@ -78,11 +79,17 @@ export default function OrdersPage() {
       )}
 
       {!isLoggedIn ? (
-        <KaspiCard className="!p-6 text-center">
-          <p className="text-[var(--gp-text-muted)] mb-4">{t('orders_login_prompt')}</p>
-          <Link to="/login" className="inline-block w-full">
-            <KaspiButton>{t('login')}</KaspiButton>
-          </Link>
+        <KaspiCard className="!p-6">
+          <AuthGatePrompt
+            appId="service"
+            loginPath="/login"
+            title={t('orders_login_prompt')}
+            hint={t('auth_return_hint')}
+            loginLabel={t('login')}
+            className="py-2"
+          >
+            <KaspiButton className="w-full">{t('login')}</KaspiButton>
+          </AuthGatePrompt>
         </KaspiCard>
       ) : (
         <AsyncState

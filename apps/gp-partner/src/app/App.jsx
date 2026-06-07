@@ -21,6 +21,7 @@ import FurnitureExecutorOrdersPage from '../pages/FurnitureExecutorOrdersPage'
 import ServiceSchedulePage from '../pages/ServiceSchedulePage'
 import ServicePhotosPage from '../pages/ServicePhotosPage'
 import ServicesPage from '../pages/ServicesPage'
+import PartnerAuthRedirect from '../components/PartnerAuthRedirect'
 
 export default function App() {
   return (
@@ -79,7 +80,7 @@ export default function App() {
         <Route path="payouts" element={<Navigate to="/balance" replace />} />
         <Route path="analytics" element={<Navigate to="/profile" replace />} />
       </Route>
-      <Route path="*" element={<Navigate to="/auth" replace />} />
+      <Route path="*" element={<PartnerAuthRedirect loginPath="/login" />} />
     </Routes>
   )
 }

@@ -1,31 +1,16 @@
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api/client.js'
-
-const defaultT = (key) =>
-  ({
-    auth_forgot_title: 'Восстановить пароль',
-    auth_forgot_hint: 'Введите email или телефон — отправим код',
-    auth_email: 'Email',
-    auth_phone: 'Телефон',
-    auth_send_code: 'Отправить код',
-    auth_back_login: 'Назад ко входу',
-    auth_reset_title: 'Новый пароль',
-    auth_otp: 'Код из SMS / email',
-    auth_verify: 'Подтвердить код',
-    auth_new_password: 'Новый пароль',
-    auth_save_password: 'Сохранить пароль',
-    auth_success: 'Пароль обновлён. Войдите с новым паролем.',
-    loading: 'Загрузка…',
-    error: 'Ошибка',
-  })[key] || key
+import { useLanguage } from '../i18n/LanguageContext.jsx'
 
 export function ForgotPasswordScreen({
   loginPath = '/login',
   resetPath = '/reset-password',
-  t = defaultT,
+  t: tProp,
   className = '',
 }) {
+  const { t: tLang } = useLanguage()
+  const t = tProp || tLang
   const navigate = useNavigate()
   const [channel, setChannel] = useState('email')
   const [email, setEmail] = useState('')
@@ -116,7 +101,9 @@ export function ForgotPasswordScreen({
   )
 }
 
-export function ResetPasswordScreen({ loginPath = '/login', t = defaultT, className = '' }) {
+export function ResetPasswordScreen({ loginPath = '/login', t: tProp, className = '' }) {
+  const { t: tLang } = useLanguage()
+  const t = tProp || tLang
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const email = params.get('email') || ''

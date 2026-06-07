@@ -1,5 +1,9 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import {
+  consumeAuthReturnPath,
+  resolveAuthReturnPath,
+} from '@gp/shared/auth/redirect'
 import { BUSINESS_FORMS } from '@gp/shared/constants'
 import { useService } from '../../context/ServiceContext'
 import { useLanguage } from '../../i18n'
@@ -15,7 +19,7 @@ export default function ClientAuthPage() {
   const { t } = useLanguage()
   const navigate = useNavigate()
   const location = useLocation()
-  const from = location.state?.from || '/'
+  const from = resolveAuthReturnPath('service', location)
   const { login, register, isLoggedIn } = useService()
   const [mode, setMode] = useState('register')
   const [businessForm, setBusinessForm] = useState('individual')
@@ -32,11 +36,11 @@ export default function ClientAuthPage() {
   const isLegal = businessForm === 'ip' || businessForm === 'too'
 
   if (isLoggedIn) {
-    navigate(from, { replace: true })
+    navigate(consumeAuthReturnPath('service', from), { replace: true })
     return null
   }
 
-  const finish = () => navigate(from, { replace: true })
+  const finish = () => navigate(consumeAuthReturnPath('service', from), { replace: true })
 
   const submit = async (e) => {
     e?.preventDefault?.()
@@ -96,6 +100,12 @@ export default function ClientAuthPage() {
   return (
     <div className="px-4 py-6 max-w-md mx-auto gp-animate-in">
       <h1 className="text-2xl font-extrabold mb-2">{mode === 'login' ? t('login') : t('register')}</h1>
+      {from && from !== '/' && (
+        <p className="text-sm text-emerald-600/90 mb-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+          {t('auth_return_hint')}
+          <span className="block text-xs text-[var(--gp-text-muted)] mt-1 truncate">{from}</span>
+        </p>
+      )}
       <p className="text-sm text-[var(--gp-text-muted)] mb-4">{t('app_service')}</p>
       <p className="text-xs text-amber-600 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2 mb-4">
         MVP: регион не нужен. Email, телефон и пароль подставятся автоматически, если оставить пустыми.

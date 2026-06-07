@@ -6,19 +6,22 @@ import { StoreProvider } from './context/StoreContext'
 import { LanguageProvider } from '@gp/shared/i18n'
 import { AccessProvider } from './context/AccessContext'
 import App from './app/App'
+import RootErrorBoundary from './components/RootErrorBoundary'
 import './index.css'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <LanguageProvider>
-        <AuthProvider>
-          <StoreProvider>
-            <AccessProvider>
-              <App />
-            </AccessProvider>
-          </StoreProvider>
-        </AuthProvider>
+        <RootErrorBoundary>
+          <AuthProvider>
+            <StoreProvider>
+              <AccessProvider>
+                <App />
+              </AccessProvider>
+            </StoreProvider>
+          </AuthProvider>
+        </RootErrorBoundary>
       </LanguageProvider>
     </BrowserRouter>
   </StrictMode>,
