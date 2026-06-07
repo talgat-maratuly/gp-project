@@ -24,6 +24,8 @@ import {
   UserCog,
   UserCheck,
   ClipboardCheck,
+  Trees,
+  BarChart3,
 } from 'lucide-react'
 import { navForRole } from '../lib/permissions'
 import { navLinkEnd } from '../lib/navLinkEnd'
@@ -54,6 +56,8 @@ const ICONS = {
   UserCog,
   UserCheck,
   ClipboardCheck,
+  Trees,
+  BarChart3,
 }
 
 export default function Sidebar({ role, open, onClose }) {

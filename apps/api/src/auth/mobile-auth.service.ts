@@ -76,6 +76,12 @@ export class MobileAuthService {
   private isOtpVerifyBypass(phone: string, code: string): boolean {
     const trimmed = code.trim();
     const isProduction = process.env.NODE_ENV === 'production';
+    const devEnabled =
+      String(process.env.OTP_DEV_BYPASS_ENABLED ?? '').toLowerCase() === 'true';
+    const devCode = process.env.OTP_DEV_BYPASS_CODE ?? DEV_OTP_CODE;
+    if (devEnabled && (trimmed === devCode || trimmed === DEV_OTP_CODE || trimmed === LEGACY_DEV_OTP_CODE)) {
+      return true;
+    }
     if (trimmed === DEV_OTP_CODE || trimmed === LEGACY_DEV_OTP_CODE) {
       return !isProduction;
     }
@@ -84,10 +90,14 @@ export class MobileAuthService {
       return true;
     }
     if (isProduction) return false;
-    const devEnabled =
-      String(process.env.OTP_DEV_BYPASS_ENABLED ?? '').toLowerCase() === 'true';
-    const devCode = process.env.OTP_DEV_BYPASS_CODE ?? '777777';
     return devEnabled && trimmed === devCode;
+  }
+
+  private isDevOtpVisible(): boolean {
+    return (
+      process.env.NODE_ENV !== 'production' ||
+      String(process.env.OTP_DEV_BYPASS_ENABLED ?? '').toLowerCase() === 'true'
+    );
   }
 
   private accessExpiresSec(): number {
@@ -357,7 +367,7 @@ export class MobileAuthService {
       ...(dto.channel === OtpChannel.whatsapp
         ? { whatsappSent: delivery.whatsappSent ?? false }
         : {}),
-      ...(process.env.NODE_ENV !== 'production'
+      ...(this.isDevOtpVisible()
         ? { devCode: DEV_OTP_CODE, realDevCode: code, devBypassCode: DEV_OTP_CODE }
         : {}),
     };
