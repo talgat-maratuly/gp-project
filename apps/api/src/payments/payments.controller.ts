@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { OrderCategory, Role } from '@prisma/client';
 import { PaymentsService } from './payments.service';
@@ -16,6 +16,16 @@ export class PaymentsController {
     return this.payments.getPaymentArchitecture();
   }
 
+  @Get('providers')
+  providers() {
+    return this.payments.providers();
+  }
+
+  @Get('policies')
+  policies() {
+    return this.payments.policies();
+  }
+
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.PARTNER, Role.ADMIN)
@@ -30,5 +40,13 @@ export class PaymentsController {
       category,
       septicVolume ? parseInt(septicVolume, 10) : undefined,
     );
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.PARTNER, Role.ADMIN)
+  @Get('orders/:orderId/policy')
+  orderPolicy(@Param('orderId') orderId: string) {
+    return this.payments.orderPolicy(orderId);
   }
 }
