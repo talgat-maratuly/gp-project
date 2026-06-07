@@ -11,9 +11,6 @@ import {
 } from './token.js'
 import { ApiError, parseApiErrorBody, formatConnectionError, isNetworkError } from './errors.js'
 
-const DEV_API_DEFAULT = 'http://localhost:4000/api'
-const PROD_API_DEFAULT = 'https://apigp.duckdns.org/api'
-
 /**
  * Базовый URL API (с суффиксом /api, без слэша в конце).
  */
@@ -25,14 +22,12 @@ export const API_URL = (() => {
     if (/^https?:\/\//i.test(url)) return url
     console.warn('[GP] VITE_API_URL должен начинаться с http:// или https://')
   }
-  if (import.meta.env?.DEV) return DEV_API_DEFAULT
-  if (import.meta.env?.PROD) return PROD_API_DEFAULT
-  return DEV_API_DEFAULT
+  throw new Error('VITE_API_URL обязателен для GP frontend')
 })()
 
 /** Корень хоста без /api — для health и WebSocket */
 export function getApiRootUrl() {
-  return API_URL.replace(/\/api\/?$/i, '') || 'http://localhost:4000'
+  return API_URL.replace(/\/api\/?$/i, '')
 }
 
 if (import.meta.env?.DEV) {

@@ -82,11 +82,7 @@ export default function App() {
         <Route path="payouts" element={<Navigate to="/balance" replace />} />
         <Route path="analytics" element={<Navigate to="/profile" replace />} />
       </Route>
-<<<<<<< HEAD
       <Route path="*" element={<PartnerAuthRedirect loginPath="/login" />} />
-=======
-      <Route path="*" element={<Navigate to="/login" replace />} />
->>>>>>> 61b771f4cabb203f1a879564c1f97476256ecdb8
     </Routes>
   )
 }

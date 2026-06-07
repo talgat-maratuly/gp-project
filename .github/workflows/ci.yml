@@ -64,7 +64,6 @@ jobs:
           fi
 
       - name: Install dependencies
-        working-directory: ${{ github.workspace }}
         run: npm ci
 
       - name: Ecosystem health check
@@ -73,9 +72,15 @@ jobs:
       - name: Prisma migrate deploy (CI DB)
         run: npx prisma migrate deploy --schema apps/api/prisma/schema.prisma
 
-      - name: Start API for flow smoke
+      - name: Build applications from root
         run: |
           npm run build:api
+          npm run build:service
+          npm run build:partner
+          npm run build:admin
+
+      - name: Start API for flow smoke
+        run: |
           node apps/api/dist/main.js &
           for i in $(seq 1 30); do
             curl -sf http://localhost:4000/health && break

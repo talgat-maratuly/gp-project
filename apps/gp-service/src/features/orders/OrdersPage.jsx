@@ -9,16 +9,12 @@ import CitySelector from '@gp/shared/components/CitySelector'
 import { useLanguage } from '../../i18n'
 import { useService } from '../../context/ServiceContext'
 import { AsyncState } from '@gp/shared'
-<<<<<<< HEAD
-=======
-import { KaspiButton, KaspiCard } from '@gp/shared/ui/KaspiUI'
 import {
   getOrderStatusLabel,
   getClientStatusMessage,
   getClientStatusCta,
   isClientCancelable,
 } from '@gp/shared/constants'
->>>>>>> 61b771f4cabb203f1a879564c1f97476256ecdb8
 
 export default function OrdersPage() {
   const { t } = useLanguage()

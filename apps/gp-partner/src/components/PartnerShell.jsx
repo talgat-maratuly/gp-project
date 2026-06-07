@@ -1,5 +1,4 @@
-import { Link, NavLink, Outlet } from 'react-router-dom'
-import PartnerAuthRedirect from './PartnerAuthRedirect'
+import { Link, NavLink, Navigate, Outlet, useLocation } from 'react-router-dom'
 import * as Icons from 'lucide-react'
 import LanguageSwitcher from '@gp/shared/components/LanguageSwitcher'
 import { getPartnerAccess, getPartnerBottomNav } from '@gp/shared/constants'
@@ -12,6 +11,7 @@ export default function PartnerShell() {
   const { user, authReady, setOnline } = usePartner()
   const { dark, toggle } = useTheme()
   const { t } = useLanguage()
+  const location = useLocation()
 
   const access = getPartnerAccess(user || {}, { isDemoMode: isDemoMode() })
   const nav = getPartnerBottomNav(user, { isDemoMode: isDemoMode() }) || []
@@ -23,13 +23,19 @@ export default function PartnerShell() {
       </div>
     )
   }
-<<<<<<< HEAD
-  if (!user) return <PartnerAuthRedirect loginPath="/login" />
-=======
-  if (!user) return <Navigate to="/login" replace />
->>>>>>> 61b771f4cabb203f1a879564c1f97476256ecdb8
+  if (!user) {
+    const from = `${location.pathname}${location.search}${location.hash}`
+    return (
+      <Navigate
+        to={`/login?from=${encodeURIComponent(from)}`}
+        replace
+        state={{ from }}
+      />
+    )
+  }
 
   const showOnlineToggle = access.service
+  const workStatusLabel = user?.workStatus ? t(`workStatus_${user.workStatus}`) : (user?.isOnline ? t('online') : t('offline'))
 
   return (
     <div className="min-h-screen flex flex-col gp-app-bg">
@@ -62,7 +68,7 @@ export default function PartnerShell() {
                     : 'bg-[var(--gp-surface-2)] text-[var(--gp-text-muted)]'
                 } disabled:opacity-40`}
               >
-                {user.isOnline ? t('online') : t('offline')}
+                {workStatusLabel}
               </button>
             )}
           </div>

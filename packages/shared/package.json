@@ -35,13 +35,10 @@
     "./services/cityCatalog": "./src/services/cityCatalog.js",
     "./components/LanguageSwitcher": "./src/components/LanguageSwitcher.jsx",
     "./auth/passwordRecovery": "./src/auth/passwordRecovery.jsx",
-<<<<<<< HEAD
     "./auth/redirect": "./src/auth/redirect.js",
     "./auth/AuthGatePrompt": "./src/auth/AuthGatePrompt.jsx",
-    "./ui/AppErrorBoundary": "./src/ui/AppErrorBoundary.jsx"
-=======
+    "./ui/AppErrorBoundary": "./src/ui/AppErrorBoundary.jsx",
     "./auth/whatsappOtpLogin": "./src/auth/whatsappOtpLogin.jsx"
->>>>>>> 61b771f4cabb203f1a879564c1f97476256ecdb8
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",

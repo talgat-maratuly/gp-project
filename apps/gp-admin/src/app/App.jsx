@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../i18n/LanguageContext'
 import LoginPage from '../pages/LoginPage'
@@ -34,12 +34,14 @@ import AuthReturnRedirect from '../components/AuthReturnRedirect'
 export default function App() {
   const { user, ready } = useAuth()
   const { t } = useLanguage()
+  const location = useLocation()
 
   if (!ready) {
     return <div className="min-h-screen flex items-center justify-center admin-muted text-sm">{t('loading')}</div>
   }
 
   if (!user) {
+    const from = `${location.pathname}${location.search}${location.hash}`
     return (
       <Routes>
         <Route path="/login" element={<LoginPage />} />

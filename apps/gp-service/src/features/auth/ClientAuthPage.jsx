@@ -1,79 +1,193 @@
-<<<<<<< HEAD
-import { useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
-import {
-  consumeAuthReturnPath,
-  resolveAuthReturnPath,
-} from '@gp/shared/auth/redirect'
-import { BUSINESS_FORMS } from '@gp/shared/constants'
-=======
 import { useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
->>>>>>> 61b771f4cabb203f1a879564c1f97476256ecdb8
+import {
+  consumeAuthReturnPath,
+} from '@gp/shared/auth/redirect'
 import { useService } from '../../context/ServiceContext'
-import CitySelector from '@gp/shared/components/CitySelector'
 import { KaspiButton, KaspiCard } from '@gp/shared/ui/KaspiUI'
+import { getDeviceId, getRefreshToken } from '@gp/shared/api/token'
+import { useLanguage } from '../../i18n'
+
+const copy = {
+  ru: {
+    title: 'Вход и регистрация',
+    subtitle: 'GP Service',
+    role: 'Тип клиента *',
+    client: 'Физ лицо',
+    legalClient: 'Юр лицо',
+    legalForm: 'Форма юрлица',
+    ip: 'ИП',
+    too: 'ТОО',
+    otherLegal: 'Другое',
+    companyName: 'Название компании',
+    bin: 'БИН',
+    city: 'Город',
+    phone: 'Телефон',
+    phoneRequired: 'Введите номер телефона',
+    otpChannel: 'Куда отправить код',
+    whatsapp: 'WhatsApp',
+    sms: 'SMS',
+    otpHint: 'OTP нужен только для первого входа или нового устройства.',
+    sendOtp: 'Отправить OTP',
+    otpRequired: 'Введите OTP-код',
+    otpConfirm: 'Подтверждение OTP для {role}',
+    otpPlaceholder: '4-8 цифр',
+    confirm: 'Подтвердить',
+    trustedLogin: 'Войти через Face ID / Touch ID',
+    trustedHint: 'Для доверенного устройства OTP не требуется.',
+    legalRequired: 'Заполните название компании, БИН из 12 цифр и город',
+    egovVerified: 'Компания проверена через {provider}',
+    egovUnavailable: 'eGov недоступен, заявка уйдет на ручную проверку',
+    ecpHint: 'После регистрации Admin проверит БИН, документы и ЭЦП. ЭЦП понадобится для договоров, актов и юридически значимых действий.',
+    devHint: 'DEV режим: используйте код 000000',
+    devCode: 'DEV OTP код',
+  },
+  kk: {
+    title: 'Кіру және тіркелу',
+    subtitle: 'GP Service',
+    role: 'Клиент түрі *',
+    client: 'Жеке тұлға',
+    legalClient: 'Заңды тұлға',
+    legalForm: 'Заңды тұлға формасы',
+    ip: 'ЖК',
+    too: 'ЖШС',
+    otherLegal: 'Басқа',
+    companyName: 'Компания атауы',
+    bin: 'БИН',
+    city: 'Қала',
+    phone: 'Телефон',
+    phoneRequired: 'Телефон нөмірін енгізіңіз',
+    otpChannel: 'Кодты қайда жібереміз',
+    whatsapp: 'WhatsApp',
+    sms: 'SMS',
+    otpHint: 'OTP тек бірінші кіру немесе жаңа құрылғы үшін керек.',
+    sendOtp: 'OTP жіберу',
+    otpRequired: 'OTP кодын енгізіңіз',
+    otpConfirm: '{role} үшін OTP растау',
+    otpPlaceholder: '4-8 сан',
+    confirm: 'Растау',
+    trustedLogin: 'Face ID / Touch ID арқылы кіру',
+    trustedHint: 'Сенімді құрылғыда OTP қажет емес.',
+    legalRequired: 'Компания атауын, 12 санды БИН және қаланы толтырыңыз',
+    egovVerified: 'Компания {provider} арқылы тексерілді',
+    egovUnavailable: 'eGov қолжетімсіз, өтінім қолмен тексеріледі',
+    ecpHint: 'Тіркелгеннен кейін Admin БИН, құжаттар және ЭЦП тексереді. ЭЦП шарттар, актілер және заңды әрекеттер үшін қолданылады.',
+    devHint: 'DEV режим: 000000 кодын пайдаланыңыз',
+    devCode: 'DEV OTP коды',
+  },
+  en: {
+    title: 'Sign in and register',
+    subtitle: 'GP Service',
+    role: 'Client type *',
+    client: 'Individual',
+    legalClient: 'Legal entity',
+    legalForm: 'Legal form',
+    ip: 'Individual entrepreneur',
+    too: 'LLP',
+    otherLegal: 'Other',
+    companyName: 'Company name',
+    bin: 'BIN',
+    city: 'City',
+    phone: 'Phone',
+    phoneRequired: 'Enter your phone number',
+    otpChannel: 'Send code to',
+    whatsapp: 'WhatsApp',
+    sms: 'SMS',
+    otpHint: 'OTP is only needed for first login or a new device.',
+    sendOtp: 'Send OTP',
+    otpRequired: 'Enter the OTP code',
+    otpConfirm: 'OTP confirmation for {role}',
+    otpPlaceholder: '4-8 digits',
+    confirm: 'Confirm',
+    trustedLogin: 'Sign in with Face ID / Touch ID',
+    trustedHint: 'Trusted devices do not need OTP.',
+    legalRequired: 'Fill company name, 12-digit BIN and city',
+    egovVerified: 'Company checked via {provider}',
+    egovUnavailable: 'eGov is unavailable, application will go to manual review',
+    ecpHint: 'After registration Admin checks BIN, documents and EDS. EDS is used for contracts, acts and legally significant actions.',
+    devHint: 'DEV mode: use code 000000',
+    devCode: 'DEV OTP code',
+  },
+}
 
 export default function ClientAuthPage() {
   const navigate = useNavigate()
   const location = useLocation()
-<<<<<<< HEAD
-  const from = resolveAuthReturnPath('service', location)
-  const { login, register, isLoggedIn } = useService()
-  const [mode, setMode] = useState('register')
-  const [businessForm, setBusinessForm] = useState('individual')
-=======
-  const from = location.state?.from || '/'
-  const { verifyOtp, sendOtp, submitPartnerApplication, logout, isLoggedIn, geoStore } = useService()
+  const { lang } = useLanguage()
+  const text = copy[lang] || copy.ru
+  const from = location.state?.from || new URLSearchParams(location.search).get('from') || '/'
+  const { verifyOtp, sendOtp, checkLegalCompany, loginTrustedDevice, isLoggedIn } = useService()
   const [step, setStep] = useState(1)
-  const [role, setRole] = useState('CLIENT')
->>>>>>> 61b771f4cabb203f1a879564c1f97476256ecdb8
+  const [role, setRole] = useState('INDIVIDUAL')
+  const [legalForm, setLegalForm] = useState('IP')
+  const [otpChannel, setOtpChannel] = useState('whatsapp')
+  const [hasTrustedSession, setHasTrustedSession] = useState(() => Boolean(getRefreshToken()))
+  const [egovCheck, setEgovCheck] = useState(null)
+  const [devOtpCode, setDevOtpCode] = useState('')
   const [form, setForm] = useState({
     phone: '',
     otp: '',
     companyName: '',
     bin: '',
-    city: '',
-    cityId: '',
-    oblastId: '',
-    contactPhone: '',
-    email: '',
-    direction: '',
+    city: 'Уральск',
   })
-  const [partnerSession, setPartnerSession] = useState(null)
-  const [otpChannel] = useState('whatsapp')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const isPartnerRole = role === 'IP' || role === 'TOO'
-  const accountType = role === 'TOO' ? 'LEGAL_ENTITY' : 'INDIVIDUAL'
-  const roleLabel = useMemo(() => (role === 'TOO' ? 'ТОО' : role === 'IP' ? 'ИП' : 'Клиент'), [role])
+  const isLegalClient = role === 'LEGAL_ENTITY'
+  const accountType = isLegalClient ? 'LEGAL_ENTITY' : 'INDIVIDUAL'
+  const roleLabel = useMemo(
+    () => {
+      const formLabel = legalForm === 'IP' ? text.ip : legalForm === 'TOO' ? text.too : text.otherLegal
+      return isLegalClient ? `${text.legalClient} (${formLabel})` : text.client
+    },
+    [isLegalClient, legalForm, text.client, text.ip, text.legalClient, text.otherLegal, text.too],
+  )
 
   if (isLoggedIn) {
     navigate(consumeAuthReturnPath('service', from), { replace: true })
     return null
   }
 
-<<<<<<< HEAD
-  const finish = () => navigate(consumeAuthReturnPath('service', from), { replace: true })
-
-  const submit = async (e) => {
-    e?.preventDefault?.()
-=======
   const requestOtp = async (e) => {
     e.preventDefault()
->>>>>>> 61b771f4cabb203f1a879564c1f97476256ecdb8
     setError('')
     if (!form.phone.trim()) {
-      setError('Телефон нөмірін енгізіңіз')
+      setError(text.phoneRequired)
+      return
+    }
+    if (isLegalClient && (!form.companyName.trim() || !/^\d{12}$/.test(form.bin.trim()) || !form.city.trim())) {
+      setError(text.legalRequired)
       return
     }
     setLoading(true)
     try {
-      await sendOtp(form.phone, otpChannel)
+      if (isLegalClient) {
+        const check = await checkLegalCompany({
+          identifier: form.bin.trim(),
+          companyName: form.companyName.trim(),
+        })
+        setEgovCheck(check)
+      }
+      const otpResponse = await sendOtp(form.phone, otpChannel)
+      setDevOtpCode(otpResponse?.devCode ? String(otpResponse.devCode) : '')
       setStep(2)
     } catch (err) {
       setError(err.message || 'Ошибка')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const trustedLogin = async () => {
+    setError('')
+    setLoading(true)
+    try {
+      await loginTrustedDevice()
+      navigate(from, { replace: true })
+    } catch (err) {
+      setHasTrustedSession(false)
+      setError(err.message === 'NO_REFRESH_SESSION' ? text.otpHint : err.message || 'Ошибка')
     } finally {
       setLoading(false)
     }
@@ -83,60 +197,31 @@ export default function ClientAuthPage() {
     e.preventDefault()
     setError('')
     if (!form.otp.trim()) {
-      setError('OTP кодын енгізіңіз')
+      setError(text.otpRequired)
       return
     }
     setLoading(true)
     try {
-      const { me } = await verifyOtp({
+      await verifyOtp({
         phone: form.phone,
         code: form.otp.trim(),
-        deviceId: 'gp-service-web',
+        deviceId: getDeviceId(),
         deviceName: 'GP Service Web',
         platform: 'web',
-        loginAs: isPartnerRole ? 'partner' : 'client',
+        loginAs: 'client',
         accountType,
+        legalForm: isLegalClient ? legalForm : undefined,
+        companyName: isLegalClient ? form.companyName.trim() : undefined,
+        bin: isLegalClient ? form.bin.trim() : undefined,
+        city: isLegalClient ? form.city.trim() : undefined,
+        name: isLegalClient ? form.companyName.trim() : undefined,
+        contactPerson: isLegalClient ? form.companyName.trim() : undefined,
+        rememberDevice: true,
+        enableBiometric: true,
       })
-      if (isPartnerRole) {
-        setPartnerSession(me)
-        setStep(3)
-      } else {
-        navigate(from, { replace: true })
-      }
+      navigate(from, { replace: true })
     } catch (err) {
       setError(err.message || 'Ошибка')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const submitCompany = async (e) => {
-    e.preventDefault()
-    setError('')
-    if (!form.companyName.trim() || !form.bin.trim() || !form.city.trim() || !form.contactPhone.trim() || !form.email.trim() || !form.direction.trim()) {
-      setError('Барлық міндетті өрістерді толтырыңыз')
-      return
-    }
-    setLoading(true)
-    try {
-      await submitPartnerApplication({
-        partnerType: 'OTHER',
-        partnerRole: 'SPECIALIST',
-        companyName: form.companyName.trim(),
-        fullName: partnerSession?.name || form.companyName.trim(),
-        phone: form.contactPhone.trim(),
-        city: form.city.trim(),
-        address: form.city.trim(),
-        description: form.direction.trim(),
-        accountType,
-        bin: form.bin.trim(),
-        legalAddress: form.city.trim(),
-        documents: [{ kind: 'COMPANY_REGISTRATION', number: form.bin.trim(), note: 'web-otp-flow' }],
-      })
-      logout()
-      setStep(4)
-    } catch (err) {
-      setError(err.message || 'Өтінімді жіберу қатесі')
     } finally {
       setLoading(false)
     }
@@ -146,82 +231,26 @@ export default function ClientAuthPage() {
 
   return (
     <div className="px-4 py-6 max-w-md mx-auto gp-animate-in">
-<<<<<<< HEAD
-      <h1 className="text-2xl font-extrabold mb-2">{mode === 'login' ? t('login') : t('register')}</h1>
-      {from && from !== '/' && (
-        <p className="text-sm text-emerald-600/90 mb-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-          {t('auth_return_hint')}
-          <span className="block text-xs text-[var(--gp-text-muted)] mt-1 truncate">{from}</span>
-        </p>
-      )}
-      <p className="text-sm text-[var(--gp-text-muted)] mb-4">{t('app_service')}</p>
-      <p className="text-xs text-amber-600 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2 mb-4">
-        MVP: регион не нужен. Email, телефон и пароль подставятся автоматически, если оставить пустыми.
-      </p>
-
-      <div className="flex gap-2 mb-4 p-1 rounded-2xl bg-[var(--gp-surface)] border border-[var(--gp-border)]">
-        {['login', 'register'].map((m) => (
-          <button
-            key={m}
-            type="button"
-            onClick={() => setMode(m)}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition ${
-              mode === m ? 'gp-gradient-kaspi text-white shadow-md' : 'text-[var(--gp-text-muted)]'
-            }`}
-          >
-            {m === 'login' ? t('login') : t('register')}
-          </button>
-        ))}
-      </div>
-
-      {mode === 'register' && (
-        <div className="grid gap-2 mb-4">
-          {QUICK_TESTS.map((q) => (
-            <button
-              key={q.id}
-              type="button"
-              disabled={loading}
-              onClick={() => quickTest(q.id)}
-              className="w-full py-3 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 text-sm font-bold text-emerald-700 disabled:opacity-50"
-            >
-              {q.label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <form onSubmit={submit}>
-        <KaspiCard className="!p-5 space-y-4">
-          {mode === 'register' && (
-            <>
-              <div>
-                <p className="text-xs font-bold text-[var(--gp-text-muted)] uppercase mb-2">Тип аккаунта *</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {BUSINESS_FORMS.map((bf) => (
-                    <button
-                      key={bf.id}
-                      type="button"
-                      onClick={() => setBusinessForm(bf.id)}
-                      className={`py-3 rounded-2xl text-sm font-bold transition ${
-                        businessForm === bf.id
-                          ? 'gp-gradient-kaspi text-white shadow-md'
-                          : 'bg-[var(--gp-surface-2)] border border-[var(--gp-border)] text-[var(--gp-text-muted)]'
-                      }`}
-                    >
-                      {bf.label}
-                    </button>
-                  ))}
-                </div>
-=======
-      <h1 className="text-2xl font-extrabold mb-2">Кіру және тіркелу</h1>
-      <p className="text-sm text-[var(--gp-text-muted)] mb-4">GP Service</p>
+      <h1 className="text-2xl font-extrabold mb-2">{text.title}</h1>
+      <p className="text-sm text-[var(--gp-text-muted)] mb-4">{text.subtitle}</p>
       {step === 1 && (
         <form onSubmit={requestOtp}>
           <KaspiCard className="!p-5 space-y-4">
+            {hasTrustedSession && (
+              <div className="space-y-2">
+                <KaspiButton type="button" onClick={trustedLogin} disabled={loading}>
+                  {loading ? '...' : text.trustedLogin}
+                </KaspiButton>
+                <p className="text-xs text-[var(--gp-text-muted)]">{text.trustedHint}</p>
+              </div>
+            )}
             <div>
-              <p className="text-xs font-bold text-[var(--gp-text-muted)] uppercase mb-2">Рөл *</p>
-              <div className="grid grid-cols-3 gap-2">
-                {['CLIENT', 'IP', 'TOO'].map((id) => (
+              <p className="text-xs font-bold text-[var(--gp-text-muted)] uppercase mb-2">{text.role}</p>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { id: 'INDIVIDUAL', label: text.client },
+                  { id: 'LEGAL_ENTITY', label: text.legalClient },
+                ].map(({ id, label }) => (
                   <button
                     key={id}
                     type="button"
@@ -232,14 +261,72 @@ export default function ClientAuthPage() {
                         : 'bg-[var(--gp-surface-2)] border border-[var(--gp-border)] text-[var(--gp-text-muted)]'
                     }`}
                   >
-                    {id === 'CLIENT' ? 'Клиент' : id}
+                    {label}
                   </button>
                 ))}
->>>>>>> 61b771f4cabb203f1a879564c1f97476256ecdb8
               </div>
             </div>
+            {isLegalClient && (
+              <div>
+                <p className="text-xs font-bold text-[var(--gp-text-muted)] uppercase mb-2">{text.legalForm}</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: 'IP', label: text.ip },
+                    { id: 'TOO', label: text.too },
+                    { id: 'OTHER', label: text.otherLegal },
+                  ].map(({ id, label }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setLegalForm(id)}
+                      className={`py-3 px-2 rounded-2xl text-sm font-bold transition ${
+                        legalForm === id
+                          ? 'gp-gradient-kaspi text-white shadow-md'
+                          : 'bg-[var(--gp-surface-2)] border border-[var(--gp-border)] text-[var(--gp-text-muted)]'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <div className="space-y-3 mt-3">
+                  <input
+                    className={inputClass}
+                    placeholder={text.companyName}
+                    value={form.companyName}
+                    onChange={(e) => setForm({ ...form, companyName: e.target.value })}
+                  />
+                  <input
+                    className={inputClass}
+                    inputMode="numeric"
+                    maxLength={12}
+                    placeholder={text.bin}
+                    value={form.bin}
+                    onChange={(e) => setForm({ ...form, bin: e.target.value.replace(/\D/g, '').slice(0, 12) })}
+                  />
+                  <input
+                    className={inputClass}
+                    placeholder={text.city}
+                    value={form.city}
+                    onChange={(e) => setForm({ ...form, city: e.target.value })}
+                  />
+                  <p className="text-xs text-[var(--gp-text-muted)]">{text.ecpHint}</p>
+                  {egovCheck && (
+                    <p
+                      className={`text-xs font-semibold ${
+                        egovCheck.status === 'VERIFIED' ? 'text-emerald-600' : 'text-amber-600'
+                      }`}
+                    >
+                      {egovCheck.status === 'VERIFIED'
+                        ? text.egovVerified.replace('{provider}', egovCheck.provider || 'eGov')
+                        : text.egovUnavailable}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
             <label className="block">
-              <span className="text-sm font-semibold mb-1 block">Телефон</span>
+              <span className="text-sm font-semibold mb-1 block">{text.phone}</span>
               <input
                 type="tel"
                 value={form.phone}
@@ -248,60 +335,56 @@ export default function ClientAuthPage() {
                 placeholder="+7 701 234 56 78"
               />
             </label>
-            <p className="text-xs text-[var(--gp-text-muted)]">Код WhatsApp арқылы жіберіледі</p>
+            <div>
+              <p className="text-xs font-bold text-[var(--gp-text-muted)] uppercase mb-2">{text.otpChannel}</p>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { id: 'whatsapp', label: text.whatsapp },
+                  { id: 'sms', label: text.sms },
+                ].map(({ id, label }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setOtpChannel(id)}
+                    className={`py-3 rounded-2xl text-sm font-bold transition ${
+                      otpChannel === id
+                        ? 'gp-gradient-kaspi text-white shadow-md'
+                        : 'bg-[var(--gp-surface-2)] border border-[var(--gp-border)] text-[var(--gp-text-muted)]'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <p className="text-xs text-[var(--gp-text-muted)]">{text.otpHint}</p>
+            {import.meta.env.DEV && (
+              <p className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                {text.devHint}
+              </p>
+            )}
             {error && <p className="text-red-600 text-sm">{error}</p>}
-            <KaspiButton type="submit" disabled={loading}>{loading ? '...' : 'WhatsApp OTP жіберу'}</KaspiButton>
+            <KaspiButton type="submit" disabled={loading}>{loading ? '...' : text.sendOtp}</KaspiButton>
           </KaspiCard>
         </form>
       )}
       {step === 2 && (
         <form onSubmit={confirmOtp}>
           <KaspiCard className="!p-5 space-y-4">
-            <p className="text-sm text-[var(--gp-text-muted)]">{roleLabel} үшін OTP растау</p>
+            <p className="text-sm text-[var(--gp-text-muted)]">{text.otpConfirm.replace('{role}', roleLabel)}</p>
+            {import.meta.env.DEV && (
+              <p className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                {text.devHint}{devOtpCode ? ` · ${text.devCode}: ${devOtpCode}` : ''}
+              </p>
+            )}
             <label className="block">
               <span className="text-sm font-semibold mb-1 block">OTP</span>
-              <input value={form.otp} onChange={(e) => setForm({ ...form, otp: e.target.value })} className={inputClass} placeholder="4-8 сан" />
+              <input value={form.otp} onChange={(e) => setForm({ ...form, otp: e.target.value })} className={inputClass} placeholder={text.otpPlaceholder} />
             </label>
             {error && <p className="text-red-600 text-sm">{error}</p>}
-            <KaspiButton type="submit" disabled={loading}>{loading ? '...' : 'Растау'}</KaspiButton>
+            <KaspiButton type="submit" disabled={loading}>{loading ? '...' : text.confirm}</KaspiButton>
           </KaspiCard>
         </form>
-      )}
-      {step === 3 && (
-        <form onSubmit={submitCompany}>
-          <KaspiCard className="!p-5 space-y-4">
-            <p className="text-sm font-semibold">Компания анкетасы ({roleLabel})</p>
-            <input className={inputClass} placeholder="Компания атауы" value={form.companyName} onChange={(e) => setForm({ ...form, companyName: e.target.value })} />
-            <input className={inputClass} placeholder="БИН / ИИН" value={form.bin} onChange={(e) => setForm({ ...form, bin: e.target.value })} />
-            {geoStore ? (
-              <CitySelector
-                store={geoStore}
-                value={{ oblastId: form.oblastId, cityId: form.cityId }}
-                inputClassName={inputClass}
-                onChange={(sel) => setForm((f) => ({ ...f, oblastId: sel.oblastId, cityId: sel.cityId, city: sel.city || f.city }))}
-              />
-            ) : (
-              <input className={inputClass} placeholder="Қала" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
-            )}
-            <input className={inputClass} placeholder="Байланыс телефоны" value={form.contactPhone} onChange={(e) => setForm({ ...form, contactPhone: e.target.value })} />
-            <input className={inputClass} placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-            <input className={inputClass} placeholder="Қызмет бағыты" value={form.direction} onChange={(e) => setForm({ ...form, direction: e.target.value })} />
-            <p className="text-xs text-[var(--gp-text-muted)]">
-              Дерек backend-ке жіберіледі, тек localStorage-қа сақталмайды.
-            </p>
-            {error && <p className="text-red-600 text-sm">{error}</p>}
-            <KaspiButton type="submit" disabled={loading}>{loading ? '...' : 'Модерацияға жіберу'}</KaspiButton>
-          </KaspiCard>
-        </form>
-      )}
-      {step === 4 && (
-        <KaspiCard className="!p-5 space-y-4">
-          <p className="text-lg font-bold">Аккаунтыңыз тексеруде</p>
-          <p className="text-sm text-[var(--gp-text-muted)]">
-            Өтінім жіберілді. GP Admin бекіткеннен кейін ғана тапсырыстар мен функциялар ашылады.
-          </p>
-          <KaspiButton type="button" onClick={() => navigate('/')}>Басты бетке өту</KaspiButton>
-        </KaspiCard>
       )}
     </div>
   )
