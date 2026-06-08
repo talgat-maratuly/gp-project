@@ -58,6 +58,8 @@ jobs:
         run: |
           cd "${{ matrix.app_dir }}"
           flutter create --platforms android --project-name "${{ matrix.project_name }}" --org kz.gp .
+          rm -rf test
+          echo "[apk] Android project generated"
 
       - name: Set Android package id
         shell: bash
@@ -98,4 +100,3 @@ jobs:
           path: apk-artifacts/${{ matrix.apk_name }}
           if-no-files-found: error
           retention-days: 14
-
