@@ -1,6 +1,7 @@
 import http from 'node:http'
 
 const targets = [
+  { port: 4000, path: '/health/db' },
   { port: 5190, path: '/store' },
   { port: 5173, path: '/' },
   { port: 5174, path: '/' },
@@ -28,5 +29,5 @@ export default async function globalSetup() {
     if (ok) return
     await new Promise((r) => setTimeout(r, 1000))
   }
-  throw new Error('E2E global setup: apps not ready on 5173–5175 / hub 5190')
+  throw new Error('E2E global setup: API/DB, apps or hub not ready on 4000 / 5173–5175 / 5190')
 }

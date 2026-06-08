@@ -4,6 +4,9 @@ import { adminDemoLogin, expectVisibleMain } from './helpers.mjs'
 test.describe('GP Admin', () => {
   test('login page', async ({ page }) => {
     await page.goto('/login')
+    await expect(page.getByRole('button', { name: 'WhatsApp OTP', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: /Email \/ пароль|email/i })).toBeVisible()
+    await page.getByRole('button', { name: /Email \/ пароль|email/i, exact: true }).click()
     await expect(page.locator('input.admin-input').first()).toBeVisible()
     await expect(page.getByRole('button', { name: /войти|login/i })).toBeVisible()
   })

@@ -262,14 +262,14 @@ export default function SepticOrderFlow() {
       return (
         <div className="px-4 py-8 text-center gp-animate-in">
           <PageHeader title={t('nav_services')} onBack={() => navigate(-1)} />
-          <p className="text-slate-500 mb-4">{t('selectCity') || 'Қала таңдаңыз'}</p>
+          <p className="text-slate-500 mb-4">{t('selectCity')}</p>
         </div>
       )
     }
     return (
       <div className="px-4 py-8 text-center gp-animate-in">
         <PageHeader title={service?.name || t('nav_services')} onBack={() => navigate(-1)} />
-        <p className="text-slate-500">{t('loading') || 'Жүктелуде…'}</p>
+        <p className="text-slate-500">{t('loading')}</p>
       </div>
     )
   }
@@ -289,7 +289,7 @@ export default function SepticOrderFlow() {
     <div className="px-4 py-4 gp-animate-in">
       <PageHeader
         title={service?.name || 'Откачка септика'}
-        subtitle={step === 1 ? 'Қала, көлем және уақыт' : step === 2 ? 'Адрес и оплата' : 'Подтверждение'}
+        subtitle={step === 1 ? t('septicStepDetails') : step === 2 ? t('septicStepAddressPayment') : t('septicStepConfirm')}
         onBack={() => (step > 1 ? setStep((s) => s - 1) : navigate(-1))}
       />
       <StepBar step={step} />
@@ -308,7 +308,7 @@ export default function SepticOrderFlow() {
       {step === 1 && (
         <div className="space-y-4">
           <KaspiCard className="!p-4">
-            <p className="font-bold mb-3">{t('city') || 'Қала'}</p>
+            <p className="font-bold mb-3">{t('city')}</p>
             <CitySelector
               store={geoStore}
               value={{ oblastId: form.oblastId, cityId: form.cityId }}
@@ -322,7 +322,7 @@ export default function SepticOrderFlow() {
             />
             {form.city && (
               <p className="text-xs text-[var(--gp-text-muted)] mt-2">
-                {t('priceForCity') || 'Бағалар'}: {form.city}
+                {t('priceForCity')}: {form.city}
               </p>
             )}
           </KaspiCard>

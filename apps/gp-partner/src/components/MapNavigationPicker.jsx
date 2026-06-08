@@ -1,7 +1,7 @@
 import { MAP_NAV_PROVIDERS, getPreferredMapProvider, openMapNavigation } from '@gp/shared/utils'
 
 /**
- * Marshrut: Google / Yandex / 2GIS — таңдау + localStorage-та сақтау.
+ * Route: Google / Yandex / 2GIS choice persisted in localStorage.
  */
 export default function MapNavigationPicker({ open, destination, onClose }) {
   if (!open || !destination) return null
@@ -17,11 +17,11 @@ export default function MapNavigationPicker({ open, destination, onClose }) {
       <button
         type="button"
         className="absolute inset-0 bg-black/40"
-        aria-label="Жабу"
+        aria-label="Закрыть"
         onClick={onClose}
       />
       <div className="relative w-full max-w-md rounded-2xl bg-[var(--gp-surface)] border border-[var(--gp-border)] p-4 shadow-xl">
-        <p className="text-sm font-extrabold text-[var(--gp-text)] mb-1">Маршрут картасы</p>
+        <p className="text-sm font-extrabold text-[var(--gp-text)] mb-1">Карта маршрута</p>
         <p className="text-xs text-[var(--gp-text-muted)] mb-4 truncate">
           {destination.address || `${destination.lat}, ${destination.lng}`}
         </p>
@@ -39,7 +39,7 @@ export default function MapNavigationPicker({ open, destination, onClose }) {
               >
                 {label}
                 {preferred === id && (
-                  <span className="ml-2 text-[10px] font-semibold opacity-90">· әдепкі</span>
+                  <span className="ml-2 text-[10px] font-semibold opacity-90">· по умолчанию</span>
                 )}
               </button>
             </li>
@@ -50,7 +50,7 @@ export default function MapNavigationPicker({ open, destination, onClose }) {
           onClick={onClose}
           className="w-full mt-3 py-3 rounded-xl text-sm font-bold text-[var(--gp-text-muted)] border border-[var(--gp-border)]"
         >
-          Болдырмау
+          Отмена
         </button>
       </div>
     </div>

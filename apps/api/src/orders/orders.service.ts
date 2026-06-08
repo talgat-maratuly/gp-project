@@ -97,7 +97,7 @@ export class OrdersService {
     if (isOperator) {
       return this.createForOperator(actor, dto);
     }
-    throw new ForbiddenException('Клиент профилі жоқ — onBehalfClientPhone көрсетіңіз');
+    throw new ForbiddenException('Профиль клиента не найден — укажите onBehalfClientPhone');
   }
 
   private async createForOperator(
@@ -110,7 +110,7 @@ export class OrdersService {
     );
     const phone = dto.onBehalfClientPhone?.trim();
     if (!phone) {
-      throw new BadRequestException('Оператор тапсырысы үшін onBehalfClientPhone міндетті');
+      throw new BadRequestException('Для операторского заказа обязателен onBehalfClientPhone');
     }
 
     let clientUser = await this.prisma.user.findFirst({
@@ -154,7 +154,7 @@ export class OrdersService {
     }
 
     if (!clientUser.clientProfile) {
-      throw new BadRequestException('Клиент профилін құру мүмкін болмады');
+      throw new BadRequestException('Не удалось создать профиль клиента');
     }
 
     return this.createOrderForClientProfile(clientUser, clientUser.clientProfile.id, dto);

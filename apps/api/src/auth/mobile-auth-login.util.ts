@@ -29,7 +29,7 @@ export function resolveOtpLoginAs(dto: MobileOtpVerifyDto): OtpLoginAs {
 export function resolveOtpSessionRole(user: Pick<User, 'role'>, loginAs: OtpLoginAs): Role {
   if (loginAs === 'admin') {
     if (STAFF_ROLES.has(user.role)) return user.role;
-    throw new ForbiddenException('Бұл нөмірге admin қолжетімділік берілмеген');
+    throw new ForbiddenException('Для этого номера не настроен admin-доступ');
   }
   if (loginAs === 'partner') return Role.PARTNER;
   return Role.CLIENT;
@@ -59,7 +59,7 @@ export function assertAdminOtpLoginAllowed(user: Pick<User, 'role'>, portalRoles
       r === PortalRole.GP_OPERATOR,
   );
   if (!adminPortal) {
-    throw new ForbiddenException('Бұл нөмірге admin қолжетімділік берілмеген');
+    throw new ForbiddenException('Для этого номера не настроен admin-доступ');
   }
 }
 
@@ -94,7 +94,7 @@ export function buildNewUserCreateData(params: {
   const base = {
     email: params.email,
     passwordHash: params.passwordHash,
-    name: params.name?.trim() || (loginAs === 'partner' ? 'Серіктес' : 'Клиент GP'),
+    name: params.name?.trim() || (loginAs === 'partner' ? 'Партнёр' : 'Клиент GP'),
     phone: params.phone,
     role: legacyRole,
     portalRoles,
@@ -135,9 +135,9 @@ export function buildNewUserCreateData(params: {
         accountType,
         partnerRole: PartnerRole.SPECIALIST,
         partnerType: PartnerType.OTHER,
-        fullName: params.name?.trim() || 'Серіктес',
-        companyName: params.name?.trim() || 'Серіктес',
-        company: params.name?.trim() || 'Серіктес',
+        fullName: params.name?.trim() || 'Партнёр',
+        companyName: params.name?.trim() || 'Партнёр',
+        company: params.name?.trim() || 'Партнёр',
         city,
         directions: [],
         balance: 10000,
@@ -158,9 +158,9 @@ export function validateLoginAsProfile(
   user: { clientProfile?: unknown | null; partnerProfile?: unknown | null },
 ) {
   if (loginAs === 'client' && !user.clientProfile) {
-    throw new BadRequestException('Клиент профилі жоқ');
+    throw new BadRequestException('Профиль клиента не найден');
   }
   if (loginAs === 'partner' && !user.partnerProfile) {
-    throw new BadRequestException('Партнёр профилі жоқ');
+    throw new BadRequestException('Профиль партнёра не найден');
   }
 }

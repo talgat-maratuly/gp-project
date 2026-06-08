@@ -25,14 +25,14 @@ export function assertValidRoleCombination(roles: PortalRole[]): void {
     for (const forbidden of FORBIDDEN_WITH_SPECIALIST) {
       if (set.has(forbidden)) {
         throw new BadRequestException(
-          `Рөл конфликті: SPECIALIST бірге ${forbidden} болмауы керек`,
+          `Конфликт ролей: SPECIALIST нельзя совмещать с ${forbidden}`,
         );
       }
     }
   }
 
   if (set.has(PortalRole.FRANCHISE_OWNER) && set.has(PortalRole.SPECIALIST)) {
-    throw new BadRequestException('FRANCHISE_OWNER SPECIALIST бола алмайды');
+    throw new BadRequestException('FRANCHISE_OWNER не может быть SPECIALIST');
   }
 }
 

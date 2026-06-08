@@ -20,10 +20,10 @@ export function assertOperatorTransition(
   if (from === to) return;
   if (from === AccountStatus.BANNED) {
     if (opts?.isAdmin && ADMIN_RESTORE_FROM_BANNED.includes(to)) return;
-    throw new ForbiddenException('BANNED аккаунтты тек ADMIN қалпына келтіре алады');
+    throw new ForbiddenException('Аккаунт BANNED может восстановить только ADMIN');
   }
   if (!OPERATOR_ALLOWED[from]?.includes(to)) {
-    throw new BadRequestException(`Рұқсат етілмеген өтім: ${from} → ${to}`);
+    throw new BadRequestException(`Недопустимый переход: ${from} → ${to}`);
   }
 }
 

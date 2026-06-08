@@ -304,9 +304,9 @@ export class MobileAuthService {
           accountType,
           partnerRole: PartnerRole.SPECIALIST,
           partnerType: PartnerType.OTHER,
-          fullName: dto.name?.trim() || user.name || 'Серіктес',
-          companyName: dto.name?.trim() || user.name || 'Серіктес',
-          company: dto.name?.trim() || user.name || 'Серіктес',
+          fullName: dto.name?.trim() || user.name || 'Партнёр',
+          companyName: dto.name?.trim() || user.name || 'Партнёр',
+          company: dto.name?.trim() || user.name || 'Партнёр',
           city,
           directions: [],
           balance: 10000,
@@ -419,7 +419,7 @@ export class MobileAuthService {
     if (!user) {
       if (loginAs === 'admin') {
         throw new ForbiddenException(
-          'Admin кіру үшін аккаунт алдын ала құрылуы керек. Жаңа admin OTP арқылы құрылмайды.',
+          'Для входа Admin аккаунт должен быть создан заранее. Новый admin не создается через OTP.',
         );
       }
       isNewUser = true;

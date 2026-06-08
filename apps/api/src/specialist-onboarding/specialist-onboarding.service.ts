@@ -111,7 +111,7 @@ export class SpecialistOnboardingService {
     });
     if (pendingSameCategory) {
       throw new BadRequestException(
-        `Бұл қызмет (${dto.mainServiceId}) бойынша өтініміңіз тексеруде. Жаңасын жіберуге болмайды — модерация нәтижесін күтіңіз.`,
+        `Заявка по услуге ${dto.mainServiceId} уже на проверке. Новую заявку отправить нельзя — дождитесь результата модерации.`,
       );
     }
 
@@ -121,7 +121,7 @@ export class SpecialistOnboardingService {
     });
     if (rejectedSameCategory && !dto.resubmitRequestId) {
       throw new BadRequestException(
-        `Бұл қызмет бойынша өтінім қабылданбады. Қайта жіберу үшін профильден «Өңдеу» немесе resubmitRequestId=${rejectedSameCategory.id} қолданыңыз.`,
+        `Заявка по этой услуге отклонена. Для повторной отправки используйте «Редактировать» в профиле или resubmitRequestId=${rejectedSameCategory.id}.`,
       );
     }
 
@@ -134,7 +134,7 @@ export class SpecialistOnboardingService {
     });
     if (duplicateSubs) {
       throw new BadRequestException(
-        'Бұл подуслугалар бекітілген. Тек жаңа подуслуга үшін жаңа өтінім жіберіңіз.',
+        'Эти подуслуги уже одобрены. Отправьте новую заявку только для новой подуслуги.',
       );
     }
 
@@ -149,7 +149,7 @@ export class SpecialistOnboardingService {
     if (conflictingOfferings.length) {
       const subs = conflictingOfferings.map((o) => o.subserviceId).join(', ');
       throw new BadRequestException(
-        `Подуслугалар (${subs}) бойынша өтінім қазірдің өзінде бар. Басқа подуслуга таңдаңыз немесе модерацияны күтіңіз.`,
+        `По подуслугам (${subs}) уже есть заявка. Выберите другую подуслугу или дождитесь модерации.`,
       );
     }
 
@@ -236,8 +236,8 @@ export class SpecialistOnboardingService {
         });
         throw new BadRequestException(
           any
-            ? `Сізде өтінім бар (${any.status}, ${any.primaryCategory}). Бір қызметке бір актив өтінім. Ескі БД шектеуі болса: npm run prisma:migrate:deploy`
-            : 'Бұл деректер бойынша жазба бар (P2002). Подуслуга қайталануы мүмкін.',
+            ? `У вас уже есть заявка (${any.status}, ${any.primaryCategory}). Для одной услуги допускается одна активная заявка. Если это старое ограничение БД, выполните npm run prisma:migrate:deploy.`
+            : 'По этим данным уже есть запись (P2002). Возможно, подуслуга повторяется.',
         );
       }
       throw err;
@@ -399,9 +399,9 @@ export class SpecialistOnboardingService {
       editable: canEdit,
       uiMessage:
         r.status === RequestStatus.PENDING
-          ? 'Your application is under moderation.\nPlease wait for review results.'
+          ? 'Заявка на модерации.\nДождитесь результата проверки.'
           : r.status === RequestStatus.REJECTED
-            ? `Application Status: Rejected\n\nReason:\n${r.rejectionReason ?? ''}`
+            ? `Статус заявки: отклонена\n\nПричина:\n${r.rejectionReason ?? ''}`
             : null,
       submittedScreen: r.status === RequestStatus.PENDING ? ONBOARDING_CATALOG.submittedUi : null,
     };

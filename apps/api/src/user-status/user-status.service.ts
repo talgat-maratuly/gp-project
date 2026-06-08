@@ -96,7 +96,7 @@ export class UserStatusService {
     const request = profile.requestStatus ?? requestStatusFromPartnerStatus(profile.status);
     if (request !== RequestStatus.APPROVED) {
       throw new ForbiddenException({
-        message: 'Специалист рұқсаты бекітілмеген',
+        message: 'Разрешение специалиста не одобрено',
         requestStatus: request,
       });
     }
@@ -118,13 +118,13 @@ export class UserStatusService {
     this.assertRequestApproved(profile);
     if (profile.status !== PartnerStatus.APPROVED) {
       throw new ForbiddenException({
-        message: 'Партнёр профилі белсенді емес',
+        message: 'Профиль партнёра не активен',
         partnerStatus: profile.status,
       });
     }
     if (profile.workStatus !== WorkStatus.ONLINE) {
       throw new ForbiddenException({
-        message: 'Специалист жұмысқа дайын емес (OFFLINE)',
+        message: 'Специалист не готов к работе (OFFLINE)',
         workStatus: profile.workStatus,
       });
     }
@@ -149,7 +149,7 @@ export class UserStatusService {
     if (!user) throw new NotFoundException('Пайдаланушы табылмады');
 
     const profile = await this.prisma.partnerProfile.findUnique({ where: { userId } });
-    if (!profile) throw new NotFoundException('Специалист профилі жоқ');
+    if (!profile) throw new NotFoundException('Профиль специалиста не найден');
 
     if (workStatus === WorkStatus.ONLINE) {
       this.assertCanGoOnline(user, profile);
@@ -233,6 +233,6 @@ export class UserStatusService {
       this.assertCanPerformCoreActions(user);
       return;
     }
-    throw new BadRequestException(`WorkStatus ${next} әлі қолдау көрсетілмейді`);
+    throw new BadRequestException(`WorkStatus ${next} пока не поддерживается`);
   }
 }

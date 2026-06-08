@@ -19,7 +19,7 @@ export class RbacRegionService {
     if (hasGlobalRegionAccess(roles)) return {};
     if (roles.includes(PortalRole.GP_OPERATOR) || roles.includes(PortalRole.FRANCHISE_OWNER)) {
       if (!user.regionId) {
-        throw new ForbiddenException('Оператор аймағы орнатылмаған');
+        throw new ForbiddenException('Регион оператора не настроен');
       }
       return { regionId: user.regionId };
     }
@@ -37,14 +37,14 @@ export class RbacRegionService {
         return requestedRegionId;
       }
       if (user.regionId) return user.regionId;
-      throw new ForbiddenException('GLOBAL оператор үшін regionId көрсетіңіз');
+      throw new ForbiddenException('Для GLOBAL-оператора укажите regionId');
     }
     if (roles.includes(PortalRole.GP_OPERATOR)) {
       if (!user.regionId) {
-        throw new ForbiddenException('GP оператор аймағы орнатылмаған');
+        throw new ForbiddenException('Регион GP-оператора не настроен');
       }
       if (requestedRegionId && requestedRegionId !== user.regionId) {
-        throw new ForbiddenException('Басқа аймақта тапсырыс құруға болмайды');
+        throw new ForbiddenException('Нельзя создать заказ в другом регионе');
       }
       return user.regionId;
     }

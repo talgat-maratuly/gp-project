@@ -12,17 +12,17 @@ export class SpecialistRequestNotificationsService {
   async notifySubmitted(specialistUserId: string, regionId: string, isResubmit: boolean) {
     await this.notifications.notifyUser(
       specialistUserId,
-      'Өтінім модерацияда',
-      'Your application is under moderation review',
+      'Заявка на модерации',
+      'Ваша заявка находится на проверке',
     );
 
     const moderatorIds = await this.moderatorAccess.findModeratorsToNotify(regionId);
     const title = isResubmit
-      ? 'Жаңартылған specialist өтінімі'
-      : 'Жаңа specialist өтінімі';
+      ? 'Обновленная заявка специалиста'
+      : 'Новая заявка специалиста';
     const body = isResubmit
-      ? 'Updated specialist application submitted'
-      : 'New specialist request received';
+      ? 'Специалист отправил обновленную заявку'
+      : 'Получена новая заявка специалиста';
 
     await Promise.all(
       moderatorIds
@@ -34,16 +34,16 @@ export class SpecialistRequestNotificationsService {
   async notifyApproved(specialistUserId: string) {
     await this.notifications.notifyUser(
       specialistUserId,
-      'Өтінім бекітілді',
-      'Your specialist application has been approved',
+      'Заявка одобрена',
+      'Ваша заявка специалиста одобрена',
     );
   }
 
   async notifyRejected(specialistUserId: string, reason: string) {
     await this.notifications.notifyUser(
       specialistUserId,
-      'Өтінім қабылданбады',
-      `Your application was rejected.\nReason: ${reason}\nYou may edit and resubmit your application.`,
+      'Заявка отклонена',
+      `Ваша заявка отклонена.\nПричина: ${reason}\nВы можете отредактировать и отправить ее повторно.`,
     );
   }
 }

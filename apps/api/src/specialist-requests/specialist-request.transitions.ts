@@ -16,24 +16,24 @@ export function assertRequestStatusTransition(
 ): void {
   if (from === to) return;
   if (from === RequestStatus.APPROVED) {
-    throw new BadRequestException('Бекітілген өтінім өзгертілмейді');
+    throw new BadRequestException('Одобренную заявку нельзя изменить');
   }
   if (!ALLOWED[from]?.includes(to)) {
-    throw new BadRequestException(`Рұқсат етілмеген өтім: ${from} → ${to}`);
+    throw new BadRequestException(`Недопустимый переход: ${from} → ${to}`);
   }
 }
 
 export function assertCanResubmit(status: RequestStatus): void {
   if (status !== RequestStatus.REJECTED) {
-    throw new BadRequestException('Қайта жіберу тек REJECTED статусынан');
+    throw new BadRequestException('Повторная отправка доступна только из статуса REJECTED');
   }
 }
 
 export function assertCanSubmit(status: RequestStatus | null, hasPending: boolean): void {
   if (hasPending) {
-    throw new BadRequestException('Бір уақытта тек бір PENDING өтінім болуы мүмкін');
+    throw new BadRequestException('Одновременно может быть только одна заявка в статусе PENDING');
   }
   if (status === RequestStatus.APPROVED) {
-    throw new BadRequestException('Бекітілген өтінімді өзгертуге болмайды');
+    throw new BadRequestException('Одобренную заявку нельзя изменить');
   }
 }

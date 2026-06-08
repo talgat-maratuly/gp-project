@@ -7,6 +7,7 @@ import { dirname, join } from 'node:path'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '../..')
 const ports = [
+  { port: 4000, path: '/health/db', label: 'api' },
   { port: 5190, path: '/store', label: 'hub' },
   { port: 5173, path: '/', label: 'service' },
   { port: 5174, path: '/', label: 'partner' },
@@ -43,6 +44,15 @@ async function waitAll(maxMs = 180_000) {
 const concurrentlyBin = join(root, 'node_modules/concurrently/dist/bin/concurrently.js')
 
 const children = []
+const apiUp = await probe(4000, '/health/db')
+if (!apiUp) {
+  const api = spawn('npm', ['run', 'dev:api'], { cwd: root, stdio: 'inherit' })
+  api.on('error', (err) => console.error('[e2e-servers] api:', err.message))
+  children.push(api)
+} else {
+  console.log('[e2e-servers] api already on :4000')
+}
+
 const hubUp = await probe(5190, '/store')
 if (!hubUp) {
   const hub = spawn(process.execPath, ['scripts/demo-store-hub.mjs'], { cwd: root, stdio: 'inherit' })

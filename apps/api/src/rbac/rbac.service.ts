@@ -40,13 +40,13 @@ export class RbacService {
   assertCanCreateOrder(user: UserWithProfiles): void {
     const roles = this.resolvePortalRoles(user);
     if (!canCreateOrder(roles)) {
-      throw new ForbiddenException('Тапсырыс құруға рұқсат жоқ');
+      throw new ForbiddenException('Нет доступа к созданию заказа');
     }
   }
 
   assertCanApproveSpecialists(actor: UserWithProfiles): void {
     if (!canApproveSpecialists(this.resolvePortalRoles(actor))) {
-      throw new ForbiddenException('Специалисттерді бекітуге рұқсат жоқ');
+      throw new ForbiddenException('Нет доступа к подтверждению специалистов');
     }
   }
 
@@ -56,7 +56,7 @@ export class RbacService {
     const regionalRoles: PortalRole[] = [PortalRole.GP_OPERATOR, PortalRole.FRANCHISE_OWNER];
     const regional = roles.some((r) => regionalRoles.includes(r));
     if (!regional || !user.regionId || user.regionId !== regionId) {
-      throw new ForbiddenException('Бұл аймаққа қолжетімділік жоқ');
+      throw new ForbiddenException('Нет доступа к этому региону');
     }
   }
 
@@ -70,18 +70,18 @@ export class RbacService {
     const sanitized = sanitizeRolesOnAssignment(nextRoles);
 
     if (sanitized.includes(PortalRole.GP_OPERATOR) && !canAssignGpOperator(actorRoles)) {
-      throw new ForbiddenException('GP_OPERATOR тағайындауға рұқсат жоқ');
+      throw new ForbiddenException('Нет доступа к назначению GP_OPERATOR');
     }
     if (sanitized.includes(PortalRole.FRANCHISE_OWNER) && !canAssignFranchiseOwner(actorRoles)) {
-      throw new ForbiddenException('FRANCHISE_OWNER тек ADMIN тағайындай алады');
+      throw new ForbiddenException('FRANCHISE_OWNER может назначать только ADMIN');
     }
     if (sanitized.includes(PortalRole.GLOBAL_OPERATOR) && !canAssignGlobalOperator(actorRoles)) {
-      throw new ForbiddenException('GLOBAL_OPERATOR тек ADMIN тағайындай алады');
+      throw new ForbiddenException('GLOBAL_OPERATOR может назначать только ADMIN');
     }
 
     if (sanitized.includes(PortalRole.FRANCHISE_OWNER)) {
       if (!opts?.franchiseId && !opts?.regionId) {
-        throw new ForbiddenException('FRANCHISE_OWNER үшін franchiseId немесе regionId керек');
+        throw new ForbiddenException('Для FRANCHISE_OWNER нужен franchiseId или regionId');
       }
     }
 
@@ -162,6 +162,6 @@ export class RbacService {
 
   private async assertRegionActive(regionId: string): Promise<void> {
     const region = await this.prisma.region.findUnique({ where: { id: regionId } });
-    if (!region?.isActive) throw new NotFoundException('Аймақ табылмады');
+    if (!region?.isActive) throw new NotFoundException('Регион не найден');
   }
 }

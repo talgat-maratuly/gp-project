@@ -20,7 +20,7 @@ function assertShopPartnerApply(dto: PartnerApplyDto) {
   const subs = dto.subserviceIds ?? [];
   if (subs.length > 0 && subs.every((id) => FURNITURE_SUBSERVICE_IDS.has(id))) return;
   throw new BadRequestException(
-    'Мамандар үшін POST /api/specialist/applications пайдаланыңыз. Бұл endpoint — дүкен немесе мебельдік орындаушы.',
+    'Для специалиста используйте POST /api/specialist/applications. Этот endpoint предназначен для магазина или мебельного исполнителя.',
   );
 }
 

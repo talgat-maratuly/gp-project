@@ -28,7 +28,7 @@
     "demo:market:test": "node scripts/demo-market-test.mjs",
     "qa:all": "node scripts/qa/run-all.mjs",
     "qa:e2e": "playwright test",
-    "qa:e2e:servers": "concurrently -n hub,service,partner,admin -c blue,green,cyan,magenta \"node scripts/demo-store-hub.mjs\" \"npm run dev:service\" \"npm run dev:partner\" \"npm run dev:admin\"",
+    "qa:e2e:servers": "node scripts/qa/e2e-servers.mjs",
     "qa:merge-e2e": "node scripts/qa/merge-e2e-report.mjs",
     "qa:full": "node scripts/qa/run-full.mjs",
     "qa:stress": "node scripts/qa/run-all.mjs",

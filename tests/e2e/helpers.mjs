@@ -1,47 +1,44 @@
-const SERVICE_SESSION = {
-  id: 'c1',
-  clientId: 'c1',
-  role: 'CLIENT',
-  name: 'Айдар Клиент',
-  franchiseId: 'fr-uralsk',
-  city: 'Уральск',
-}
-
-const PARTNER_SESSION = {
-  id: 'p1',
-  partnerId: 'p1',
-  role: 'PARTNER',
-  name: 'Бауыржан',
-  company: 'GP Услуги Уральск',
-  franchiseId: 'fr-uralsk',
-  city: 'Уральск',
-  partnerProfileId: 'p1',
-  balance: 0,
-  directions: [],
-  isOnline: true,
+/** @param {import('@playwright/test').Page} page */
+export async function waitForRealApi(page) {
+  const deadline = Date.now() + 30_000
+  while (Date.now() < deadline) {
+    try {
+      const res = await page.request.get('http://localhost:4000/health/db')
+      if (res.ok()) return
+    } catch {
+      /* retry */
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500))
+  }
+  throw new Error('Real GP API is not ready on http://localhost:4000/health/db')
 }
 
 /** @param {import('@playwright/test').Page} page */
 export async function serviceDemoLogin(page) {
+  await waitForRealApi(page)
+  const phone = `+7701${Date.now().toString().slice(-7)}`
   await page.goto('/login')
-  await page.getByLabel(/email/i).fill('uralsk_client@gp.kz')
-  await page.locator('input[type="password"]').fill('1234')
-  await page.locator('form button[type="submit"]').click()
+  await page.getByPlaceholder('+7 701 234 56 78').fill(phone)
+  await page.getByRole('button', { name: /отправить OTP|send OTP|OTP жіберу/i }).click()
+  await page.getByPlaceholder(/4-8|digits|сан/i).fill('0000')
+  await page.getByRole('button', { name: /подтвердить|confirm|растау/i }).click()
   await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 20_000 })
 }
 
 /** @param {import('@playwright/test').Page} page */
 export async function partnerDemoLogin(page) {
   await page.goto('/login')
-  await page.getByPlaceholder('Email').fill('uralsk_partner@gp.kz')
-  await page.getByPlaceholder('Пароль').fill('1234')
+  await page.getByRole('button', { name: /Email \/ пароль|email/i }).click()
+  await page.getByPlaceholder(/uralsk_partner|partner@gp\.kz/i).fill('partner@gp.kz')
+  await page.locator('input[type="password"]').fill('password123')
   await page.locator('form button[type="submit"]').click()
   await page.waitForURL((url) => url.pathname === '/', { timeout: 20_000 })
 }
 
 /** @param {import('@playwright/test').Page} page */
-export async function adminDemoLogin(page, username = 'superadmin', password = '1234') {
+export async function adminDemoLogin(page, username = 'admin@gp.kz', password = 'password123') {
   await page.goto('/login')
+  await page.getByRole('button', { name: /Email \/ пароль|email/i, exact: true }).click()
   const inputs = page.locator('input.admin-input')
   await inputs.nth(0).fill(username)
   await page.locator('input[type="password"]').fill(password)

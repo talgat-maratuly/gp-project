@@ -3,6 +3,7 @@ import { PartnerDirection, PartnerOfferingStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PartnersService } from '../partners/partners.service';
 import { CreateProductDto } from './dto/create-product.dto';
+import { ListProductsQueryDto } from './dto/list-products-query.dto';
 import { GP_SHOP_SUBSERVICE_ID } from '../common/partner-offerings.util';
 import { assertApprovedStoreForOwner } from '../common/store-approval.util';
 
@@ -21,9 +22,36 @@ export class ProductsService {
     };
   }
 
-  async findAll(partnerId?: string) {
+  async findAll(query: ListProductsQueryDto = {}) {
+    let resolvedCity = query.city?.trim();
+    let resolvedRegionId: string | undefined;
+    if (query.franchiseId || query.cityId) {
+      const franchise = await this.prisma.franchise.findFirst({
+        where: {
+          ...(query.franchiseId ? { id: query.franchiseId } : {}),
+          ...(query.cityId ? { cityId: query.cityId } : {}),
+        },
+        select: { city: true, regionId: true },
+      });
+      resolvedCity = resolvedCity || franchise?.city || undefined;
+      resolvedRegionId = franchise?.regionId || undefined;
+    }
+
+    const partnerWhere =
+      resolvedCity || resolvedRegionId
+        ? {
+            ...(resolvedCity ? { city: { equals: resolvedCity, mode: 'insensitive' as const } } : {}),
+            ...(resolvedRegionId ? { regionId: resolvedRegionId } : {}),
+          }
+        : undefined;
+
     return this.prisma.product.findMany({
-      where: partnerId ? { partnerId } : undefined,
+      where: {
+        ...(query.partnerId ? { partnerId: query.partnerId } : {}),
+        ...(query.category ? { category: query.category } : {}),
+        ...(query.linkedServiceType ? { linkedServiceType: query.linkedServiceType } : {}),
+        ...(partnerWhere ? { partner: partnerWhere } : {}),
+      },
       include: this.productInclude(),
       orderBy: { createdAt: 'desc' },
     });

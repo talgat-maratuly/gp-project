@@ -35,7 +35,7 @@ export class PermissionGuard implements CanActivate {
 
     const allowed = this.check(permission, roles);
     if (!allowed) {
-      throw new ForbiddenException('Рұқсат жоқ');
+      throw new ForbiddenException('Нет доступа');
     }
     return true;
   }

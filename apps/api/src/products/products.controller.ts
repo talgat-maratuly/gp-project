@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
+import { ListProductsQueryDto } from './dto/list-products-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -15,8 +16,8 @@ export class ProductsController {
   constructor(private products: ProductsService) {}
 
   @Get()
-  findAll(@Query('partnerId') partnerId?: string) {
-    return this.products.findAll(partnerId);
+  findAll(@Query() query: ListProductsQueryDto) {
+    return this.products.findAll(query);
   }
 
   @Get(':id')

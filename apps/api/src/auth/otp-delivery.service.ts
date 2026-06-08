@@ -23,7 +23,7 @@ export class OtpDeliveryService {
 
     if (digits.length !== 11 || !digits.startsWith('7')) {
       throw new Error(
-        `Телефон форматы дұрыс емес: ${phone}. Күтілетіні: +7XXXXXXXXXX немесе 8XXXXXXXXXX`,
+        `Некорректный формат телефона: ${phone}. Ожидается +7XXXXXXXXXX или 8XXXXXXXXXX`,
       );
     }
 
@@ -36,7 +36,7 @@ export class OtpDeliveryService {
 
     if (!url || !token) {
       this.logger.warn(
-        'WHATSAPP_SERVICE_URL немесе WHATSAPP_SERVICE_TOKEN орнатылмаған — OTP WhatsApp арқылы жіберілмеді',
+        'WHATSAPP_SERVICE_URL или WHATSAPP_SERVICE_TOKEN не настроены — OTP через WhatsApp не отправлен',
       );
       return false;
     }
@@ -57,7 +57,7 @@ export class OtpDeliveryService {
 
       if (!response.ok) {
         this.logger.warn(
-          `WhatsApp OTP жіберу сәтсіз: HTTP ${response.status} (${normalizedPhone})`,
+          `Не удалось отправить WhatsApp OTP: HTTP ${response.status} (${normalizedPhone})`,
         );
         return false;
       }
@@ -65,7 +65,7 @@ export class OtpDeliveryService {
       return true;
     } catch (err) {
       this.logger.warn(
-        `WhatsApp OTP жіберу қатесі: ${err instanceof Error ? err.message : String(err)}`,
+        `Ошибка отправки WhatsApp OTP: ${err instanceof Error ? err.message : String(err)}`,
       );
       return false;
     }
@@ -87,7 +87,7 @@ export class OtpDeliveryService {
       });
     } catch (err) {
       this.logger.warn(
-        `SMS webhook қатесі: ${err instanceof Error ? err.message : String(err)}`,
+        `Ошибка SMS webhook: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
   }

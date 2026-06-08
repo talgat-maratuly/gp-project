@@ -52,15 +52,15 @@ export const ONBOARDING_CATALOG = {
     ],
   },
   rejectionReasons: [
-    { code: 'DOCUMENTS_UNCLEAR', label: 'Documents unclear' },
-    { code: 'MISSING_PHOTOS', label: 'Missing photos' },
-    { code: 'INCORRECT_INFORMATION', label: 'Incorrect information' },
-    { code: 'VEHICLE_NOT_SUITABLE', label: 'Vehicle not suitable' },
-    { code: 'OTHER', label: 'Other' },
+    { code: 'DOCUMENTS_UNCLEAR', label: 'Документы плохо читаются' },
+    { code: 'MISSING_PHOTOS', label: 'Не хватает фотографий' },
+    { code: 'INCORRECT_INFORMATION', label: 'Некорректные данные' },
+    { code: 'VEHICLE_NOT_SUITABLE', label: 'Транспорт не подходит' },
+    { code: 'OTHER', label: 'Другая причина' },
   ],
   submittedUi: {
-    title: 'Application Submitted',
-    body: 'Your application has been sent for moderation.\nYou will receive the result in the application.',
+    title: 'Заявка отправлена',
+    body: 'Заявка отправлена на модерацию.\nРезультат появится в приложении.',
   },
 };
 

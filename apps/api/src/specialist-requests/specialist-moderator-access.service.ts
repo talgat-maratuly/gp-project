@@ -24,7 +24,7 @@ export class SpecialistModeratorAccessService {
 
   assertCanModerate(actor: User): void {
     if (!this.canModerate(actor)) {
-      throw new ForbiddenException('Модерацияға рұқсат жоқ');
+      throw new ForbiddenException('Нет доступа к модерации');
     }
   }
 
@@ -38,32 +38,32 @@ export class SpecialistModeratorAccessService {
     if (roles.includes(PortalRole.FRANCHISE_OWNER)) {
       const franchiseId = actor.franchiseId;
       if (!franchiseId) {
-        throw new ForbiddenException('Франшиза орнатылмаған');
+        throw new ForbiddenException('Франшиза не настроена');
       }
       const franchise = await this.prisma.franchise.findUnique({
         where: { id: franchiseId },
       });
       if (!franchise?.regionId) {
-        throw new ForbiddenException('Франшиза аймағы жоқ');
+        throw new ForbiddenException('У франшизы не указан регион');
       }
       return { regionId: franchise.regionId };
     }
 
     if (roles.includes(PortalRole.GP_OPERATOR)) {
       if (!actor.regionId) {
-        throw new ForbiddenException('Оператор аймағы орнатылмаған');
+        throw new ForbiddenException('Регион оператора не настроен');
       }
       return { regionId: actor.regionId };
     }
 
-    throw new ForbiddenException('Модерацияға рұқсат жоқ');
+    throw new ForbiddenException('Нет доступа к модерации');
   }
 
   async assertCanModerateRequest(actor: User, regionId: string): Promise<void> {
     const where = await this.buildListWhere(actor);
     if (Object.keys(where).length === 0) return;
     if ('regionId' in where && where.regionId !== regionId) {
-      throw new ForbiddenException('Бұл аймақтағы өтінімдерге қолжетімділік жоқ');
+      throw new ForbiddenException('Нет доступа к заявкам этого региона');
     }
   }
 

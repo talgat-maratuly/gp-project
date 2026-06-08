@@ -357,7 +357,7 @@ export function ServiceProvider({ children }) {
       const me = await api.me()
       if (!me.clientProfile) {
         clearToken()
-        throw new Error('Клиент профилі жоқ. Телефон OTP арқылы кіріңіз немесе client@gp.kz')
+        throw new Error('Профиль клиента не найден. Войдите по телефону через OTP или используйте client@gp.kz')
       }
       applyTestSession(me)
       notify('Вход выполнен')
@@ -404,7 +404,7 @@ export function ServiceProvider({ children }) {
   }, [syncAuth, notify, applyTestSession])
 
   const sendOtp = useCallback(async (phone, channel = 'sms') => {
-    if (!phone?.trim()) throw new Error('Телефон нөмірін енгізіңіз')
+    if (!phone?.trim()) throw new Error('Введите номер телефона')
     return api.sendOtp(phone.trim(), channel)
   }, [])
 
@@ -430,7 +430,7 @@ export function ServiceProvider({ children }) {
   }, [applyTestSession, notify])
 
   const submitPartnerApplication = useCallback(async () => {
-    notify('Маман өтінімін GP Partner қолданбасында толтырыңыз (specialist onboarding).', 'info')
+    notify('Заявку специалиста заполните в приложении GP Partner (specialist onboarding).', 'info')
     throw new Error('Use GP Partner app: /apply/specialist')
   }, [notify])
 
@@ -462,7 +462,7 @@ export function ServiceProvider({ children }) {
     }
     if (!getToken()) throw new Error('Войдите как клиент: Профиль → Вход (demo: client@gp.kz)')
     if (authUser && !authUser.clientProfile) {
-      throw new Error('Клиент профилі жоқ. Кіріңіз немесе client@gp.kz пайдаланыңыз')
+      throw new Error('Профиль клиента не найден. Войдите или используйте client@gp.kz')
     }
   }, [authUser])
 
@@ -666,7 +666,7 @@ export function ServiceProvider({ children }) {
     })
     const total = totalFromApi ?? Number(data.total) ?? 0
     if (isSeptic && total <= 0) {
-      throw new Error('Септик бағасы табылмады — қала каталогын тексеріңіз')
+      throw new Error('Цена септика не найдена — проверьте городской каталог')
     }
 
     const commentParts = [data.comment]

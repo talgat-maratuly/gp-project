@@ -97,10 +97,10 @@ export class SpecialistRequestsService {
 
   private uiMessageForStatus(status: RequestStatus, rejectionReason?: string | null): string | null {
     if (status === RequestStatus.PENDING) {
-      return 'Your application is under moderation.\nPlease wait for review results.';
+      return 'Заявка на модерации.\nДождитесь результата проверки.';
     }
     if (status === RequestStatus.REJECTED) {
-      return `Application Status: Rejected\n\nReason:\n${rejectionReason ?? ''}`;
+      return `Статус заявки: отклонена\n\nПричина:\n${rejectionReason ?? ''}`;
     }
     return null;
   }
@@ -123,7 +123,7 @@ export class SpecialistRequestsService {
         where: { userId },
         include: { user: true, region: true, serviceOfferings: true },
       });
-      if (!profile) throw new NotFoundException('Специалист өтінімі жоқ');
+      if (!profile) throw new NotFoundException('Заявка специалиста не найдена');
       return {
         applications: [],
         legacy: {
@@ -132,7 +132,7 @@ export class SpecialistRequestsService {
           rejectionReason: profile.rejectionReason,
           uiMessage: profile.requestStatus
             ? this.uiMessageForStatus(profile.requestStatus, profile.rejectionReason)
-            : 'Өтінім әлі жіберілмеген',
+            : 'Заявка еще не отправлена',
           canEdit: profile.requestStatus === RequestStatus.REJECTED,
           canResubmit: profile.requestStatus === RequestStatus.REJECTED,
           profile,
@@ -191,7 +191,7 @@ export class SpecialistRequestsService {
     if (typeof scope.regionId === 'string') {
       const region = await this.prisma.region.findUnique({ where: { id: scope.regionId } });
       if (region && !region.isActive) {
-        throw new BadRequestException('Аймақ белсенді емес');
+        throw new BadRequestException('Регион неактивен');
       }
     }
 
@@ -223,7 +223,7 @@ export class SpecialistRequestsService {
       where: { id: requestId },
       include: specialistInclude,
     });
-    if (!request) throw new NotFoundException('Өтінім табылмады');
+    if (!request) throw new NotFoundException('Заявка не найдена');
     await this.moderatorAccess.assertCanModerateRequest(actor, request.regionId);
     return this.mapToApi(request);
   }
@@ -233,7 +233,7 @@ export class SpecialistRequestsService {
     const request = await this.prisma.specialistRequest.findUnique({
       where: { id: requestId },
     });
-    if (!request) throw new NotFoundException('Өтінім табылмады');
+    if (!request) throw new NotFoundException('Заявка не найдена');
     await this.moderatorAccess.assertCanModerateRequest(actor, request.regionId);
     assertRequestStatusTransition(request.status, RequestStatus.APPROVED);
 
@@ -293,7 +293,7 @@ export class SpecialistRequestsService {
     const request = await this.prisma.specialistRequest.findUnique({
       where: { id: requestId },
     });
-    if (!request) throw new NotFoundException('Өтінім табылмады');
+    if (!request) throw new NotFoundException('Заявка не найдена');
     await this.moderatorAccess.assertCanModerateRequest(actor, request.regionId);
     assertRequestStatusTransition(request.status, RequestStatus.REJECTED);
 
@@ -378,7 +378,7 @@ export class SpecialistRequestsService {
       select: { status: true },
     });
     throw new ForbiddenException({
-      message: 'Your application is under moderation.\nPlease wait for review results.',
+      message: 'Заявка на модерации.\nДождитесь результата проверки.',
       requestStatus: pending?.status ?? RequestStatus.PENDING,
     });
   }

@@ -17,9 +17,12 @@ test.describe('GP Service', () => {
 
   test('login form accepts demo credentials', async ({ page }) => {
     await page.goto('/login')
-    await page.getByLabel(/email/i).fill('uralsk_client@gp.kz')
-    await page.locator('input[type="password"]').fill('1234')
-    await expect(page.locator('form button[type="submit"]')).toBeEnabled()
+    await expect(page.getByRole('heading', { name: /вход и регистрация|sign in/i })).toBeVisible()
+    await expect(page.getByRole('button', { name: /физ лицо|individual/i })).toBeVisible()
+    await expect(page.getByRole('button', { name: /юр лицо|legal entity/i })).toBeVisible()
+    await page.getByPlaceholder('+7 701 234 56 78').fill('+77012236262')
+    await expect(page.getByText(/DEV режим: используйте код 0000|DEV mode: use code 0000/i)).toBeVisible()
+    await expect(page.getByRole('button', { name: /отправить OTP|send OTP/i })).toBeEnabled()
   })
 
   test('hunter wizard step 1 has inputs', async ({ page }) => {

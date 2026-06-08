@@ -149,14 +149,14 @@ export class AccountStatusService {
     ];
     const canModerate = roles.some((r) => moderatorRoles.includes(r));
     if (!canModerate) {
-      throw new ForbiddenException('Аккаунт статусын өзгертуге рұқсат жоқ');
+      throw new ForbiddenException('Нет доступа к изменению статуса аккаунта');
     }
 
     if (hasGlobalRegionAccess(roles) || roles.includes(PortalRole.ADMIN)) return;
 
     if (roles.includes(PortalRole.GP_OPERATOR)) {
       if (!actor.regionId || actor.regionId !== target.regionId) {
-        throw new ForbiddenException('Басқа аймақтағы пайдаланушыға қолжетімділік жоқ');
+        throw new ForbiddenException('Нет доступа к пользователю из другого региона');
       }
       return;
     }
@@ -166,12 +166,12 @@ export class AccountStatusService {
         ? await this.prisma.franchise.findUnique({ where: { id: actor.franchiseId } })
         : null;
       if (!franchise?.regionId || franchise.regionId !== target.regionId) {
-        throw new ForbiddenException('Франшиза аймағынан тыс пайдаланушы');
+        throw new ForbiddenException('Пользователь находится вне региона франшизы');
       }
       return;
     }
 
-    throw new ForbiddenException('Аймақ шектеуі');
+    throw new ForbiddenException('Ограничение по региону');
   }
 
   async listUsersForModerator(
@@ -206,7 +206,7 @@ export class AccountStatusService {
         const fr = await this.prisma.franchise.findUnique({ where: { id: actor.franchiseId } });
         if (fr?.regionId) userWhere.regionId = fr.regionId;
       } else {
-        throw new ForbiddenException('Тізімге қолжетімділік жоқ');
+        throw new ForbiddenException('Нет доступа к списку');
       }
     }
 
@@ -266,21 +266,21 @@ export class AccountStatusService {
     if (newStatus === AccountStatus.SUSPENDED) {
       await this.notifications.notifyUser(
         user.id,
-        'Аккаунт тоқтатылды',
+        'Аккаунт приостановлен',
         'Your account has been temporarily suspended.\nPlease contact support for more information.',
       );
     }
     if (newStatus === AccountStatus.BANNED) {
       await this.notifications.notifyUser(
         user.id,
-        'Аккаунт бұғатталды',
+        'Аккаунт заблокирован',
         'Your account has been banned.',
       );
     }
     if (oldStatus !== AccountStatus.ACTIVE && newStatus === AccountStatus.ACTIVE) {
       await this.notifications.notifyUser(
         user.id,
-        'Аккаунт қалпына келтірілді',
+        'Аккаунт восстановлен',
         'Your account is active again.',
       );
     }

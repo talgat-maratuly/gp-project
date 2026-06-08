@@ -449,7 +449,7 @@ export function PartnerProvider({ children }) {
       if (isDemoMode()) {
         const offerings = await demoApi.demoAddPartnerOfferings(user.partnerProfileId, subserviceIds)
         setUser((u) => (u ? { ...u, serviceOfferings: offerings } : u))
-        notify('Жаңа қызмет түрлері модерацияға жіберілді')
+        notify('Новые услуги отправлены на модерацию')
         return offerings
       }
       const profile = await api.addPartnerOfferings(subserviceIds)
@@ -467,7 +467,7 @@ export function PartnerProvider({ children }) {
     serviceAccess: profile.serviceAccess || [],
           }
         : u))
-      notify('Жаңа қызмет түрлері модерацияға жіберілді')
+      notify('Новые услуги отправлены на модерацию')
     },
     [notify, user?.partnerProfileId],
   )
@@ -479,7 +479,7 @@ export function PartnerProvider({ children }) {
         const offering = await demoApi.demoSaveCustomOffering(user.partnerProfileId, data)
         const offerings = demoApi.demoGetPartnerOfferings(user.partnerProfileId)
         setUser((u) => (u ? { ...u, serviceOfferings: offerings } : u))
-        notify(data.id ? 'Қызмет жаңартылды' : 'Қызмет модерацияға жіберілді')
+        notify(data.id ? 'Услуга обновлена' : 'Услуга отправлена на модерацию')
         return offering
       }
       throw new Error('custom_offering_api_unavailable')

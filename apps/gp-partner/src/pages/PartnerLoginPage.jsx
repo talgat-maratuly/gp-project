@@ -14,7 +14,7 @@ export default function PartnerLoginPage() {
   const [error, setError] = useState('')
   const [form, setForm] = useState({ email: '', password: '' })
   const from = location.state?.from || new URLSearchParams(location.search).get('from') || '/'
-  const allowPasswordlessTestLogin = import.meta.env.DEV || import.meta.env.VITE_GP_TEST_MODE === 'true'
+  const allowPasswordlessTestLogin = import.meta.env.VITE_GP_TEST_MODE === 'true'
 
   const handlePasswordLogin = async (e) => {
     e.preventDefault()
