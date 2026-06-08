@@ -202,6 +202,7 @@ export class AdminService {
       include: {
         client: { include: { user: { select: { name: true, phone: true } } } },
         partner: { include: { user: { select: { name: true, phone: true } } } },
+        eventLogs: { orderBy: { createdAt: 'asc' } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -231,7 +232,7 @@ export class AdminService {
       throw new BadRequestException('Партнёр должен быть одобрен (active) для назначения заказов');
     }
 
-    return this.prisma.order.update({
+    const updated = await this.prisma.order.update({
       where: { id: orderId },
       data: { assignedPartnerId },
       include: {
@@ -239,6 +240,24 @@ export class AdminService {
         partner: { include: { user: { select: { name: true, phone: true } } } },
       },
     });
+    await this.prisma.orderEventLog.create({
+      data: {
+        orderId,
+        userId: null,
+        role: OrderActorRole.admin,
+        action: 'ORDER_ASSIGNED',
+        fromStatus: OrderStatus.NEW,
+        toStatus: OrderStatus.NEW,
+        metadata: { partnerProfileId: assignedPartnerId },
+      },
+    });
+    await this.notifications.notifyUser(
+      partner.userId,
+      'Заявка назначена',
+      order.serviceName || 'Вам назначен заказ',
+      order.id,
+    );
+    return updated;
   }
 
   async updateOrderStatus(orderId: string, dto: AdminUpdateOrderStatusDto) {
@@ -260,11 +279,25 @@ export class AdminService {
 
     // Если статус не меняется — это чистое назначение партнёра
     if (dto.status === order.status) {
+      if (dto.adminComment?.trim()) {
+        await this.prisma.orderEventLog.create({
+          data: {
+            orderId,
+            userId: null,
+            role: OrderActorRole.admin,
+            action: 'ORDER_ADMIN_COMMENT',
+            fromStatus: order.status,
+            toStatus: order.status,
+            metadata: { comment: dto.adminComment.trim() },
+          },
+        });
+      }
       return this.prisma.order.findUniqueOrThrow({
         where: { id: orderId },
         include: {
           client: { include: { user: { select: { name: true, phone: true } } } },
           partner: { include: { user: { select: { name: true, phone: true } } } },
+          eventLogs: { orderBy: { createdAt: 'asc' } },
         },
       });
     }

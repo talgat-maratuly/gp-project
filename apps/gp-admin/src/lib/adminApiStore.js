@@ -107,6 +107,7 @@ function mapOrder(o) {
     category: CATEGORY_TO_UI[o.category] || String(o.category || '').toLowerCase(),
     scheduledAt: o.preferredDate || o.createdAt,
     note: o.comment || '',
+    eventLogs: o.eventLogs || [],
     createdAt: o.createdAt,
   }
 }

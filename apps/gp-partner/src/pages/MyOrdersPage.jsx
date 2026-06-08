@@ -6,9 +6,9 @@ import * as demoApi from '../lib/demoApi'
 import { formatPrice } from '@gp/shared/utils'
 
 const FLOW = [
-  { from: 'accepted', to: 'en_route', key: 'partner_en_route' },
-  { from: 'en_route', to: 'in_work', key: 'partner_in_work' },
-  { from: 'in_work', to: 'completed', key: 'partner_completed' },
+  { from: 'accepted', to: 'on_way', key: 'partner_en_route' },
+  { from: 'on_way', to: 'in_process', key: 'partner_in_work' },
+  { from: 'in_process', to: 'completed', key: 'partner_completed' },
 ]
 
 export default function MyOrdersPage() {
@@ -49,7 +49,7 @@ export default function MyOrdersPage() {
         onRetry={refreshAll}
       >
       <div className="flex flex-wrap gap-2 mb-4">
-        {['all', 'accepted', 'en_route', 'in_work', 'completed'].map((st) => (
+        {['all', 'accepted', 'on_way', 'in_process', 'completed'].map((st) => (
           <button
             key={st}
             type="button"
@@ -68,7 +68,7 @@ export default function MyOrdersPage() {
               <p className="font-bold text-[var(--gp-text)]">{o.serviceName}</p>
               <p className="text-sm text-[var(--gp-text-muted)]">{o.clientName} · {o.city}</p>
               <p className="text-emerald-600 font-bold mt-1">{formatPrice(o.total)}</p>
-              <p className="text-xs text-[var(--gp-text-muted)] mt-1">{t('status')}: {statusLabel(o.status === 'completed' ? 'completed' : o.status === 'en_route' ? 'in_progress' : o.status === 'accepted' ? 'assigned' : o.status)}</p>
+              <p className="text-xs text-[var(--gp-text-muted)] mt-1">{t('status')}: {statusLabel(o.status)}</p>
               {step && (
                 <button type="button" onClick={() => updateOrderStatus(o.id, step.to)} className="mt-3 w-full py-2.5 rounded-xl partner-gradient text-white font-semibold text-sm">
                   {t(step.key)}

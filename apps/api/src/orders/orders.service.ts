@@ -249,8 +249,55 @@ export class OrdersService {
     });
     await this.notifications.notifyOrderStatusChange(order.id, OrderStatus.NEW);
     this.lifecycle.broadcast(order.id, OrderStatus.NEW);
-    await this.dispatchToPool(order);
-    return order;
+    const assignedOrder = await this.autoAssignFirstMatchingPartner(order);
+    await this.dispatchToPool(assignedOrder);
+    return assignedOrder;
+  }
+
+  /**
+   * MVP auto-assignment: keep status NEW, set assignedPartnerId to the first matching
+   * approved/online specialist. Partner still explicitly accepts the assigned order.
+   */
+  private async autoAssignFirstMatchingPartner(order: {
+    id: string;
+    status: OrderStatus;
+    assignedPartnerId: string | null;
+    category: OrderCategory;
+    serviceId: string | null;
+    serviceName: string | null;
+    city: string | null;
+    regionId: string | null;
+  }) {
+    if (order.assignedPartnerId || order.status !== OrderStatus.NEW) return order;
+    const [match] = await this.eligibility.findMatchingSpecialists(order);
+    if (!match) return order;
+
+    const claim = await this.prisma.order.updateMany({
+      where: { id: order.id, status: OrderStatus.NEW, assignedPartnerId: null },
+      data: { assignedPartnerId: match.partnerProfileId },
+    });
+    if (claim.count === 0) return order;
+
+    await this.events.record({
+      orderId: order.id,
+      userId: null,
+      role: OrderActorRole.system,
+      action: 'ORDER_ASSIGNED',
+      fromStatus: OrderStatus.NEW,
+      toStatus: OrderStatus.NEW,
+      metadata: { partnerProfileId: match.partnerProfileId },
+    });
+    await this.notifications.notifyUser(
+      match.userId,
+      'Заявка назначена',
+      order.serviceName || 'Вам назначен новый заказ',
+      order.id,
+    );
+    this.lifecycle.broadcast(order.id, OrderStatus.NEW);
+    return this.prisma.order.findUniqueOrThrow({
+      where: { id: order.id },
+      include: this.orderInclude(),
+    });
   }
 
   /** Realtime + push matching-специалистам при появлении заказа в общем пуле. */

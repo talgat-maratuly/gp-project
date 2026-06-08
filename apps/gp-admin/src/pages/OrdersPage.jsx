@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Eye, UserPlus, RefreshCw, Pencil } from 'lucide-react'
+import { Eye, MessageSquare, XCircle } from 'lucide-react'
 import { useStore } from '../context/StoreContext'
 import { useAccess } from '../context/AccessContext'
 import { useLanguage, useOrderStatusLabel } from '../i18n/LanguageContext'
@@ -47,8 +47,8 @@ export default function OrdersPage() {
   const statusLabel = useOrderStatusLabel()
   const [tab, setTab] = useState('new')
   const [viewId, setViewId] = useState(null)
-  const [assignId, setAssignId] = useState(null)
-  const [statusId, setStatusId] = useState(null)
+  const [commentId, setCommentId] = useState(null)
+  const [cancelId, setCancelId] = useState(null)
   const [editId, setEditId] = useState(null)
   const [form, setForm] = useState({})
   const [actionError, setActionError] = useState('')
@@ -61,9 +61,10 @@ export default function OrdersPage() {
   )
 
   const order = viewId ? scoped.orders.find((o) => o.id === viewId) : null
-  const assignOrder = assignId ? scoped.orders.find((o) => o.id === assignId) : null
-  const statusOrder = statusId ? scoped.orders.find((o) => o.id === statusId) : null
+  const commentOrder = commentId ? scoped.orders.find((o) => o.id === commentId) : null
+  const cancelOrder = cancelId ? scoped.orders.find((o) => o.id === cancelId) : null
   const editOrder = editId ? scoped.orders.find((o) => o.id === editId) : null
+  const isTerminal = (status) => ['completed', 'expired', 'cancelled', 'canceled_by_client', 'canceled_by_spec', 'no_show'].includes(status)
 
   const openEdit = (o) => {
     const geo = inferCitySelection(store, {
@@ -197,9 +198,10 @@ export default function OrdersPage() {
                     <button type="button" className="admin-btn-icon" title={t('open')} onClick={() => setViewId(o.id)}><Eye className="w-4 h-4" /></button>
                     {can(ACTIONS.ORDER_EDIT) && (
                       <>
-                        <button type="button" className="admin-btn-icon" title={t('edit')} onClick={() => openEdit(o)}><Pencil className="w-4 h-4" /></button>
-                        <button type="button" className="admin-btn-icon" title={t('assignPartner')} onClick={() => setAssignId(o.id)}><UserPlus className="w-4 h-4" /></button>
-                        <button type="button" className="admin-btn-icon" title={t('changeStatus')} onClick={() => setStatusId(o.id)}><RefreshCw className="w-4 h-4" /></button>
+                        <button type="button" className="admin-btn-icon" title={t('comment')} onClick={() => { setCommentId(o.id); setForm({ adminComment: '' }) }}><MessageSquare className="w-4 h-4" /></button>
+                        {!isTerminal(o.status) && (
+                          <button type="button" className="admin-btn-icon text-red-400" title={t('cancelOrder')} onClick={() => { setCancelId(o.id); setForm({ cancelReason: '' }) }}><XCircle className="w-4 h-4" /></button>
+                        )}
                       </>
                     )}
                   </div>
@@ -225,6 +227,21 @@ export default function OrdersPage() {
               <div><dt className="text-slate-500">{t('submittedAt')}</dt><dd className="text-slate-400" title={t('systemFieldReadonly')}>{formatDate(order.createdAt)}</dd></div>
             )}
             {order.note && <div className="col-span-2"><dt className="text-slate-500">{t('comment')}</dt><dd>{order.note}</dd></div>}
+            {order.eventLogs?.length > 0 && (
+              <div className="col-span-2">
+                <dt className="text-slate-500 mb-1">{t('orderHistory')}</dt>
+                <ul className="text-xs text-slate-400 space-y-1">
+                  {order.eventLogs.map((event) => (
+                    <li key={event.id}>
+                      {formatDate(event.createdAt)} · {event.action}
+                      {event.fromStatus || event.toStatus ? ` · ${event.fromStatus || '—'} → ${event.toStatus || '—'}` : ''}
+                      {event.metadata?.reason ? ` · ${event.metadata.reason}` : ''}
+                      {event.metadata?.comment ? ` · ${event.metadata.comment}` : ''}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             {order.rescheduleLog?.length > 0 && (
               <div className="col-span-2">
                 <dt className="text-slate-500 mb-1">{t('rescheduleHistory')}</dt>
@@ -279,61 +296,76 @@ export default function OrdersPage() {
         )}
       </Modal>
 
-      <Modal open={!!assignOrder} onClose={() => { setAssignId(null); setActionError('') }} title={t('assignPartner')}>
+      <Modal open={!!commentOrder} onClose={() => { setCommentId(null); setActionError('') }} title={t('comment')}>
         {actionError && <p className="text-sm text-red-400 mb-2">{actionError}</p>}
-        {assignOrder && !franchisePartners(assignOrder.franchiseId).length && (
-          <AdminEmptyState messageKey="noData" />
+        {commentOrder && (
+          <div className="space-y-3 text-sm">
+            <textarea
+              className="admin-input mt-1"
+              rows={4}
+              value={form.adminComment || ''}
+              onChange={(e) => setForm({ ...form, adminComment: e.target.value })}
+              placeholder={t('comment')}
+            />
+            <FormActions
+              disabled={actionLoading}
+              onCancel={() => setCommentId(null)}
+              onSave={async () => {
+                if (!form.adminComment?.trim() || form.adminComment.trim().length < 3) {
+                  setActionError(t('commentRequired'))
+                  return
+                }
+                setActionLoading(true)
+                setActionError('')
+                try {
+                  await updateOrder(commentOrder.id, { status: commentOrder.status, adminComment: form.adminComment.trim() })
+                  setCommentId(null)
+                } catch (e) {
+                  setActionError(e?.message || t('actionError'))
+                } finally {
+                  setActionLoading(false)
+                }
+              }}
+            />
+          </div>
         )}
-        {assignOrder && franchisePartners(assignOrder.franchiseId).map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            disabled={actionLoading}
-            className="w-full text-left px-4 py-3 min-h-[44px] rounded-xl border border-white/10 hover:bg-sky-500/10 mb-2 disabled:opacity-50"
-            onClick={async () => {
-              setActionLoading(true)
-              setActionError('')
-              try {
-                await assignPartner(assignOrder.id, p.id)
-                setAssignId(null)
-              } catch (e) {
-                setActionError(e?.message || t('assignError'))
-              } finally {
-                setActionLoading(false)
-              }
-            }}
-          >
-            <span className="font-semibold">{p.company || p.name}</span>
-          </button>
-        ))}
       </Modal>
 
-      <Modal open={!!statusOrder} onClose={() => { setStatusId(null); setActionError('') }} title={t('changeStatus')}>
+      <Modal open={!!cancelOrder} onClose={() => { setCancelId(null); setActionError('') }} title={t('cancelOrder')}>
         {actionError && <p className="text-sm text-red-400 mb-2">{actionError}</p>}
-        {statusOrder && (
-          <div className="grid grid-cols-2 gap-2">
-            {orderStatuses.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                disabled={actionLoading}
-                className={`px-3 py-2 min-h-[44px] rounded-xl border text-sm disabled:opacity-50 ${statusOrder.status === s.id ? 'border-sky-500 bg-sky-500/20' : 'border-white/10'}`}
-                onClick={async () => {
-                  setActionLoading(true)
-                  setActionError('')
-                  try {
-                    await updateOrder(statusOrder.id, { status: s.id })
-                    setStatusId(null)
-                  } catch (e) {
-                    setActionError(e?.message || t('statusChangeError'))
-                  } finally {
-                    setActionLoading(false)
-                  }
-                }}
-              >
-                {statusLabel(s.id)}
-              </button>
-            ))}
+        {cancelOrder && (
+          <div className="space-y-3 text-sm">
+            <p className="text-slate-400">{cancelOrder.serviceName} · {cancelOrder.clientName}</p>
+            <textarea
+              className="admin-input mt-1"
+              rows={4}
+              value={form.cancelReason || ''}
+              onChange={(e) => setForm({ ...form, cancelReason: e.target.value })}
+              placeholder={t('cancelReasonPrompt')}
+            />
+            <FormActions
+              disabled={actionLoading}
+              onCancel={() => setCancelId(null)}
+              onSave={async () => {
+                if (!form.cancelReason?.trim() || form.cancelReason.trim().length < 3) {
+                  setActionError(t('cancelReasonRequired'))
+                  return
+                }
+                setActionLoading(true)
+                setActionError('')
+                try {
+                  await updateOrder(cancelOrder.id, {
+                    status: 'canceled_by_spec',
+                    cancelReason: form.cancelReason.trim(),
+                  })
+                  setCancelId(null)
+                } catch (e) {
+                  setActionError(e?.message || t('statusChangeError'))
+                } finally {
+                  setActionLoading(false)
+                }
+              }}
+            />
           </div>
         )}
       </Modal>

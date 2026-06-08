@@ -327,6 +327,7 @@ export function StoreProvider({ children }) {
       if (['CANCELED_BY_CLIENT', 'CANCELED_BY_SPEC'].includes(prismaStatus)) {
         body.cancelReason = patch.cancelReason || 'Отменено администратором'
       }
+      if (patch.adminComment) body.adminComment = patch.adminComment
       await api.adminUpdateOrderStatus(orderId, body)
       await refreshFromApi()
       return

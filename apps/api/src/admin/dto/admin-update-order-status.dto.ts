@@ -22,4 +22,10 @@ export class AdminUpdateOrderStatusDto {
   @IsString()
   @MaxLength(500)
   cancelReason?: string;
+
+  @ApiProperty({ required: false, description: 'Admin view-only comment, stored in order history' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  adminComment?: string;
 }
