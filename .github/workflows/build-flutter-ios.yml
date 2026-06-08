@@ -1,0 +1,94 @@
+name: Build Flutter iOS
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/flutter/**'
+      - '.github/workflows/build-flutter-ios.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-ios:
+    name: Build ${{ matrix.app_name }} iOS no-codesign
+    runs-on: macos-15
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app_name: gp-service
+            app_dir: apps/flutter/gp_service_app
+            project_name: service
+            bundle_id: kz.gp.service
+            artifact_name: gp-service-ios-app
+            app_name_output: GP Service.app
+          - app_name: gp-partner
+            app_dir: apps/flutter/gp_partner_app
+            project_name: partner
+            bundle_id: kz.gp.partner
+            artifact_name: gp-partner-ios-app
+            app_name_output: GP Partner.app
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.44.1'
+          cache: true
+
+      - name: Show Flutter doctor
+        run: flutter doctor -v
+
+      - name: Generate iOS project
+        shell: bash
+        run: |
+          cd "${{ matrix.app_dir }}"
+          flutter create --platforms ios --project-name "${{ matrix.project_name }}" --org kz.gp .
+          rm -rf test
+          echo "[ios] iOS project generated"
+
+      - name: Set iOS bundle id
+        shell: bash
+        run: |
+          cd "${{ matrix.app_dir }}"
+          project="ios/Runner.xcodeproj/project.pbxproj"
+          plutil -replace CFBundleDisplayName -string "${{ matrix.app_name }}" ios/Runner/Info.plist
+          sed -i '' 's/PRODUCT_BUNDLE_IDENTIFIER = [^;]*;/PRODUCT_BUNDLE_IDENTIFIER = ${{ matrix.bundle_id }};/g' "$project"
+          grep -q "PRODUCT_BUNDLE_IDENTIFIER = ${{ matrix.bundle_id }};" "$project"
+          echo "[ios] Bundle id configured as ${{ matrix.bundle_id }}"
+
+      - name: Install dependencies
+        run: |
+          cd "${{ matrix.app_dir }}"
+          flutter pub get
+
+      - name: Analyze Flutter app
+        run: |
+          cd "${{ matrix.app_dir }}"
+          flutter analyze
+
+      - name: Build iOS app without codesign
+        run: |
+          cd "${{ matrix.app_dir }}"
+          flutter build ios --release --no-codesign --dart-define=API_URL=https://apigp.duckdns.org/api
+          mkdir -p ../../../ios-artifacts
+          ditto -c -k --sequesterRsrc --keepParent build/ios/iphoneos/Runner.app "../../../ios-artifacts/${{ matrix.app_name }}-ios-app.zip"
+          ls -lh "../../../ios-artifacts/${{ matrix.app_name }}-ios-app.zip"
+
+      - name: Upload iOS app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ios-artifacts/${{ matrix.app_name }}-ios-app.zip
+          if-no-files-found: error
+          retention-days: 14
+

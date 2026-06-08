@@ -85,6 +85,21 @@ Build GP Partner for App Store:
 npm run flutter:partner:build:ios
 ```
 
+## iPhone Testing
+
+iPhone cannot install Android APK files.
+
+The GitHub workflow `Build Flutter iOS` verifies that both Flutter apps compile for iOS without code signing. Its artifacts are unsigned `.app` bundles and are only build artifacts; they cannot be installed on tester iPhones.
+
+For real iPhone testing, use TestFlight. Required Apple credentials:
+
+- Apple Developer Program membership.
+- App Store Connect apps for `kz.gp.service` and `kz.gp.partner`.
+- Signing certificate and provisioning profiles.
+- App Store Connect API key for upload automation.
+
+After those credentials are available as GitHub secrets, the workflow can be extended to produce signed `.ipa` files and upload them to TestFlight.
+
 ## Required Before Store Submission
 
 - Flutter SDK installed on the build machine.
