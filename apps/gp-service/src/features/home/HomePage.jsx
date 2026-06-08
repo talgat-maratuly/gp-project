@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { formatPrice } from '@gp/shared/utils'
 import { KaspiButton, KaspiCard, SkeletonBlock } from '@gp/shared/ui/KaspiUI'
+import { getOrderStatusLabel } from '@gp/shared/constants'
 import { SERVICE_CATALOG } from '../../data/services'
 import { useService } from '../../context/ServiceContext'
 import * as demoApi from '../../lib/demoApi'
@@ -218,7 +219,14 @@ export default function HomePage() {
               <li key={o.id}>
                 <KaspiCard onClick={() => navigate('/orders')} className="!p-4">
                   <p className="font-bold">{o.serviceName || t('genericOrder')}</p>
-                  <p className="text-sm text-[var(--gp-text-muted)] mt-0.5">{formatPrice(o.total)} · {o.status}</p>
+                  <p className="text-sm text-[var(--gp-text-muted)] mt-0.5">
+                    {formatPrice(o.total)} · {getOrderStatusLabel(o.status)}
+                  </p>
+                  {o.partnerName && (
+                    <p className="text-xs text-emerald-700 font-semibold mt-1">
+                      {t('partner')}: {o.partnerName}
+                    </p>
+                  )}
                 </KaspiCard>
               </li>
             ))}

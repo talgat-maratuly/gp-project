@@ -2,6 +2,7 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import {
   AccountStatus,
   Order,
+  OrderCategory,
   OrderStatus,
   PartnerStatus,
   Prisma,
@@ -15,7 +16,7 @@ import {
   isOrderAllowedForPartnerType,
   orderCategoriesForPartnerType,
 } from '../common/partner-access.util';
-import { orderMatchesActiveOffering } from '../common/partner-offerings.util';
+import { orderMatchesActiveOffering, SUBSERVICE_TO_DIRECTION } from '../common/partner-offerings.util';
 import { requestStatusFromPartnerStatus } from '../user-status/request-status.mapper';
 
 type MatchableOrder = Pick<
@@ -33,6 +34,37 @@ export interface SpecialistContext {
 
 function normCity(value?: string | null): string {
   return (value || '').trim().toLowerCase();
+}
+
+function categoriesForActiveSubservices(subserviceIds: Set<string>): OrderCategory[] {
+  const categories = new Set<OrderCategory>();
+  for (const id of subserviceIds) {
+    const direction = SUBSERVICE_TO_DIRECTION[id];
+    switch (direction) {
+      case 'SEPTIC':
+        categories.add(OrderCategory.SEPTIC);
+        break;
+      case 'LAWN':
+        categories.add(OrderCategory.LAWN);
+        break;
+      case 'AUTOWATERING':
+      case 'LANDSCAPE':
+        categories.add(OrderCategory.AUTOWATERING);
+        break;
+      case 'FILTERS':
+        categories.add(OrderCategory.FILTERS);
+        break;
+      case 'PUMPS':
+        categories.add(OrderCategory.PUMPS);
+        break;
+      case 'ELECTRICAL':
+        categories.add(OrderCategory.ELECTRICAL);
+        break;
+      default:
+        break;
+    }
+  }
+  return [...categories];
 }
 
 /**
@@ -114,7 +146,11 @@ export class SpecialistEligibilityService {
 
   /** Грубый Prisma-фильтр для ленты (точная проверка offering/city/region — в JS). */
   feedWhere(ctx: SpecialistContext): Prisma.OrderWhereInput {
-    const categories = orderCategoriesForPartnerType(ctx.profile.partnerType) ?? [];
+    const typeCategories = orderCategoriesForPartnerType(ctx.profile.partnerType) ?? [];
+    const offeringCategories = categoriesForActiveSubservices(ctx.activeSubserviceIds);
+    const categories = offeringCategories.length
+      ? offeringCategories.filter((category) => !typeCategories.length || typeCategories.includes(category))
+      : typeCategories;
     return {
       status: OrderStatus.NEW,
       OR: [{ assignedPartnerId: null }, { assignedPartnerId: ctx.profile.id }],

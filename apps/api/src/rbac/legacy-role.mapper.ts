@@ -1,7 +1,12 @@
-import { PartnerStatus, PortalRole, RequestStatus, Role, User } from '@prisma/client';
+import { PartnerRole, PartnerStatus, PartnerType, PortalRole, RequestStatus, Role, User } from '@prisma/client';
 
 type UserWithPartner = User & {
-  partnerProfile?: { status: PartnerStatus; requestStatus?: RequestStatus | null } | null;
+  partnerProfile?: {
+    status: PartnerStatus;
+    requestStatus?: RequestStatus | null;
+    partnerRole?: PartnerRole | null;
+    partnerType?: PartnerType | null;
+  } | null;
 };
 
 /**
@@ -37,6 +42,8 @@ export function mapLegacyToPortalRoles(user: UserWithPartner): PortalRole[] {
 
   if (
     requestApproved &&
+    user.partnerProfile?.partnerRole !== PartnerRole.SHOP &&
+    user.partnerProfile?.partnerType !== PartnerType.SHOP &&
     user.role !== Role.REGION_ADMIN &&
     user.role !== Role.SUPER_ADMIN &&
     user.role !== Role.ADMIN

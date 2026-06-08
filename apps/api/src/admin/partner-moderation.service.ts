@@ -188,12 +188,13 @@ export class PartnerModerationAdminService {
 
     await this.partners.syncDirectionsFromOfferings(partnerId);
     await this.partners.syncServiceAccessFromOfferings(partnerId);
-    if (isServicePartnerProfile(profile)) {
+    const approvedProfile = { ...profile, status: PartnerStatus.APPROVED };
+    if (isServicePartnerProfile(approvedProfile)) {
       await this.rbac.onSpecialistApproved(profile.userId);
     } else {
       await this.prisma.user.update({
         where: { id: profile.userId },
-        data: { portalRoles: { set: [PortalRole.CLIENT] } },
+        data: { role: Role.PARTNER, portalRoles: { set: [PortalRole.CLIENT] } },
       });
     }
     await this.accountStatus.systemEnsureActive(

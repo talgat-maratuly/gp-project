@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { AuthGatePrompt } from '@gp/shared/auth/AuthGatePrompt'
 import { KaspiButton, KaspiCard, SkeletonBlock } from '@gp/shared/ui/KaspiUI'
-import { CheckCircle, Package, RefreshCw, Wrench, Pencil, X } from 'lucide-react'
+import { CalendarDays, CheckCircle, Clock, MapPin, Package, RefreshCw, UserCheck, Wrench, Pencil, X } from 'lucide-react'
 import { formatDate, formatPrice } from '@gp/shared/utils'
 import { inferCitySelection } from '@gp/shared/geography'
 import CitySelector from '@gp/shared/components/CitySelector'
@@ -15,6 +15,61 @@ import {
   getClientStatusCta,
   isClientCancelable,
 } from '@gp/shared/constants'
+
+function formatVisit(order) {
+  if (order.flexibleTime) return 'Любое свободное время'
+  if (!order.preferredDate && !order.preferredTime) return null
+  const date = order.preferredDate
+    ? new Intl.DateTimeFormat('ru-KZ', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(order.preferredDate))
+    : null
+  return [date, order.preferredTime].filter(Boolean).join(' · ')
+}
+
+function formatShortDate(value) {
+  if (!value) return null
+  return new Intl.DateTimeFormat('ru-KZ', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value))
+}
+
+function clientTimeline(order, status) {
+  const items = [
+    { key: 'created', label: 'Заявка создана', detail: formatShortDate(order.createdAt), done: true },
+    {
+      key: 'accepted',
+      label: order.partnerName ? `${order.partnerName} принял заказ` : 'Исполнитель принял заказ',
+      detail: formatShortDate(order.acceptedAt) || formatVisit(order),
+      done: ['accepted', 'on_way', 'in_process', 'completed'].includes(status),
+    },
+    {
+      key: 'route',
+      label: status === 'accepted' ? 'Ожидайте выезда исполнителя' : 'Исполнитель в пути / работает',
+      detail: status === 'accepted' ? formatVisit(order) : null,
+      done: ['on_way', 'in_process', 'completed'].includes(status),
+    },
+    {
+      key: 'completed',
+      label: order.clientConfirmed ? 'Выполнение подтверждено' : 'Работа выполнена',
+      detail: formatShortDate(order.completedAt),
+      done: status === 'completed',
+    },
+  ]
+  if (['expired', 'canceled_by_client', 'canceled_by_spec', 'no_show'].includes(status)) {
+    return [
+      items[0],
+      {
+        key: 'closed',
+        label: getClientStatusMessage(status),
+        detail: formatShortDate(order.canceledAt || order.expiredAt || order.noShowAt || order.updatedAt),
+        done: true,
+      },
+    ]
+  }
+  return items
+}
 
 export default function OrdersPage() {
   const { t } = useLanguage()
@@ -136,6 +191,8 @@ export default function OrdersPage() {
           {allOrders.map((o) => {
             const open = expanded === o.id
             const st = o.rawStatus || o.status
+            const visit = formatVisit(o)
+            const timeline = clientTimeline(o, st)
             return (
               <li key={o.id}>
                 <KaspiCard className="!p-0 overflow-hidden">
@@ -154,12 +211,46 @@ export default function OrdersPage() {
                     <p className="font-extrabold">{o.serviceName || o.id}</p>
                     <p className="text-lg font-extrabold gp-text-gradient mt-2">{formatPrice(o.total)}</p>
                     <p className="text-xs text-[var(--gp-text-muted)] mt-1">{formatDate(o.createdAt)}</p>
+                    {o.partnerName && (
+                      <p className="text-xs text-emerald-700 font-semibold mt-1">
+                        {o.partnerName} принял заказ{visit ? ` · ${visit}` : ''}
+                      </p>
+                    )}
                   </button>
                   {open && (
                     <div className="px-4 pb-4 border-t border-[var(--gp-border)] pt-4 space-y-3">
-                      <p className="text-sm">{o.address}</p>
-                      {o.partnerName && <p className="text-xs text-[var(--gp-text-muted)]">{t('partner')}: {o.partnerName}</p>}
+                      <div className="space-y-2 text-sm">
+                        <p className="flex items-start gap-2">
+                          <MapPin className="w-4 h-4 mt-0.5 text-emerald-600 shrink-0" />
+                          <span>{o.address}</span>
+                        </p>
+                        {visit && (
+                          <p className="flex items-center gap-2 text-[var(--gp-text-muted)]">
+                            <CalendarDays className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <span>{visit}</span>
+                          </p>
+                        )}
+                        {o.partnerName && (
+                          <p className="flex items-center gap-2 text-[var(--gp-text-muted)]">
+                            <UserCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <span>{t('partner')}: {o.partnerName}{o.partnerPhone ? ` · ${o.partnerPhone}` : ''}</span>
+                          </p>
+                        )}
+                      </div>
                       <p className="text-sm text-[var(--gp-text-muted)]">{getClientStatusMessage(st)}</p>
+                      <div className="rounded-2xl bg-[var(--gp-surface-2)] p-3 space-y-2">
+                        {timeline.map((item) => (
+                          <div key={item.key} className="flex gap-2 text-xs">
+                            <span className={`mt-0.5 flex h-5 w-5 items-center justify-center rounded-full ${item.done ? 'bg-emerald-600 text-white' : 'bg-white text-slate-400 border border-[var(--gp-border)]'}`}>
+                              {item.done ? <CheckCircle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                            </span>
+                            <span>
+                              <span className={`block font-semibold ${item.done ? 'text-[var(--gp-text)]' : 'text-[var(--gp-text-muted)]'}`}>{item.label}</span>
+                              {item.detail && <span className="text-[var(--gp-text-muted)]">{item.detail}</span>}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                       {o.cancelReason && (
                         <p className="text-xs text-red-600">Причина: {o.cancelReason}</p>
                       )}
@@ -170,6 +261,11 @@ export default function OrdersPage() {
                             {st === 'completed' && !o.clientConfirmed && (
                               <KaspiButton onClick={() => handleConfirm(o.id)}>
                                 {t('confirm') || 'Подтвердить выполнение'}
+                              </KaspiButton>
+                            )}
+                            {st === 'completed' && (
+                              <KaspiButton onClick={() => handleRecreate(o.id)}>
+                                Повторить этот заказ
                               </KaspiButton>
                             )}
                             {cta?.action === 'recreate' && (

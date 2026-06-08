@@ -66,7 +66,7 @@ export class PartnerMarketService {
         address: dto.address?.trim() || null,
         phone: dto.phone?.trim() || user.phone || null,
         isOfflineStore: dto.isOfflineStore ?? false,
-        status: StoreStatus.PENDING_REVIEW,
+        status: StoreStatus.ACTIVE,
       },
       include: { region: { select: { id: true, name: true, code: true } } },
     });

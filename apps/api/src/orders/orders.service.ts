@@ -566,6 +566,13 @@ export class OrdersService {
     const source = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!source) throw new NotFoundException('Заказ не найден');
     if (source.clientId !== client.id) throw new ForbiddenException('Не ваш заказ');
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    const preferredDate =
+      source.preferredDate && source.preferredDate >= tomorrow
+        ? source.preferredDate
+        : tomorrow;
 
     const dto: CreateOrderDto = {
       category: source.category,
@@ -580,7 +587,9 @@ export class OrdersService {
       septicVolume: source.septicVolume ?? undefined,
       lawnAreaSqm: source.lawnAreaSqm ?? undefined,
       lawnWorkType: source.lawnWorkType ?? undefined,
-      flexibleTime: true,
+      preferredDate: preferredDate.toISOString(),
+      preferredTime: source.preferredTime ?? undefined,
+      flexibleTime: source.flexibleTime,
       recreatedFromId: source.id,
     };
 
@@ -634,6 +643,7 @@ export class OrdersService {
     const ctx = await this.eligibility.loadContext(userId);
     this.eligibility.assertEligibleToBrowse(ctx);
     if (!this.eligibility.isOnline(ctx)) return [];
+    if (!ctx.activeSubserviceIds.size) return [];
 
     const candidates = await this.prisma.order.findMany({
       where: this.eligibility.feedWhere(ctx),
