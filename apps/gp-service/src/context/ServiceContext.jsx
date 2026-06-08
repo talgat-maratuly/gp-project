@@ -38,6 +38,7 @@ const KEYS = {
 
 const CITY_TO_REGION_CODE = {
   'city-uralsk': 'uralsk',
+  'city-aksay': 'uralsk',
   'city-aktobe': 'aktobe',
   'city-atyrau': 'atyrau',
   'city-almaty': 'almaty',
@@ -632,6 +633,8 @@ export function ServiceProvider({ children }) {
       cityId: data.cityId || profile.cityId,
       oblastId: data.oblastId || profile.oblastId,
       franchiseId: data.franchiseId || profile.franchiseId,
+      districtId: data.districtId || profile.districtId || '',
+      district: data.district || profile.district || '',
     }
     const orderData = { ...data, ...geo }
     if (isDemoMode()) {
@@ -671,6 +674,7 @@ export function ServiceProvider({ children }) {
 
     const commentParts = [data.comment]
     if (data.subserviceCode) commentParts.push(`Подуслуга: ${data.subserviceCode}`)
+    if (geo.district) commentParts.push(`Район: ${geo.district}`)
 
     const payload = {
       category: apiCategory,
@@ -683,6 +687,10 @@ export function ServiceProvider({ children }) {
       paymentMethod: PAYMENT_TO_API[data.paymentMethod] || 'CASH_ON_DELIVERY',
       comment: commentParts.filter(Boolean).join('\n'),
       onBehalfCity: geo.city,
+      cityId: geo.cityId,
+      oblastId: geo.oblastId,
+      franchiseId: geo.franchiseId,
+      district: geo.district,
       septicVolume: isSeptic ? Number(data.septicVolume) : undefined,
       preferredDate: data.preferredDate || undefined,
       preferredTime: data.flexibleTime ? undefined : data.preferredTime,

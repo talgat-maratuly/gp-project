@@ -160,7 +160,12 @@ export default function PartnersPage() {
             store={store}
             value={{ oblastId: form.oblastId, cityId: form.cityId }}
             inputClassName="admin-input mt-1 w-full"
-            onChange={(sel) => setForm((f) => ({ ...f, oblastId: sel.oblastId, cityId: sel.cityId, city: sel.city || f.city }))}
+            onChange={(sel) => setForm((f) => ({
+              ...f,
+              oblastId: sel.oblastId,
+              cityId: sel.cityId,
+              city: sel.cityId ? (sel.city || f.city) : '',
+            }))}
           />
           <div>
             <span className="text-xs text-slate-500">{t('assignServices')}</span>

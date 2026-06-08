@@ -55,8 +55,8 @@ export default function ProfilePage() {
               ...p,
               oblastId: sel.oblastId,
               cityId: sel.cityId,
-              city: sel.city || p.city,
-              franchiseId: sel.franchiseId || p.franchiseId,
+              city: sel.cityId ? (sel.city || p.city) : '',
+              franchiseId: sel.cityId ? (sel.franchiseId ?? p.franchiseId) : null,
             }))}
           />
         ) : (

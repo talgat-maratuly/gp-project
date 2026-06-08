@@ -151,6 +151,7 @@ const CITY_PRICE_OVERRIDES: Record<string, Record<string, CityPriceSeed[]>> = {
 
 const CITY_META: Record<string, { oblastId: string; franchiseId: string }> = {
   'city-uralsk': { oblastId: 'obl-batys', franchiseId: 'fr-uralsk' },
+  'city-aksay': { oblastId: 'obl-batys', franchiseId: 'fr-uralsk' },
   'city-atyrau': { oblastId: 'obl-atyrau', franchiseId: 'fr-atyrau' },
   'city-aktobe': { oblastId: 'obl-aktobe', franchiseId: 'fr-aktobe' },
   'city-almaty': { oblastId: 'obl-almaty', franchiseId: 'fr-almaty' },

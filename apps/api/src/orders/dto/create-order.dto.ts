@@ -134,6 +134,26 @@ export class CreateOrderDto {
   @IsString()
   onBehalfCity?: string;
 
+  @ApiProperty({ required: false, description: 'Selected oblast id from geo catalog' })
+  @IsOptional()
+  @IsString()
+  oblastId?: string;
+
+  @ApiProperty({ required: false, description: 'Selected city id from geo catalog' })
+  @IsOptional()
+  @IsString()
+  cityId?: string;
+
+  @ApiProperty({ required: false, description: 'Resolved franchise id for selected city' })
+  @IsOptional()
+  @IsString()
+  franchiseId?: string;
+
+  @ApiProperty({ required: false, description: 'Selected district or city area' })
+  @IsOptional()
+  @IsString()
+  district?: string;
+
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()

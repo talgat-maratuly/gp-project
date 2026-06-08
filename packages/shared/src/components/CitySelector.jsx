@@ -1,6 +1,14 @@
 import { useMemo } from 'react'
 import { useLanguage } from '../i18n/LanguageContext.jsx'
-import { activeCities, activeOblasts, cityLabel, oblastLabel, resolveCitySelection } from '../geography/index.js'
+import {
+  activeCities,
+  activeDistricts,
+  activeOblasts,
+  cityLabel,
+  districtLabel,
+  oblastLabel,
+  resolveCitySelection,
+} from '../geography/index.js'
 
 /**
  * Область + қала каскад таңдау (Admin, GP Service).
@@ -13,22 +21,41 @@ export default function CitySelector({
   className = '',
   inputClassName = '',
   disabled = false,
+  showDistrict = false,
 }) {
   const { lang, t } = useLanguage()
   const oblasts = useMemo(() => activeOblasts(store), [store])
   const cities = useMemo(() => activeCities(store, value.oblastId), [store, value.oblastId])
+  const districts = useMemo(
+    () => (showDistrict ? activeDistricts(store, value.cityId) : []),
+    [store, value.cityId, showDistrict],
+  )
 
   const onOblastChange = (oblastId) => {
-    onChange({ oblastId, cityId: '' })
+    onChange({ oblastId, cityId: '', city: '', franchiseId: null, districtId: '', district: '' })
   }
 
   const onCityChange = (cityId) => {
     const resolved = resolveCitySelection(store, cityId, lang)
     onChange({
-      oblastId: value.oblastId,
+      oblastId: resolved?.oblastId || value.oblastId,
       cityId,
       city: resolved?.city || '',
       franchiseId: resolved?.franchiseId || null,
+      districtId: '',
+      district: '',
+    })
+  }
+
+  const onDistrictChange = (districtId) => {
+    const resolved = resolveCitySelection(store, value.cityId, lang, districtId)
+    onChange({
+      oblastId: resolved?.oblastId || value.oblastId,
+      cityId: value.cityId || '',
+      city: resolved?.city || value.city || '',
+      franchiseId: resolved?.franchiseId || value.franchiseId || null,
+      districtId: resolved?.districtId || '',
+      district: resolved?.district || '',
     })
   }
 
@@ -62,6 +89,22 @@ export default function CitySelector({
           ))}
         </select>
       </label>
+      {showDistrict && districts.length > 0 && (
+        <label className="block">
+          <span className="text-xs font-medium opacity-80">{t('district')}</span>
+          <select
+            className={inputClassName}
+            value={value.districtId || ''}
+            disabled={disabled || !value.cityId}
+            onChange={(e) => onDistrictChange(e.target.value)}
+          >
+            <option value="">{t('selectDistrict')}</option>
+            {districts.map((d) => (
+              <option key={d.id} value={d.id}>{districtLabel(d, lang)}</option>
+            ))}
+          </select>
+        </label>
+      )}
     </div>
   )
 }

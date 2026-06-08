@@ -10,8 +10,18 @@ export function activeCities(store, oblastId) {
   return list.filter((c) => c.oblastId === oblastId)
 }
 
+export function activeDistricts(store, cityId) {
+  const list = (store?.districts || []).filter((d) => d.active !== false)
+  if (!cityId) return list
+  return list.filter((d) => d.cityId === cityId)
+}
+
 export function findCity(store, cityId) {
   return (store?.cities || []).find((c) => c.id === cityId) || null
+}
+
+export function findDistrict(store, districtId) {
+  return (store?.districts || []).find((d) => d.id === districtId) || null
 }
 
 export function findOblast(store, oblastId) {
@@ -26,17 +36,24 @@ export function oblastLabel(oblast, lang) {
   return resolveLocalizedName(oblast, lang)
 }
 
+export function districtLabel(district, lang) {
+  return resolveLocalizedName(district, lang)
+}
+
 /** Қала таңдау → franchiseId, city атауы */
-export function resolveCitySelection(store, cityId, lang = 'ru') {
+export function resolveCitySelection(store, cityId, lang = 'ru', districtId = '') {
   const city = findCity(store, cityId)
   if (!city) return null
   const oblast = findOblast(store, city.oblastId)
+  const district = districtId ? findDistrict(store, districtId) : null
   return {
     cityId: city.id,
     oblastId: city.oblastId,
     city: cityLabel(city, lang),
     oblast: oblast ? oblastLabel(oblast, lang) : '',
     franchiseId: city.franchiseId || null,
+    districtId: district?.cityId === city.id ? district.id : '',
+    district: district?.cityId === city.id ? districtLabel(district, lang) : '',
   }
 }
 

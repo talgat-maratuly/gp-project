@@ -85,10 +85,19 @@ export const OBLASTS_SEED = [
 
 export const CITIES_SEED = [
   { id: 'city-uralsk', oblastId: 'obl-batys', franchiseId: 'fr-uralsk', lat: 51.233, lng: 51.367, names: { ru: 'Уральск', kk: 'Орал', en: 'Uralsk' }, name: 'Уральск', active: true },
+  { id: 'city-aksay', oblastId: 'obl-batys', franchiseId: 'fr-uralsk', lat: 51.167, lng: 52.997, names: { ru: 'Аксай', kk: 'Ақсай', en: 'Aksay' }, name: 'Аксай', active: true },
   { id: 'city-atyrau', oblastId: 'obl-atyrau', franchiseId: 'fr-atyrau', lat: 47.116, lng: 51.883, names: { ru: 'Атырау', kk: 'Атырау', en: 'Atyrau' }, name: 'Атырау', active: true },
   { id: 'city-aktobe', oblastId: 'obl-aktobe', franchiseId: 'fr-aktobe', lat: 50.280, lng: 57.207, names: { ru: 'Актобе', kk: 'Ақтobe', en: 'Aktobe' }, name: 'Актобе', active: true },
   { id: 'city-almaty', oblastId: 'obl-almaty', franchiseId: 'fr-almaty', lat: 43.238, lng: 76.945, names: { ru: 'Алматы', kk: 'Алматы', en: 'Almaty' }, name: 'Алматы', active: true },
   { id: 'city-astana', oblastId: 'obl-astana', franchiseId: 'fr-astana', lat: 51.128, lng: 71.430, names: { ru: 'Астана', kk: 'Астана', en: 'Astana' }, name: 'Астана', active: true },
+]
+
+export const DISTRICTS_SEED = [
+  { id: 'district-uralsk-center', cityId: 'city-uralsk', names: { ru: 'Центр', kk: 'Орталық', en: 'Central' }, name: 'Центр', active: true },
+  { id: 'district-uralsk-zachagan', cityId: 'city-uralsk', names: { ru: 'Зачаганск', kk: 'Зачаганск', en: 'Zachagansk' }, name: 'Зачаганск', active: true },
+  { id: 'district-uralsk-derkul', cityId: 'city-uralsk', names: { ru: 'Деркул', kk: 'Деркөл', en: 'Derkul' }, name: 'Деркул', active: true },
+  { id: 'district-uralsk-kureni', cityId: 'city-uralsk', names: { ru: 'Курени', kk: 'Курени', en: 'Kureni' }, name: 'Курени', active: true },
+  { id: 'district-aksay-center', cityId: 'city-aksay', names: { ru: 'Центр', kk: 'Орталық', en: 'Central' }, name: 'Центр', active: true },
 ]
 
 function subs(id, names, price, commission, active = true) {
@@ -259,6 +268,7 @@ export function createSeedState() {
     settings: { ...DEFAULT_SETTINGS },
     oblasts: OBLASTS_SEED.map((o) => ({ ...o })),
     cities: CITIES_SEED.map((c) => ({ ...c })),
+    districts: DISTRICTS_SEED.map((d) => ({ ...d })),
     franchises,
     services,
     clients,

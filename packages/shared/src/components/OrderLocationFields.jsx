@@ -16,6 +16,7 @@ export default function OrderLocationFields({
   onChange,
   autoDetectGeo = true,
   showObjectPicker = false,
+  showDistrict = true,
   showMap = false,
   mapSlot = null,
   inputClassName = 'w-full mt-1 p-3 rounded-xl border border-[var(--gp-border)] bg-[var(--gp-surface)]',
@@ -66,9 +67,16 @@ export default function OrderLocationFields({
       {store ? (
         <CitySelector
           store={store}
-          value={{ oblastId: value.oblastId, cityId: value.cityId }}
+          value={{
+            oblastId: value.oblastId,
+            cityId: value.cityId,
+            city: value.city,
+            franchiseId: value.franchiseId,
+            districtId: value.districtId,
+          }}
           inputClassName={inputClassName}
           onChange={applyCitySelection}
+          showDistrict={showDistrict}
         />
       ) : (
         <ManualCityFields
@@ -119,9 +127,16 @@ function ManualCityFields({ store, value, onChange, lang, t, inputClassName }) {
     return (
       <CitySelector
         store={store}
-        value={{ oblastId: value.oblastId, cityId: value.cityId }}
+        value={{
+          oblastId: value.oblastId,
+          cityId: value.cityId,
+          city: value.city,
+          franchiseId: value.franchiseId,
+          districtId: value.districtId,
+        }}
         inputClassName={inputClassName}
         onChange={(sel) => onChange(sel)}
+        showDistrict
       />
     )
   }
@@ -145,6 +160,16 @@ function ManualCityFields({ store, value, onChange, lang, t, inputClassName }) {
           value={value.city || ''}
           onChange={(e) => onChange({ city: e.target.value, cityId: '', oblastId: value.oblastId })}
           placeholder={t('selectCity')}
+          className={inputClassName}
+        />
+      </label>
+      <label className="block">
+        <span className="text-xs font-medium opacity-80">{t('district')}</span>
+        <input
+          type="text"
+          value={value.district || ''}
+          onChange={(e) => onChange({ district: e.target.value, districtId: '' })}
+          placeholder={t('selectDistrict')}
           className={inputClassName}
         />
       </label>

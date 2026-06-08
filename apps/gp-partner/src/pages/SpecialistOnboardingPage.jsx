@@ -331,7 +331,7 @@ export default function SpecialistOnboardingPage() {
               store={STATIC_GEO_STORE}
               value={{ oblastId: cityOblastId, cityId }}
               onChange={(sel) => {
-                setCityOblastId(sel.oblastId || cityOblastId)
+                setCityOblastId(sel.oblastId || '')
                 setCityId(sel.cityId || '')
                 setCity(sel.city || '')
               }}

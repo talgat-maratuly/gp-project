@@ -315,8 +315,8 @@ export default function OrdersPage() {
                   ...f,
                   oblastId: sel.oblastId,
                   cityId: sel.cityId,
-                  city: sel.city || f.city,
-                  franchiseId: sel.franchiseId || f.franchiseId,
+                  city: sel.cityId ? (sel.city || f.city) : '',
+                  franchiseId: sel.cityId ? (sel.franchiseId ?? f.franchiseId) : null,
                 }))}
               />
             )}

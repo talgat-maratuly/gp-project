@@ -15,6 +15,8 @@ function buildInitial(profile = {}) {
     cityId: profile.cityId || '',
     city: profile.city || '',
     franchiseId: profile.franchiseId || null,
+    districtId: profile.districtId || '',
+    district: profile.district || '',
     address: profile.address || '',
     lat: profile.lat ?? null,
     lng: profile.lng ?? null,
@@ -61,6 +63,8 @@ export function useOrderLocation({
           patch.cityId = nearest.cityId
           patch.city = nearest.city
           patch.franchiseId = nearest.franchiseId
+          patch.districtId = ''
+          patch.district = ''
         }
       }
 
@@ -107,8 +111,10 @@ export function useOrderLocation({
       const patch = {
         oblastId: sel.oblastId,
         cityId: sel.cityId,
-        city: sel.city || value.city,
-        franchiseId: sel.franchiseId ?? value.franchiseId,
+        city: sel.cityId ? (sel.city || value.city) : '',
+        franchiseId: sel.cityId ? (sel.franchiseId ?? value.franchiseId) : null,
+        districtId: sel.districtId || '',
+        district: sel.district || '',
       }
       if (store && sel.cityId) {
         const coords = cityCoords(store, sel.cityId)

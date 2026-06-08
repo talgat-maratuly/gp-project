@@ -309,6 +309,32 @@ export class OrdersService {
   ) {
     if (dto.regionId) return dto.regionId;
     if (user.regionId) return user.regionId;
+    if (dto.franchiseId) {
+      const franchise = await this.prisma.franchise.findUnique({
+        where: { id: dto.franchiseId },
+        select: { regionId: true },
+      });
+      if (franchise?.regionId) return franchise.regionId;
+    }
+    if (dto.cityId) {
+      const franchise = await this.prisma.franchise.findFirst({
+        where: { cityId: dto.cityId },
+        select: { regionId: true },
+      });
+      if (franchise?.regionId) return franchise.regionId;
+
+      const cityPrice = await this.prisma.cityServicePrice.findFirst({
+        where: { cityId: dto.cityId, franchiseId: { not: null } },
+        select: { franchiseId: true },
+      });
+      if (cityPrice?.franchiseId) {
+        const priceFranchise = await this.prisma.franchise.findUnique({
+          where: { id: cityPrice.franchiseId },
+          select: { regionId: true },
+        });
+        if (priceFranchise?.regionId) return priceFranchise.regionId;
+      }
+    }
     const city = dto.onBehalfCity?.trim() || client.city?.trim();
     if (!city) return null;
     const franchise = await this.prisma.franchise.findFirst({

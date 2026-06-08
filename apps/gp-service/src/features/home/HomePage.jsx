@@ -76,8 +76,8 @@ export default function HomePage() {
                 ...p,
                 oblastId: sel.oblastId,
                 cityId: sel.cityId,
-                city: sel.city || p.city,
-                franchiseId: sel.franchiseId || p.franchiseId,
+                city: sel.cityId ? (sel.city || p.city) : '',
+                franchiseId: sel.cityId ? (sel.franchiseId ?? p.franchiseId) : null,
               }))
               demoApi.updateDemoSession({
                 oblastId: sel.oblastId,
