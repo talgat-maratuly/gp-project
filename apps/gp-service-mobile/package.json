@@ -7,7 +7,9 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "build:ios:production": "npx eas-cli build --platform ios --profile production",
+    "submit:ios:production": "npx eas-cli submit --platform ios --profile production"
   },
   "dependencies": {
     "expo": "~52.0.0",
