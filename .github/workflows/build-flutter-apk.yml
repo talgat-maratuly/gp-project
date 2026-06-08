@@ -1,0 +1,101 @@
+name: Build Flutter APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/flutter/**'
+      - '.github/workflows/build-flutter-apk.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    name: Build ${{ matrix.app_name }} debug APK
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app_name: gp-service
+            app_dir: apps/flutter/gp_service_app
+            project_name: service
+            package_id: kz.gp.service
+            artifact_name: gp-service-debug-apk
+            apk_name: gp-service-debug.apk
+          - app_name: gp-partner
+            app_dir: apps/flutter/gp_partner_app
+            project_name: partner
+            package_id: kz.gp.partner
+            artifact_name: gp-partner-debug-apk
+            apk_name: gp-partner-debug.apk
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.44.1'
+          cache: true
+
+      - name: Show Flutter doctor
+        run: flutter doctor -v
+
+      - name: Generate Android project
+        shell: bash
+        run: |
+          cd "${{ matrix.app_dir }}"
+          flutter create --platforms android --project-name "${{ matrix.project_name }}" --org kz.gp .
+
+      - name: Set Android package id
+        shell: bash
+        run: |
+          cd "${{ matrix.app_dir }}"
+          if [ -f android/app/build.gradle.kts ]; then
+            sed -i 's/applicationId = "[^"]*"/applicationId = "${{ matrix.package_id }}"/' android/app/build.gradle.kts
+            sed -i 's/namespace = "[^"]*"/namespace = "${{ matrix.package_id }}"/' android/app/build.gradle.kts
+          fi
+          if [ -f android/app/build.gradle ]; then
+            sed -i 's/applicationId "[^"]*"/applicationId "${{ matrix.package_id }}"/' android/app/build.gradle
+            sed -i 's/namespace "[^"]*"/namespace "${{ matrix.package_id }}"/' android/app/build.gradle
+          fi
+          echo "[apk] Android package id configured as ${{ matrix.package_id }}"
+
+      - name: Install dependencies
+        run: |
+          cd "${{ matrix.app_dir }}"
+          flutter pub get
+
+      - name: Analyze Flutter app
+        run: |
+          cd "${{ matrix.app_dir }}"
+          flutter analyze
+
+      - name: Build debug APK
+        run: |
+          cd "${{ matrix.app_dir }}"
+          flutter build apk --debug --dart-define=API_URL=https://apigp.duckdns.org/api
+          mkdir -p ../../../apk-artifacts
+          cp build/app/outputs/flutter-apk/app-debug.apk "../../../apk-artifacts/${{ matrix.apk_name }}"
+          ls -lh "../../../apk-artifacts/${{ matrix.apk_name }}"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: apk-artifacts/${{ matrix.apk_name }}
+          if-no-files-found: error
+          retention-days: 14
+
