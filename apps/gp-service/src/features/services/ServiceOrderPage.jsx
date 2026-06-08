@@ -49,6 +49,7 @@ function GenericServiceOrder({ serviceId }) {
   const {
     placeServiceOrder, objects, profile, geoStore, isLoggedIn, authReady,
     getCityCatalog, isServiceAvailable, calcOrderTotal, ensureCatalog, isDemoMode,
+    isCatalogLoading, isCatalogFetched,
   } = useService()
   const baseService = getServiceById(serviceId)
   const isSeptic = serviceId === 'septic-pumping'
@@ -84,6 +85,8 @@ function GenericServiceOrder({ serviceId }) {
   const [error, setError] = useState('')
 
   const available = isServiceAvailable(serviceId, form.franchiseId, form.cityId)
+  const catalogLoading = !isDemoMode && isCatalogLoading(form.franchiseId, form.cityId)
+  const catalogFetched = isDemoMode || isCatalogFetched(form.franchiseId, form.cityId)
 
   useEffect(() => {
     if (!form.franchiseId && !form.cityId) return
@@ -126,6 +129,14 @@ function GenericServiceOrder({ serviceId }) {
       <div className="px-4 py-8 text-center">
         <p className="text-slate-500 mb-4">{t('serviceNotFound')}</p>
         <Button onClick={() => navigate(-1)}>{t('back')}</Button>
+      </div>
+    )
+  }
+
+  if (!catalogFetched || catalogLoading) {
+    return (
+      <div className="px-4 py-8 text-center">
+        <p className="text-slate-500 mb-4">Загружаем услуги города...</p>
       </div>
     )
   }

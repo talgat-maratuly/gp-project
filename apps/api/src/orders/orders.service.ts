@@ -179,6 +179,7 @@ export class OrdersService {
       serviceId: dto.serviceId,
     });
     const preferredDate = this.parsePreferredDate(dto.preferredDate);
+    const regionId = await this.resolveOrderRegionId(dto, user, client);
 
     const order = await this.prisma.order.create({
       data: {
@@ -189,8 +190,8 @@ export class OrdersService {
         address: dto.address,
         clientName: user.name,
         clientPhone: user.phone,
-        city: client.city ?? dto.onBehalfCity ?? null,
-        regionId: dto.regionId ?? user.regionId ?? null,
+        city: dto.onBehalfCity ?? client.city ?? null,
+        regionId,
         clientLat: dto.clientLat ?? 51.233,
         clientLng: dto.clientLng ?? 51.367,
         total,
@@ -299,6 +300,27 @@ export class OrdersService {
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) throw new BadRequestException('Некорректная дата');
     return d;
+  }
+
+  private async resolveOrderRegionId(
+    dto: CreateOrderDto,
+    user: { regionId?: string | null },
+    client: { city?: string | null },
+  ) {
+    if (dto.regionId) return dto.regionId;
+    if (user.regionId) return user.regionId;
+    const city = dto.onBehalfCity?.trim() || client.city?.trim();
+    if (!city) return null;
+    const franchise = await this.prisma.franchise.findFirst({
+      where: {
+        OR: [
+          { city: { equals: city, mode: 'insensitive' } },
+          { cityId: city },
+        ],
+      },
+      select: { regionId: true },
+    });
+    return franchise?.regionId ?? null;
   }
 
   private validateSchedule(dto: CreateOrderDto) {

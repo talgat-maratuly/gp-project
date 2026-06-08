@@ -189,6 +189,7 @@ export class AdminService {
     if (!regionId) return {};
     return {
       OR: [
+        { regionId },
         { client: { user: { regionId } } },
         { partner: { regionId } },
       ],

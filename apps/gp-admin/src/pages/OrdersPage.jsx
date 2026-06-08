@@ -14,14 +14,29 @@ import FormActions from '../components/FormActions'
 import PageHeader from '../components/PageHeader'
 import { formatMoney, formatDate } from '../lib/format'
 
-const STATUS_COLORS = { new: 'sky', assigned: 'violet', in_progress: 'amber', in_work: 'orange', completed: 'emerald', cancelled: 'slate', problem: 'red' }
+const STATUS_COLORS = {
+  new: 'sky',
+  assigned: 'violet',
+  accepted: 'violet',
+  on_way: 'amber',
+  in_progress: 'amber',
+  in_process: 'orange',
+  in_work: 'orange',
+  completed: 'emerald',
+  expired: 'slate',
+  cancelled: 'slate',
+  canceled_by_client: 'slate',
+  canceled_by_spec: 'slate',
+  no_show: 'red',
+  problem: 'red',
+}
 
 const ORDER_TABS = [
   { id: 'new', labelKey: 'orders_tab_new', statuses: ['new'], emptyKey: 'orders_empty_new' },
-  { id: 'accepted', labelKey: 'orders_tab_accepted', statuses: ['assigned'], emptyKey: 'orders_empty_accepted' },
-  { id: 'in_work', labelKey: 'orders_tab_in_work', statuses: ['in_progress', 'in_work'], emptyKey: 'orders_empty_in_work' },
+  { id: 'accepted', labelKey: 'orders_tab_accepted', statuses: ['assigned', 'accepted'], emptyKey: 'orders_empty_accepted' },
+  { id: 'in_work', labelKey: 'orders_tab_in_work', statuses: ['on_way', 'in_progress', 'in_process', 'in_work'], emptyKey: 'orders_empty_in_work' },
   { id: 'completed', labelKey: 'orders_tab_completed', statuses: ['completed'], emptyKey: 'orders_empty_completed' },
-  { id: 'rejected', labelKey: 'orders_tab_rejected', statuses: ['cancelled'], emptyKey: 'orders_empty_rejected' },
+  { id: 'rejected', labelKey: 'orders_tab_rejected', statuses: ['expired', 'cancelled', 'canceled_by_client', 'canceled_by_spec', 'no_show'], emptyKey: 'orders_empty_rejected' },
 ]
 
 export default function OrdersPage() {

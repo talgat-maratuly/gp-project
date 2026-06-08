@@ -494,7 +494,8 @@ export function PartnerProvider({ children }) {
       await refreshOrders()
       return orderId
     }
-    await api.acceptPartnerOrder(orderId)
+    const accepted = await api.acceptPartnerOrder(orderId)
+    setOrders((prev) => [accepted, ...prev.filter((o) => o.id !== accepted.id)])
     setActiveOrderId(orderId)
     await refreshAll()
     return orderId
@@ -514,7 +515,9 @@ export function PartnerProvider({ children }) {
         await Promise.all([refreshOrders(), refreshFeed()])
         return orderId
       }
-      await api.acceptOrderFromPool(orderId)
+      const accepted = await api.acceptOrderFromPool(orderId)
+      setOrders((prev) => [accepted, ...prev.filter((o) => o.id !== accepted.id)])
+      setFeed((prev) => prev.filter((o) => o.id !== orderId))
       setActiveOrderId(orderId)
       await Promise.all([refreshAll(), refreshFeed()])
       return orderId
