@@ -2,11 +2,16 @@
 
 Flutter-ready workspace for GP mobile apps.
 
+This is the App Store and Play Market path for GP mobile apps.
+GP Admin remains web-only.
+
 ## Apps
 
 - `gp_service_app` — client app for GP Service.
 - `gp_partner_app` — partner app for specialists, shops, nursery, and delivery partners.
 - `gp_mobile_shared` — shared Dart package for API, OTP auth, refresh tokens, secure storage, and biometric login.
+
+See `RELEASE.md` before building store releases.
 
 ## API
 
@@ -76,4 +81,3 @@ flutter run --dart-define=API_URL=https://apigp.duckdns.org/api
 - Plant Doctor photo upload.
 - Partner accept/start/complete order flow.
 - Partner GPS after accepted order.
-

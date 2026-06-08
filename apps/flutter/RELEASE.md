@@ -1,0 +1,90 @@
+# GP Flutter Release
+
+This is the mobile release path for GP.
+
+## App Roles
+
+- GP Service web: server/web deployment from `apps/gp-service`.
+- GP Partner web: server/web deployment from `apps/gp-partner`.
+- GP Admin: web only, server deployment from `apps/gp-admin`.
+- GP Service mobile: Flutter app from `apps/flutter/gp_service_app`.
+- GP Partner mobile: Flutter app from `apps/flutter/gp_partner_app`.
+- Backend API: server deployment from `apps/api`.
+
+Do not publish the Expo prototype from `apps/gp-service-mobile` to App Store or Play Market.
+
+## Production API
+
+Both Flutter apps must use:
+
+```text
+https://apigp.duckdns.org/api
+```
+
+The Dart config normalizes URLs so `https://apigp.duckdns.org` also becomes `/api`, but release builds should pass the full API URL explicitly.
+
+## Store Identifiers
+
+Use stable package identifiers:
+
+```text
+GP Service iOS bundle id: kz.gp.service
+GP Service Android application id: kz.gp.service
+GP Partner iOS bundle id: kz.gp.partner
+GP Partner Android application id: kz.gp.partner
+```
+
+If native folders are generated with `flutter create`, verify these IDs in:
+
+- `ios/Runner.xcodeproj/project.pbxproj`
+- `android/app/build.gradle`
+
+## Commands
+
+Install dependencies:
+
+```bash
+npm run flutter:pub-get
+```
+
+Analyze both Flutter apps:
+
+```bash
+npm run flutter:analyze
+```
+
+Build GP Service for Play Market:
+
+```bash
+npm run flutter:service:build:android
+```
+
+Build GP Partner for Play Market:
+
+```bash
+npm run flutter:partner:build:android
+```
+
+Build GP Service for App Store:
+
+```bash
+npm run flutter:service:build:ios
+```
+
+Build GP Partner for App Store:
+
+```bash
+npm run flutter:partner:build:ios
+```
+
+## Required Before Store Submission
+
+- Flutter SDK installed on the build machine.
+- Native `ios/` and `android/` folders generated/configured for each Flutter app.
+- Apple Developer account and App Store Connect records for both apps.
+- Google Play Console records for both apps.
+- Production backend is deployed and healthy.
+- `CORS_ORIGINS` includes web origins; mobile apps use HTTPS API directly.
+- Push notifications require FCM/APNs integration before enabling notification claims in store metadata.
+- Privacy forms must mention phone number, device id/session tokens, and optional biometric unlock.
+
