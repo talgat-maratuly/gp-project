@@ -5,6 +5,7 @@
  */
 
 const API = process.env.API_URL || 'http://localhost:4000/api'
+const ROOT = API.replace(/\/api\/?$/, '')
 
 let passed = 0
 let failed = 0
@@ -46,7 +47,7 @@ function tomorrow(offset = 1) {
   return d.toISOString().slice(0, 10)
 }
 
-async function createSepticOrder(token, suffix, preferredDate = tomorrow()) {
+async function createSepticOrder(token, suffix, preferredDate = tomorrow(), preferredTime = '15:00') {
   return req('/orders', {
     method: 'POST',
     token,
@@ -61,7 +62,7 @@ async function createSepticOrder(token, suffix, preferredDate = tomorrow()) {
       paymentMethod: 'CASH_ON_DELIVERY',
       septicVolume: 6,
       preferredDate,
-      preferredTime: '15:00',
+      preferredTime,
       flexibleTime: false,
       onBehalfCity: 'Уральск',
       cityId: 'city-uralsk',
@@ -73,7 +74,7 @@ async function createSepticOrder(token, suffix, preferredDate = tomorrow()) {
 async function main() {
   console.log(`\nGP API E2E → ${API}\n`)
 
-  const health = await fetch(`${API}/health`).then((r) => r.json())
+  const health = await fetch(`${ROOT}/health`).then((r) => r.json())
   assert(health.status === 'ok', 'health check')
 
   const stamp = Date.now()
@@ -117,9 +118,11 @@ async function main() {
   const seededPartner = await req('/partners/me', { token: partnerToken })
   await req('/partners/me', { method: 'PATCH', token: partnerToken, body: { isOnline: true } })
 
+  let suspended = false
   let restored = false
   try {
-    const order = await createSepticOrder(clientToken, stamp)
+    const testDayOffset = 30 + (stamp % 300)
+    const order = await createSepticOrder(clientToken, stamp, tomorrow(testDayOffset), '15:00')
     assert(order.status === 'NEW', 'order created as NEW')
     assert(order.assignedPartnerId === seededPartner.id, 'backend auto-assigns matching Uralsk septic partner')
 
@@ -163,17 +166,20 @@ async function main() {
       token: adminToken,
       body: { reason: 'E2E blocked partner check' },
     })
-    const blockedOrder = await createSepticOrder(clientToken, `${stamp}_blocked`, tomorrow(2))
+    suspended = true
+    const blockedOrder = await createSepticOrder(clientToken, `${stamp}_blocked`, tomorrow(testDayOffset + 1), '17:00')
     assert(!blockedOrder.assignedPartnerId, 'blocked partner does not receive new order')
   } finally {
-    try {
-      await req(`/admin/moderation/partners/${seededPartner.id}/restore`, {
-        method: 'PATCH',
-        token: adminToken,
-      })
-      restored = true
-    } catch (e) {
-      console.warn(`  ! restore skipped: ${e.message}`)
+    if (suspended) {
+      try {
+        await req(`/admin/moderation/partners/${seededPartner.id}/restore`, {
+          method: 'PATCH',
+          token: adminToken,
+        })
+        restored = true
+      } catch (e) {
+        console.warn(`  ! restore skipped: ${e.message}`)
+      }
     }
   }
   assert(restored, 'blocked partner restored after E2E')
