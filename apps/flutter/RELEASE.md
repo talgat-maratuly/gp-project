@@ -41,6 +41,14 @@ If native folders are generated with `flutter create`, verify these IDs in:
 
 ## Commands
 
+Flutter SDK is installed locally under:
+
+```text
+tools/flutter
+```
+
+Root npm scripts use this local SDK, so a global `flutter` command is not required.
+
 Install dependencies:
 
 ```bash
@@ -87,4 +95,3 @@ npm run flutter:partner:build:ios
 - `CORS_ORIGINS` includes web origins; mobile apps use HTTPS API directly.
 - Push notifications require FCM/APNs integration before enabling notification claims in store metadata.
 - Privacy forms must mention phone number, device id/session tokens, and optional biometric unlock.
-

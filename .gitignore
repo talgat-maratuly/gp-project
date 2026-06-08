@@ -83,6 +83,9 @@ Desktop.ini
 .temp/
 tmp/
 temp/
+tools/
+.dart_tool/
+.flutter-plugins-dependencies
 
 # --- Database (local docker volumes, dumps) ---
 *.sql.gz
