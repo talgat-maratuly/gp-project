@@ -14,8 +14,9 @@ permissions:
 
 jobs:
   build-apk:
-    name: Build ${{ matrix.app_name }} debug APK
+    name: Build ${{ matrix.app_name }} release APK
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -24,14 +25,14 @@ jobs:
             app_dir: apps/flutter/gp_service_app
             project_name: service
             package_id: kz.gp.service
-            artifact_name: gp-service-debug-apk
-            apk_name: gp-service-debug.apk
+            artifact_name: gp-service-release-apk
+            apk_name: gp-service-release.apk
           - app_name: gp-partner
             app_dir: apps/flutter/gp_partner_app
             project_name: partner
             package_id: kz.gp.partner
-            artifact_name: gp-partner-debug-apk
-            apk_name: gp-partner-debug.apk
+            artifact_name: gp-partner-release-apk
+            apk_name: gp-partner-release.apk
 
     steps:
       - name: Check out repository
@@ -85,13 +86,44 @@ jobs:
           cd "${{ matrix.app_dir }}"
           flutter analyze
 
-      - name: Build debug APK
+      - name: Build release APK
         run: |
           cd "${{ matrix.app_dir }}"
-          flutter build apk --debug --dart-define=API_URL=https://apigp.duckdns.org/api
+          flutter build apk --release --dart-define=API_URL=https://apigp.duckdns.org/api
           mkdir -p ../../../apk-artifacts
-          cp build/app/outputs/flutter-apk/app-debug.apk "../../../apk-artifacts/${{ matrix.apk_name }}"
+          cp build/app/outputs/flutter-apk/app-release.apk "../../../apk-artifacts/${{ matrix.apk_name }}"
           ls -lh "../../../apk-artifacts/${{ matrix.apk_name }}"
+
+      - name: Verify release APK package and signature
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk="apk-artifacts/${{ matrix.apk_name }}"
+          build_tools="$(find "$ANDROID_HOME/build-tools" -maxdepth 1 -type d | sort -V | tail -n 1)"
+          "$build_tools/apksigner" verify --verbose "$apk"
+          "$build_tools/aapt" dump badging "$apk" | tee /tmp/apk-badging.txt
+          grep "package: name='${{ matrix.package_id }}'" /tmp/apk-badging.txt
+          echo "[apk] ${apk} is signed and has package ${{ matrix.package_id }}"
+
+      - name: Enable Android emulator acceleration
+        shell: bash
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Verify release APK installs on Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          script: |
+            adb install -r "apk-artifacts/${{ matrix.apk_name }}"
+            adb shell pm list packages | grep "${{ matrix.package_id }}"
+            adb uninstall "${{ matrix.package_id }}"
+            echo "[apk] ${{ matrix.apk_name }} installed and uninstalled successfully"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
