@@ -13,6 +13,12 @@ export default function HomeScreen() {
       <Text style={styles.note}>
         Мобильная сессия активна. Заказы и каталог подключаются к тому же API, что и веб-приложение.
       </Text>
+      <View style={styles.logicBox}>
+        <Text style={styles.logicTitle}>Текущий цикл заявки</Text>
+        <Text style={styles.logicText}>
+          Новая → Принята → В пути → В работе → Выполнена
+        </Text>
+      </View>
       <Pressable style={styles.btnOutline} onPress={logout}>
         <Text style={styles.btnOutlineText}>Выйти с устройства</Text>
       </Pressable>
@@ -29,6 +35,16 @@ const styles = StyleSheet.create({
   welcome: { fontSize: 20, fontWeight: '700', marginTop: 24, color: '#0f172a' },
   phone: { fontSize: 14, color: '#64748b', marginTop: 4 },
   note: { fontSize: 14, color: '#475569', marginTop: 24, lineHeight: 22 },
+  logicBox: {
+    marginTop: 18,
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+    backgroundColor: '#f0fdf4',
+  },
+  logicTitle: { fontSize: 13, fontWeight: '700', color: '#166534' },
+  logicText: { fontSize: 14, color: '#14532d', marginTop: 6, lineHeight: 20 },
   btnOutline: {
     marginTop: 32,
     padding: 14,

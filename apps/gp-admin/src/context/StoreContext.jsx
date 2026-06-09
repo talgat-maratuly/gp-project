@@ -363,7 +363,7 @@ export function StoreProvider({ children }) {
                 assignedPartnerId,
                 partnerId: assignedPartnerId,
                 partnerName: partner?.company || partner?.name || null,
-                status: o.status === 'new' ? 'assigned' : o.status,
+                isAssigned: true,
               }
             : o,
         ),

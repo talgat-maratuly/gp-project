@@ -96,9 +96,10 @@ export function AccessProvider({ children }) {
     return {
       totalOrders: orders.length,
       newOrders: orders.filter((o) => o.status === 'new').length,
-      inProgress: orders.filter((o) => ['assigned', 'in_progress', 'in_work'].includes(o.status)).length,
+      assignedPending: orders.filter((o) => o.status === 'new' && (o.assignedPartnerId ?? o.partnerId)).length,
+      inProgress: orders.filter((o) => ['accepted', 'on_way', 'in_process'].includes(o.status)).length,
       completed: completed.length,
-      cancelled: orders.filter((o) => o.status === 'cancelled').length,
+      cancelled: orders.filter((o) => ['canceled_by_client', 'canceled_by_spec', 'expired', 'no_show'].includes(o.status)).length,
       partners: scoped.partners.length,
       clients: scoped.clients.length,
       turnover: completed.reduce((s, o) => s + o.amount, 0),

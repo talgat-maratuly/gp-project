@@ -49,7 +49,7 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
               children: [
                 Text('Партнер: ${widget.session.user.phone ?? widget.session.user.email ?? widget.session.user.id}'),
                 const SizedBox(height: 16),
-                const Text('Новые заявки', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+                const Text('Назначенные новые заявки', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 12),
                 if (snapshot.connectionState == ConnectionState.waiting)
                   const Center(child: CircularProgressIndicator())

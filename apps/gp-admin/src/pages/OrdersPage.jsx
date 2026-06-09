@@ -16,12 +16,9 @@ import { formatMoney, formatDate } from '../lib/format'
 
 const STATUS_COLORS = {
   new: 'sky',
-  assigned: 'violet',
   accepted: 'violet',
   on_way: 'amber',
-  in_progress: 'amber',
   in_process: 'orange',
-  in_work: 'orange',
   completed: 'emerald',
   expired: 'slate',
   cancelled: 'slate',
@@ -32,9 +29,10 @@ const STATUS_COLORS = {
 }
 
 const ORDER_TABS = [
-  { id: 'new', labelKey: 'orders_tab_new', statuses: ['new'], emptyKey: 'orders_empty_new' },
-  { id: 'accepted', labelKey: 'orders_tab_accepted', statuses: ['assigned', 'accepted'], emptyKey: 'orders_empty_accepted' },
-  { id: 'in_work', labelKey: 'orders_tab_in_work', statuses: ['on_way', 'in_progress', 'in_process', 'in_work'], emptyKey: 'orders_empty_in_work' },
+  { id: 'new', labelKey: 'orders_tab_new', statuses: ['new'], match: (o) => o.status === 'new' && !(o.assignedPartnerId ?? o.partnerId), emptyKey: 'orders_empty_new' },
+  { id: 'assigned', labelKey: 'status_assigned', statuses: ['new'], match: (o) => o.status === 'new' && Boolean(o.assignedPartnerId ?? o.partnerId), emptyKey: 'orders_empty_accepted' },
+  { id: 'accepted', labelKey: 'orders_tab_accepted', statuses: ['accepted'], emptyKey: 'orders_empty_accepted' },
+  { id: 'in_work', labelKey: 'orders_tab_in_work', statuses: ['on_way', 'in_process'], emptyKey: 'orders_empty_in_work' },
   { id: 'completed', labelKey: 'orders_tab_completed', statuses: ['completed'], emptyKey: 'orders_empty_completed' },
   { id: 'rejected', labelKey: 'orders_tab_rejected', statuses: ['expired', 'cancelled', 'canceled_by_client', 'canceled_by_spec', 'no_show'], emptyKey: 'orders_empty_rejected' },
 ]
@@ -55,9 +53,10 @@ export default function OrdersPage() {
   const [actionLoading, setActionLoading] = useState(false)
 
   const currentTab = ORDER_TABS.find((x) => x.id === tab) || ORDER_TABS[0]
+  const orderMatchesTab = (o, item) => item.match ? item.match(o) : item.statuses.includes(o.status)
   const filteredOrders = useMemo(
-    () => scoped.orders.filter((o) => currentTab.statuses.includes(o.status)),
-    [scoped.orders, currentTab.statuses],
+    () => scoped.orders.filter((o) => orderMatchesTab(o, currentTab)),
+    [scoped.orders, currentTab],
   )
 
   const order = viewId ? scoped.orders.find((o) => o.id === viewId) : null
@@ -155,7 +154,7 @@ export default function OrdersPage() {
           >
             {t(item.labelKey)}
             <span className="ml-1.5 text-xs opacity-70">
-              ({scoped.orders.filter((o) => item.statuses.includes(o.status)).length})
+              ({scoped.orders.filter((o) => orderMatchesTab(o, item)).length})
             </span>
           </button>
         ))}
@@ -190,7 +189,14 @@ export default function OrdersPage() {
                 <td>{o.city}</td>
                 <td>{o.serviceName}{o.subserviceName ? ` / ${o.subserviceName}` : ''}</td>
                 <td>{formatDate(o.scheduledAt)}</td>
-                <td><Badge color={STATUS_COLORS[o.status]}>{statusLabel(o.status)}</Badge></td>
+                <td>
+                  <div className="flex flex-col gap-1">
+                    <Badge color={STATUS_COLORS[o.status]}>{statusLabel(o.status)}</Badge>
+                    {o.status === 'new' && (o.assignedPartnerId ?? o.partnerId) && (
+                      <span className="text-[11px] text-violet-300">{t('partner')}: {t('status_assigned')}</span>
+                    )}
+                  </div>
+                </td>
                 <td>{o.partnerName || t('dash')}</td>
                 <td>{formatMoney(o.amount)}</td>
                 <td>
@@ -218,7 +224,15 @@ export default function OrdersPage() {
             <div><dt className="text-slate-500">{t('orderId')}</dt><dd className="font-mono text-xs">{order.id}</dd></div>
             <div><dt className="text-slate-500">{t('client')}</dt><dd>{order.clientName}</dd></div>
             <div><dt className="text-slate-500">{t('phone')}</dt><dd>{order.clientPhone}</dd></div>
-            <div><dt className="text-slate-500">{t('status')}</dt><dd><Badge color={STATUS_COLORS[order.status]}>{statusLabel(order.status)}</Badge></dd></div>
+            <div>
+              <dt className="text-slate-500">{t('status')}</dt>
+              <dd className="flex flex-col items-start gap-1">
+                <Badge color={STATUS_COLORS[order.status]}>{statusLabel(order.status)}</Badge>
+                {order.status === 'new' && (order.assignedPartnerId ?? order.partnerId) && (
+                  <span className="text-[11px] text-violet-300">{t('partner')}: {t('status_assigned')}</span>
+                )}
+              </dd>
+            </div>
             <div className="col-span-2"><dt className="text-slate-500">{t('address')}</dt><dd>{order.address}</dd></div>
             <div><dt className="text-slate-500">{t('service')}</dt><dd>{order.serviceName}</dd></div>
             <div><dt className="text-slate-500">{t('amount')}</dt><dd>{formatMoney(order.amount)}</dd></div>

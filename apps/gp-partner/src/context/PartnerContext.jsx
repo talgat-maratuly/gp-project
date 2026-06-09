@@ -506,7 +506,7 @@ export function PartnerProvider({ children }) {
     try {
       if (isDemoMode()) {
         await demoApi.demoPatchOrder(orderId, {
-          status: 'assigned',
+          status: 'accepted',
           partnerId: user?.partnerProfileId,
           assignedPartnerId: user?.partnerProfileId,
           partnerName: user?.company || user?.name,

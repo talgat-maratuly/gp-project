@@ -1,6 +1,5 @@
 import { api } from '@gp/shared/api'
 import { CATEGORY_TO_UI } from '@gp/shared/api/mappers'
-import { ADMIN_ORDER_UI_TO_PRISMA } from '@gp/shared-core/statuses'
 import { loadGlobalStore } from '@gp/shared/demo'
 
 const DEFAULT_FRANCHISE = {
@@ -24,13 +23,13 @@ function franchiseIdForRegion(region) {
 
 const ADMIN_ORDER_STATUS = {
   NEW: 'new',
-  ACCEPTED: 'assigned',
-  ON_WAY: 'in_progress',
-  IN_PROCESS: 'in_work',
+  ACCEPTED: 'accepted',
+  ON_WAY: 'on_way',
+  IN_PROCESS: 'in_process',
   COMPLETED: 'completed',
   EXPIRED: 'expired',
-  CANCELED_BY_CLIENT: 'cancelled',
-  CANCELED_BY_SPEC: 'cancelled',
+  CANCELED_BY_CLIENT: 'canceled_by_client',
+  CANCELED_BY_SPEC: 'canceled_by_spec',
   NO_SHOW: 'no_show',
 }
 
@@ -97,10 +96,8 @@ function mapOrder(o) {
     serviceName: o.serviceName || '',
     subserviceId: o.subserviceId || null,
     subserviceName: null,
-    status:
-      (o.assignedPartnerId ?? o.partnerId) && o.status === 'NEW'
-        ? 'assigned'
-        : ADMIN_ORDER_STATUS[o.status] || String(o.status).toLowerCase(),
+    status: ADMIN_ORDER_STATUS[o.status] || String(o.status).toLowerCase(),
+    isAssigned: Boolean(o.assignedPartnerId ?? o.partnerId),
     prismaStatus: o.status,
     amount: Number(o.total),
     gpCommission: Number(o.gpCommission) || 0,
