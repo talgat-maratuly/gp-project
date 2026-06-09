@@ -36,11 +36,19 @@ function formatShortDate(value) {
 }
 
 function clientTimeline(order, status) {
+  const assignedPartnerId = order.assignedPartnerId ?? order.partnerId
+  const isAssignedPending = status === 'new' && assignedPartnerId
   const items = [
     { key: 'created', label: 'Заявка создана', detail: formatShortDate(order.createdAt), done: true },
+    ...(isAssignedPending ? [{
+      key: 'assigned',
+      label: order.partnerName ? `Назначен исполнитель: ${order.partnerName}` : 'Исполнитель назначен',
+      detail: formatVisit(order),
+      done: true,
+    }] : []),
     {
       key: 'accepted',
-      label: order.partnerName ? `${order.partnerName} принял заказ` : 'Исполнитель принял заказ',
+      label: order.partnerName ? `${order.partnerName} принял заказ` : 'Первый исполнитель примет заказ',
       detail: formatShortDate(order.acceptedAt) || formatVisit(order),
       done: ['accepted', 'on_way', 'in_process', 'completed'].includes(status),
     },
@@ -64,6 +72,17 @@ function clientTimeline(order, status) {
         key: 'closed',
         label: getClientStatusMessage(status),
         detail: formatShortDate(order.canceledAt || order.expiredAt || order.noShowAt || order.updatedAt),
+        done: true,
+      },
+    ]
+  }
+  if (status === 'waiting_admin') {
+    return [
+      items[0],
+      {
+        key: 'waiting-admin',
+        label: 'Оператор проверяет исключение',
+        detail: 'Исполнители не приняли заявку в срок',
         done: true,
       },
     ]
@@ -193,6 +212,8 @@ export default function OrdersPage() {
             const st = o.rawStatus || o.status
             const visit = formatVisit(o)
             const timeline = clientTimeline(o, st)
+            const assignedPartnerId = o.assignedPartnerId ?? o.partnerId
+            const partnerAccepted = ['accepted', 'on_way', 'in_process', 'completed'].includes(st)
             return (
               <li key={o.id}>
                 <KaspiCard className="!p-0 overflow-hidden">
@@ -213,7 +234,14 @@ export default function OrdersPage() {
                     <p className="text-xs text-[var(--gp-text-muted)] mt-1">{formatDate(o.createdAt)}</p>
                     {o.partnerName && (
                       <p className="text-xs text-emerald-700 font-semibold mt-1">
-                        {o.partnerName} принял заказ{visit ? ` · ${visit}` : ''}
+                        {partnerAccepted
+                          ? `${o.partnerName} принял заказ${visit ? ` · ${visit}` : ''}`
+                          : `Назначен исполнитель: ${o.partnerName}${visit ? ` · ${visit}` : ''}`}
+                      </p>
+                    )}
+                    {!o.partnerName && st === 'new' && assignedPartnerId && (
+                      <p className="text-xs text-emerald-700 font-semibold mt-1">
+                        Исполнитель назначен, ожидаем принятия{visit ? ` · ${visit}` : ''}
                       </p>
                     )}
                   </button>
@@ -233,11 +261,29 @@ export default function OrdersPage() {
                         {o.partnerName && (
                           <p className="flex items-center gap-2 text-[var(--gp-text-muted)]">
                             <UserCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                            <span>{t('partner')}: {o.partnerName}{o.partnerPhone ? ` · ${o.partnerPhone}` : ''}</span>
+                            <span>
+                              {partnerAccepted ? 'Принял' : t('partner')}: {o.partnerName}
+                              {o.partnerPhone ? ` · ${o.partnerPhone}` : ''}
+                            </span>
+                          </p>
+                        )}
+                        {st === 'completed' && o.partnerName && (
+                          <p className="flex items-center gap-2 text-[var(--gp-text-muted)]">
+                            <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <span>
+                              Выполнил: {o.partnerName}
+                              {o.completedAt ? ` · ${formatShortDate(o.completedAt)}` : ''}
+                            </span>
                           </p>
                         )}
                       </div>
-                      <p className="text-sm text-[var(--gp-text-muted)]">{getClientStatusMessage(st)}</p>
+                      <p className="text-sm text-[var(--gp-text-muted)]">
+                        {st === 'new' && assignedPartnerId
+                          ? 'Исполнитель назначен, ожидаем принятия заказа'
+                          : st === 'new'
+                            ? 'Заявка отправлена подходящим исполнителям. Первый, кто примет, получит заказ.'
+                          : getClientStatusMessage(st)}
+                      </p>
                       <div className="rounded-2xl bg-[var(--gp-surface-2)] p-3 space-y-2">
                         {timeline.map((item) => (
                           <div key={item.key} className="flex gap-2 text-xs">

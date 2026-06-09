@@ -126,7 +126,7 @@ export class SpecialistEligibilityService {
   /** Полная проверка соответствия заказа специалисту. */
   orderMatches(ctx: SpecialistContext, order: MatchableOrder): boolean {
     if (order.status !== OrderStatus.NEW) return false;
-    if (order.assignedPartnerId && order.assignedPartnerId !== ctx.profile.id) return false;
+    if (order.assignedPartnerId) return false;
     if (!isOrderAllowedForPartnerType(order, ctx.profile.partnerType)) return false;
     if (!orderMatchesActiveOffering(order, ctx.activeSubserviceIds)) return false;
     if (!this.cityMatches(order.city, ctx.profile.city)) return false;
@@ -135,12 +135,13 @@ export class SpecialistEligibilityService {
   }
 
   private cityMatches(orderCity: string | null, partnerCity: string | null): boolean {
-    if (!orderCity) return true; // нет города в заказе — не блокируем (legacy/неизвестно)
+    if (!orderCity || !partnerCity) return false;
     return normCity(orderCity) === normCity(partnerCity);
   }
 
   private regionMatches(orderRegion: string | null, partnerRegion: string | null): boolean {
-    if (!orderRegion || !partnerRegion) return true; // регион не задан — не блокируем
+    if (!orderRegion && !partnerRegion) return true;
+    if (!orderRegion || !partnerRegion) return false;
     return orderRegion === partnerRegion;
   }
 
@@ -153,7 +154,7 @@ export class SpecialistEligibilityService {
       : typeCategories;
     return {
       status: OrderStatus.NEW,
-      OR: [{ assignedPartnerId: null }, { assignedPartnerId: ctx.profile.id }],
+      assignedPartnerId: null,
       ...(categories.length ? { category: { in: categories } } : {}),
     };
   }

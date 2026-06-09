@@ -69,6 +69,11 @@ export class NotificationsService {
         return { title: 'Работа началась', body: 'Исполнитель приступил к работе' };
       case OrderStatus.COMPLETED:
         return { title: 'Заказ выполнен', body: 'Подтвердите выполнение в приложении' };
+      case OrderStatus.WAITING_ADMIN:
+        return {
+          title: 'Заявка ждёт оператора',
+          body: 'Специалисты не приняли заявку вовремя. Оператор GP проверит исключение.',
+        };
       case OrderStatus.EXPIRED:
         return {
           title: 'Заявка истекла',
@@ -86,6 +91,8 @@ export class NotificationsService {
             : 'Специалист остановил заказ. Перенесите заявку.';
         return { title: 'Заказ отменён исполнителем', body };
       }
+      case OrderStatus.CANCELED_BY_CLIENT:
+        return { title: 'Заказ отменён', body: 'Вы отменили заявку.' };
       default:
         return null;
     }
@@ -99,6 +106,8 @@ export class NotificationsService {
         return { title: 'Заказ выполнен', body: 'Заказ успешно завершён' };
       case OrderStatus.CANCELED_BY_CLIENT:
         return { title: 'Клиент отменил заказ', body: 'Заявка отменена клиентом' };
+      case OrderStatus.CANCELED_BY_SPEC:
+        return { title: 'Заказ отменён', body: 'Вы отменили заявку' };
       case OrderStatus.NO_SHOW:
         return {
           title: 'Неявка',

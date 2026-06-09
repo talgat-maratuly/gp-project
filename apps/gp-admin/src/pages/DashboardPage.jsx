@@ -1,4 +1,4 @@
-import { ClipboardList, Users, Briefcase, Wallet, CheckCircle, XCircle, Clock } from 'lucide-react'
+import { ClipboardList, Users, Briefcase, Wallet, CheckCircle, XCircle, Clock, UserCheck } from 'lucide-react'
 import { useAccess } from '../context/AccessContext'
 import { useLanguage } from '../i18n/LanguageContext'
 import StatCard from '../components/ui/StatCard'
@@ -18,6 +18,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard label={t('totalOrders')} value={stats.totalOrders} icon={ClipboardList} />
         <StatCard label={t('newOrders')} value={stats.newOrders} accent="sky" icon={Clock} />
+        <StatCard label={t('orders_tab_exceptions')} value={stats.waitingAdmin} accent="violet" icon={UserCheck} />
         <StatCard label={t('inProgress')} value={stats.inProgress} accent="amber" icon={Briefcase} />
         <StatCard label={t('completedOrders')} value={stats.completed} accent="emerald" icon={CheckCircle} />
       </div>

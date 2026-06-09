@@ -124,18 +124,22 @@ async function main() {
     const testDayOffset = 30 + (stamp % 300)
     const order = await createSepticOrder(clientToken, stamp, tomorrow(testDayOffset), '15:00')
     assert(order.status === 'NEW', 'order created as NEW')
-    assert(order.assignedPartnerId === seededPartner.id, 'backend auto-assigns matching Uralsk septic partner')
+    assert(!order.assignedPartnerId, 'broadcast order starts unlocked')
 
     const adminOrders = await req('/admin/orders', { token: adminToken })
     const adminOrder = adminOrders.find((o) => o.id === order.id)
     assert(Boolean(adminOrder), 'admin sees created order')
-    assert(adminOrder?.eventLogs?.some((e) => e.action === 'ORDER_ASSIGNED'), 'admin sees assignment history')
+    assert(adminOrder?.eventLogs?.some((e) => e.action === 'ORDER_CREATED'), 'admin sees creation history')
 
-    const partnerNew = await req('/partner/orders/new', { token: partnerToken })
-    assert(partnerNew.some((o) => o.id === order.id), 'partner receives assigned order')
+    const partnerFeed = await req('/specialist/orders/feed', { token: partnerToken })
+    assert(partnerFeed.some((o) => o.id === order.id), 'online matching partner sees available order')
 
-    let current = await req(`/partner/orders/${order.id}/accept`, { method: 'PATCH', token: partnerToken })
+    let current = await req(`/orders/${order.id}/accept`, { method: 'PATCH', token: partnerToken })
     assert(current.status === 'ACCEPTED', 'partner accepts order')
+    assert(current.assignedPartnerId === seededPartner.id, 'first accept locks partner')
+
+    const feedAfterAccept = await req('/specialist/orders/feed', { token: partnerToken })
+    assert(!feedAfterAccept.some((o) => o.id === order.id), 'accepted order disappears from available feed')
 
     current = await req(`/partner/orders/${order.id}/status`, {
       method: 'PATCH',
@@ -161,6 +165,10 @@ async function main() {
     const clientOrders = await req('/orders', { token: clientToken })
     assert(clientOrders.some((o) => o.id === order.id && o.status === 'COMPLETED'), 'client sees completed status')
 
+    const history = await req(`/orders/${order.id}/events`, { token: clientToken })
+    assert(history.some((e) => e.action === 'ORDER_ACCEPTED'), 'audit logs acceptance')
+    assert(history.some((e) => e.action === 'ORDER_COMPLETED'), 'audit logs completion')
+
     await req(`/admin/moderation/partners/${seededPartner.id}/suspend`, {
       method: 'PATCH',
       token: adminToken,
@@ -169,6 +177,8 @@ async function main() {
     suspended = true
     const blockedOrder = await createSepticOrder(clientToken, `${stamp}_blocked`, tomorrow(testDayOffset + 1), '17:00')
     assert(!blockedOrder.assignedPartnerId, 'blocked partner does not receive new order')
+    const blockedFeed = await req('/specialist/orders/feed', { token: partnerToken })
+    assert(!blockedFeed.some((o) => o.id === blockedOrder.id), 'blocked/offline partner has no available order')
   } finally {
     if (suspended) {
       try {

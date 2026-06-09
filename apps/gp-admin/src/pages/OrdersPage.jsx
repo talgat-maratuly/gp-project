@@ -20,6 +20,7 @@ const STATUS_COLORS = {
   on_way: 'amber',
   in_process: 'orange',
   completed: 'emerald',
+  waiting_admin: 'amber',
   expired: 'slate',
   cancelled: 'slate',
   canceled_by_client: 'slate',
@@ -29,8 +30,8 @@ const STATUS_COLORS = {
 }
 
 const ORDER_TABS = [
-  { id: 'new', labelKey: 'orders_tab_new', statuses: ['new'], match: (o) => o.status === 'new' && !(o.assignedPartnerId ?? o.partnerId), emptyKey: 'orders_empty_new' },
-  { id: 'assigned', labelKey: 'status_assigned', statuses: ['new'], match: (o) => o.status === 'new' && Boolean(o.assignedPartnerId ?? o.partnerId), emptyKey: 'orders_empty_accepted' },
+  { id: 'new', labelKey: 'orders_tab_broadcast', statuses: ['new'], match: (o) => o.status === 'new' && !(o.assignedPartnerId ?? o.partnerId), emptyKey: 'orders_empty_new' },
+  { id: 'exceptions', labelKey: 'orders_tab_exceptions', statuses: ['waiting_admin'], emptyKey: 'orders_empty_exceptions' },
   { id: 'accepted', labelKey: 'orders_tab_accepted', statuses: ['accepted'], emptyKey: 'orders_empty_accepted' },
   { id: 'in_work', labelKey: 'orders_tab_in_work', statuses: ['on_way', 'in_process'], emptyKey: 'orders_empty_in_work' },
   { id: 'completed', labelKey: 'orders_tab_completed', statuses: ['completed'], emptyKey: 'orders_empty_completed' },
@@ -39,7 +40,7 @@ const ORDER_TABS = [
 
 export default function OrdersPage() {
   const { scoped } = useAccess()
-  const { orderStatuses, updateOrder, assignPartner, store } = useStore()
+  const { updateOrder, store } = useStore()
   const { can } = useAccess()
   const { t, lang } = useLanguage()
   const statusLabel = useOrderStatusLabel()
@@ -192,8 +193,11 @@ export default function OrdersPage() {
                 <td>
                   <div className="flex flex-col gap-1">
                     <Badge color={STATUS_COLORS[o.status]}>{statusLabel(o.status)}</Badge>
-                    {o.status === 'new' && (o.assignedPartnerId ?? o.partnerId) && (
-                      <span className="text-[11px] text-violet-300">{t('partner')}: {t('status_assigned')}</span>
+                    {o.status === 'new' && !(o.assignedPartnerId ?? o.partnerId) && (
+                      <span className="text-[11px] text-sky-300">{t('broadcast_matching')}</span>
+                    )}
+                    {o.status === 'waiting_admin' && (
+                      <span className="text-[11px] text-amber-300">{t('admin_exception_hint')}</span>
                     )}
                   </div>
                 </td>
@@ -228,8 +232,11 @@ export default function OrdersPage() {
               <dt className="text-slate-500">{t('status')}</dt>
               <dd className="flex flex-col items-start gap-1">
                 <Badge color={STATUS_COLORS[order.status]}>{statusLabel(order.status)}</Badge>
-                {order.status === 'new' && (order.assignedPartnerId ?? order.partnerId) && (
-                  <span className="text-[11px] text-violet-300">{t('partner')}: {t('status_assigned')}</span>
+                {order.status === 'new' && !(order.assignedPartnerId ?? order.partnerId) && (
+                  <span className="text-[11px] text-sky-300">{t('broadcast_matching')}</span>
+                )}
+                {order.status === 'waiting_admin' && (
+                  <span className="text-[11px] text-amber-300">{t('admin_exception_hint')}</span>
                 )}
               </dd>
             </div>

@@ -7,6 +7,7 @@ export const ORDER_STATUS_UI: Record<OrderStatus, string> = {
   [OrderStatus.ON_WAY]: 'on_way',
   [OrderStatus.IN_PROCESS]: 'in_process',
   [OrderStatus.COMPLETED]: 'completed',
+  [OrderStatus.WAITING_ADMIN]: 'waiting_admin',
   [OrderStatus.EXPIRED]: 'expired',
   [OrderStatus.CANCELED_BY_CLIENT]: 'canceled_by_client',
   [OrderStatus.CANCELED_BY_SPEC]: 'canceled_by_spec',

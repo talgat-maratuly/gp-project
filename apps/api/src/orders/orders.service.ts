@@ -247,57 +247,16 @@ export class OrdersService {
         ...(dto.recreatedFromId ? { recreatedFromId: dto.recreatedFromId } : {}),
       },
     });
-    await this.notifications.notifyOrderStatusChange(order.id, OrderStatus.NEW);
-    this.lifecycle.broadcast(order.id, OrderStatus.NEW);
-    const assignedOrder = await this.autoAssignFirstMatchingPartner(order);
-    await this.dispatchToPool(assignedOrder);
-    return assignedOrder;
-  }
-
-  /**
-   * MVP auto-assignment: keep status NEW, set assignedPartnerId to the first matching
-   * approved/online specialist. Partner still explicitly accepts the assigned order.
-   */
-  private async autoAssignFirstMatchingPartner(order: {
-    id: string;
-    status: OrderStatus;
-    assignedPartnerId: string | null;
-    category: OrderCategory;
-    serviceId: string | null;
-    serviceName: string | null;
-    city: string | null;
-    regionId: string | null;
-  }) {
-    if (order.assignedPartnerId || order.status !== OrderStatus.NEW) return order;
-    const [match] = await this.eligibility.findMatchingSpecialists(order);
-    if (!match) return order;
-
-    const claim = await this.prisma.order.updateMany({
-      where: { id: order.id, status: OrderStatus.NEW, assignedPartnerId: null },
-      data: { assignedPartnerId: match.partnerProfileId },
-    });
-    if (claim.count === 0) return order;
-
-    await this.events.record({
-      orderId: order.id,
-      userId: null,
-      role: OrderActorRole.system,
-      action: 'ORDER_ASSIGNED',
-      fromStatus: OrderStatus.NEW,
-      toStatus: OrderStatus.NEW,
-      metadata: { partnerProfileId: match.partnerProfileId },
-    });
     await this.notifications.notifyUser(
-      match.userId,
-      'Заявка назначена',
-      order.serviceName || 'Вам назначен новый заказ',
+      user.id,
+      'Заявка создана',
+      order.serviceName || 'Ваша заявка создана',
       order.id,
     );
+    await this.notifications.notifyOrderStatusChange(order.id, OrderStatus.NEW);
     this.lifecycle.broadcast(order.id, OrderStatus.NEW);
-    return this.prisma.order.findUniqueOrThrow({
-      where: { id: order.id },
-      include: this.orderInclude(),
-    });
+    await this.dispatchToPool(order);
+    return order;
   }
 
   /** Realtime + push matching-специалистам при появлении заказа в общем пуле. */
@@ -322,7 +281,7 @@ export class OrdersService {
       specialists.map((s) =>
         this.notifications.notifyUser(
           s.userId,
-          'Новая заявка',
+          'Доступна новая заявка',
           order.serviceName || 'Доступен новый заказ',
           order.id,
         ),
@@ -439,7 +398,7 @@ export class OrdersService {
     return sanitizeOrderForRole(order, Role.CLIENT);
   }
 
-  /** Только заказы, назначенные админом (без пула неназначенных). */
+  /** Только заказы, уже принятые/закреплённые за партнёром. Доступные заказы идут через specialist feed. */
   private filterOrdersForPartner(
     orders: Awaited<ReturnType<typeof this.prisma.order.findMany>>,
     profileId: string,
@@ -618,7 +577,7 @@ export class OrdersService {
   }
 
   async acceptPartnerOrder(userId: string, orderId: string) {
-    return this.updateStatus(userId, Role.PARTNER, orderId, { status: OrderStatus.ACCEPTED });
+    return this.acceptFromPool(userId, orderId);
   }
 
   /** Партнёр отклоняет/отменяет заказ — обязателен cancelReason. */
@@ -751,7 +710,7 @@ export class OrdersService {
 
   /**
    * Приём заказа специалистом из общего пула.
-   * Race-protection: атомарный UPDATE с условием status=NEW и (не назначен | назначен мне).
+   * Race-protection: атомарный UPDATE с условием status=NEW и assignedPartnerId=null.
    * Только первый успевший специалист получает заказ.
    */
   async acceptFromPool(userId: string, orderId: string) {
@@ -781,7 +740,7 @@ export class OrdersService {
       where: {
         id: orderId,
         status: OrderStatus.NEW,
-        OR: [{ assignedPartnerId: null }, { assignedPartnerId: ctx.profile.id }],
+        assignedPartnerId: null,
       },
       data: {
         status: OrderStatus.ACCEPTED,

@@ -18,6 +18,7 @@ export const TERMINAL_STATUSES: ReadonlySet<OrderStatus> = new Set([
 export const ORDER_TRANSITIONS: Readonly<Record<OrderStatus, OrderStatus[]>> = {
   [OrderStatus.NEW]: [
     OrderStatus.ACCEPTED,
+    OrderStatus.WAITING_ADMIN,
     OrderStatus.EXPIRED,
     OrderStatus.CANCELED_BY_CLIENT,
   ],
@@ -39,6 +40,12 @@ export const ORDER_TRANSITIONS: Readonly<Record<OrderStatus, OrderStatus[]>> = {
     OrderStatus.CANCELED_BY_SPEC,
   ],
   [OrderStatus.COMPLETED]: [],
+  [OrderStatus.WAITING_ADMIN]: [
+    OrderStatus.ACCEPTED,
+    OrderStatus.EXPIRED,
+    OrderStatus.CANCELED_BY_CLIENT,
+    OrderStatus.CANCELED_BY_SPEC,
+  ],
   [OrderStatus.EXPIRED]: [],
   [OrderStatus.CANCELED_BY_CLIENT]: [],
   [OrderStatus.CANCELED_BY_SPEC]: [],
@@ -55,7 +62,7 @@ const ROLE_ALLOWED_TARGETS: Readonly<Record<OrderActorRole, OrderStatus[]>> = {
     OrderStatus.COMPLETED,
     OrderStatus.CANCELED_BY_SPEC,
   ],
-  [OrderActorRole.system]: [OrderStatus.EXPIRED, OrderStatus.NO_SHOW],
+  [OrderActorRole.system]: [OrderStatus.WAITING_ADMIN, OrderStatus.EXPIRED, OrderStatus.NO_SHOW],
   [OrderActorRole.admin]: [
     OrderStatus.ACCEPTED,
     OrderStatus.ON_WAY,
@@ -75,6 +82,7 @@ export const STATUS_ACTION: Readonly<Record<OrderStatus, string>> = {
   [OrderStatus.ON_WAY]: 'ORDER_ON_WAY',
   [OrderStatus.IN_PROCESS]: 'ORDER_STARTED',
   [OrderStatus.COMPLETED]: 'ORDER_COMPLETED',
+  [OrderStatus.WAITING_ADMIN]: 'ORDER_WAITING_ADMIN',
   [OrderStatus.EXPIRED]: 'ORDER_EXPIRED',
   [OrderStatus.NO_SHOW]: 'ORDER_NO_SHOW',
   [OrderStatus.CANCELED_BY_CLIENT]: 'ORDER_CANCELED_BY_CLIENT',

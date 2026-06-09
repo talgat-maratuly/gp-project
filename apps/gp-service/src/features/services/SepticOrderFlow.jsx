@@ -22,15 +22,15 @@ import {
 } from '@gp/shared/ui/KaspiUI'
 
 const LIVE_STEPS = [
-  { id: 'search', label: 'Поиск', hint: 'Ищем свободного исполнителя' },
-  { id: 'found', label: 'Исполнитель найден' },
+  { id: 'search', label: 'Рассылка', hint: 'Показываем заявку подходящим исполнителям' },
+  { id: 'found', label: 'Первый принял' },
   { id: 'way', label: 'В пути' },
   { id: 'work', label: 'Начал работу' },
   { id: 'done', label: 'Завершено' },
 ]
 
 function statusToIndex(status) {
-  const map = { new: 0, pending: 0, assigned: 1, accepted: 1, on_way: 2, in_process: 3, completed: 4 }
+  const map = { new: 0, pending: 0, waiting_admin: 0, assigned: 1, accepted: 1, on_way: 2, in_process: 3, completed: 4 }
   return map[status] ?? 0
 }
 

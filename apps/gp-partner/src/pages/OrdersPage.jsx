@@ -28,6 +28,9 @@ function OrderCard({ order, user, onAccept, onAdvance, onCancel, onSelect, onRou
   const { t } = useLanguage()
   const action = getPartnerOrderAction(order.status, order.category)
   const isMine = (order.assignedPartnerId || order.partnerId) === user?.partnerProfileId
+  const assignmentLabel = order.status === 'new'
+    ? (isMine ? 'Закреплена за вами' : feedMode ? 'Доступна всем подходящим исполнителям' : null)
+    : isMine ? 'Ваш заказ' : null
   const lawnLabel = LAWN_WORK_TYPES.find((t) => t.id === order.lawnWorkType)?.label
 
   const openDetails = () => {
@@ -50,6 +53,11 @@ function OrderCard({ order, user, onAccept, onAdvance, onCancel, onSelect, onRou
               {getOrderStatusLabel(order.status)}
             </span>
           </div>
+          {assignmentLabel && (
+            <p className="text-xs font-bold text-emerald-700 dark:text-emerald-300 mb-2">
+              {assignmentLabel}
+            </p>
+          )}
           <p className="font-extrabold text-lg leading-tight mb-1">
             {order.serviceName || (order.items?.length ? t('orderPositions', { n: order.items.length }) : order.id)}
           </p>
@@ -80,7 +88,7 @@ function OrderCard({ order, user, onAccept, onAdvance, onCancel, onSelect, onRou
             <div className="flex flex-col gap-2">
               {order.status === 'new' && (isMine || feedMode) && (
                 <button type="button" onClick={() => onAccept(order.id)} className="w-full py-4 rounded-2xl gp-btn-primary font-bold text-sm">
-                  Принять заказ
+                  {isMine ? 'Принять назначенный заказ' : 'Принять первым'}
                 </button>
               )}
               {isMine && action && (
@@ -124,7 +132,7 @@ function OrderCard({ order, user, onAccept, onAdvance, onCancel, onSelect, onRou
 export default function OrdersPage() {
   const { t } = useLanguage()
   const {
-    user, newOrders, activeOrders, activeOrder, feed, feedLoading,
+    user, activeOrders, activeOrder, feed, feedLoading,
     acceptOrder, acceptFromFeed, advanceOrder, cancelOrder, setOnline,
     setActiveOrderId, updateExecutorLocation,
   } = usePartner()
@@ -154,7 +162,7 @@ export default function OrdersPage() {
 
   const mapTracking = tracking || (activeOrder ? buildMockTracking(activeOrder, geofences) : null)
 
-  const poolByTab = { feed, new: newOrders, active: activeOrders }
+  const poolByTab = { feed, active: activeOrders }
   const pool = poolByTab[tab] || []
   const filtered = dirFilter === 'all' ? pool : pool.filter((o) => o.category === dirFilter)
   const myDirections = user?.directions || []
@@ -221,7 +229,6 @@ export default function OrdersPage() {
       <div className="flex gap-2 mb-4">
         {[
           ['feed', t('partnerOrdersFeed', { n: feed.length })],
-          ['new', t('partnerOrdersNew', { n: newOrders.length })],
           ['active', t('partnerOrdersActive', { n: activeOrders.length })],
         ].map(([tabId, label]) => (
           <Chip key={tabId} active={tab === tabId} onClick={() => setTab(tabId)} className="flex-1 !w-full text-center">
@@ -341,7 +348,7 @@ export default function OrdersPage() {
             <KaspiCard className="!p-8 text-center text-sm text-[var(--gp-text-muted)]">
               {tab === 'feed'
                 ? (feedLoading ? 'Загрузка...' : 'Сейчас нет доступных заказов')
-                : tab === 'new' ? 'Нет назначенных заявок' : 'Нет активных заказов'}
+                : 'Нет активных заказов'}
             </KaspiCard>
           )}
         </ul>

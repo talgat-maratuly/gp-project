@@ -7,6 +7,7 @@ export const ORDER_STATUSES = [
   { id: 'on_way', label: 'В пути', color: '#8b5cf6' },
   { id: 'in_process', label: 'В работе', color: '#06b6d4' },
   { id: 'completed', label: 'Выполнен', color: '#10b981' },
+  { id: 'waiting_admin', label: 'Ждёт админа', color: '#f59e0b' },
   { id: 'expired', label: 'Истёк', color: '#64748b' },
   { id: 'canceled_by_client', label: 'Отменён клиентом', color: '#ef4444' },
   { id: 'canceled_by_spec', label: 'Отменён исполнителем', color: '#f97316' },
@@ -26,7 +27,7 @@ export const SEPTIC_STAGE_STATUSES = [
 export const TERMINAL_STATUSES = ['completed', 'expired', 'canceled_by_client', 'canceled_by_spec', 'no_show']
 
 /** Статусы, на которых клиент может отменить заказ */
-export const CLIENT_CANCELABLE_STATUSES = ['new', 'accepted', 'on_way', 'in_process']
+export const CLIENT_CANCELABLE_STATUSES = ['new', 'waiting_admin', 'accepted', 'on_way', 'in_process']
 
 export const isTerminalStatus = (status) => TERMINAL_STATUSES.includes(status)
 export const isClientCancelable = (status) => CLIENT_CANCELABLE_STATUSES.includes(status)
@@ -38,6 +39,7 @@ export const CLIENT_STATUS_MESSAGES = {
   on_way: 'Специалист в пути к вам',
   in_process: 'Идёт работа',
   completed: 'Заказ выполнен — подтвердите',
+  waiting_admin: 'Заявка ждёт оператора: специалисты не приняли её вовремя.',
   expired: 'Никто не принял заказ. Перенесите время или создайте новую заявку.',
   canceled_by_client: 'Вы отменили заказ',
   canceled_by_spec: 'Специалист отменил заказ',
@@ -60,6 +62,7 @@ export const CLIENT_STATUS_CTA = {
   completed: { action: 'confirm', label: 'Подтвердить выполнение' },
   expired: { action: 'recreate', label: 'Создать заявку заново' },
   no_show: { action: 'recreate', label: 'Выбрать другого специалиста' },
+  waiting_admin: { action: 'support', label: 'Связаться с поддержкой' },
   canceled_by_spec: { action: 'recreate', label: 'Перенести заявку' },
   canceled_by_client: { action: 'recreate', label: 'Создать заявку заново' },
 }

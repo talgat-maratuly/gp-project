@@ -83,6 +83,7 @@ export const MAP_STATUS_LABELS: Partial<Record<OrderStatus, string>> = {
   [OrderStatus.ON_WAY]: 'Исполнитель в пути',
   [OrderStatus.IN_PROCESS]: 'Работа идёт',
   [OrderStatus.COMPLETED]: 'Заказ выполнен',
+  [OrderStatus.WAITING_ADMIN]: 'Ждёт оператора',
   [OrderStatus.EXPIRED]: 'Заявка истекла',
   [OrderStatus.NO_SHOW]: 'Неявка специалиста',
   [OrderStatus.CANCELED_BY_CLIENT]: 'Отменён клиентом',

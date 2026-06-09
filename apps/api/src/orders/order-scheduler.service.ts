@@ -10,12 +10,13 @@ const HOUR = 60 * MIN;
 const DAY = 24 * HOUR;
 
 /**
- * Автоматика жизненного цикла заказа (системные события, role = system):
- * предупреждение NEW, истечение NEW, напоминание ACCEPTED, неявка NO_SHOW.
+ * Broadcast lifecycle automation (system events, role = system):
+ * предупреждение NEW, ожидание админа после таймаута, истечение, напоминание ACCEPTED, неявка NO_SHOW.
  */
 @Injectable()
 export class OrderSchedulerService {
   private readonly logger = new Logger(OrderSchedulerService.name);
+  private readonly broadcastAcceptTimeoutMs = Number(process.env.ORDER_BROADCAST_ACCEPT_TIMEOUT_MIN ?? 30) * MIN;
 
   constructor(
     private prisma: PrismaService,
@@ -27,6 +28,7 @@ export class OrderSchedulerService {
   async tick() {
     const now = new Date();
     await this.warnNewOrders(now);
+    await this.markWaitingAdmin(now);
     await this.expireNewOrders(now);
     await this.remindAcceptedOrders(now);
     await this.markNoShows(now);
@@ -56,10 +58,25 @@ export class OrderSchedulerService {
     }
   }
 
-  /** Время заказа прошло, всё ещё NEW → EXPIRED. */
+  /** Broadcast timeout: никто не принял NEW без партнёра → WAITING_ADMIN. */
+  private async markWaitingAdmin(now: Date) {
+    const orders = await this.prisma.order.findMany({
+      where: {
+        status: OrderStatus.NEW,
+        assignedPartnerId: null,
+        createdAt: { lt: new Date(now.getTime() - this.broadcastAcceptTimeoutMs) },
+      },
+      select: { id: true },
+    });
+    for (const order of orders) {
+      await this.safeTransition(order.id, OrderStatus.WAITING_ADMIN);
+    }
+  }
+
+  /** Время заказа прошло, всё ещё NEW или WAITING_ADMIN → EXPIRED. */
   private async expireNewOrders(now: Date) {
     const orders = await this.prisma.order.findMany({
-      where: { status: OrderStatus.NEW, scheduledDate: { lt: now } },
+      where: { status: { in: [OrderStatus.NEW, OrderStatus.WAITING_ADMIN] }, scheduledDate: { lt: now } },
       select: { id: true },
     });
     for (const order of orders) {

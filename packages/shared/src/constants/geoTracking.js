@@ -17,6 +17,7 @@ export const ORDER_STATUS_TO_UI_GPS = {
   ON_WAY: 'on_way',
   IN_PROCESS: 'in_process',
   COMPLETED: 'completed',
+  WAITING_ADMIN: 'waiting_admin',
   EXPIRED: 'expired',
   CANCELED_BY_CLIENT: 'canceled_by_client',
   CANCELED_BY_SPEC: 'canceled_by_spec',

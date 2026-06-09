@@ -51,6 +51,21 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Text('Клиент: ${widget.session.user.phone ?? widget.session.user.email ?? widget.session.user.id}'),
                 const SizedBox(height: 16),
+                Card(
+                  color: const Color(0xFFEAF8EF),
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text('Текущий цикл заявки', style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF087548))),
+                        SizedBox(height: 6),
+                        Text('Новая → Первый принял → В пути → В работе → Выполнена'),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 const Text('Услуги', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 12),
                 if (snapshot.connectionState == ConnectionState.waiting)

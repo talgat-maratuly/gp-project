@@ -205,10 +205,9 @@ export function ServiceProvider({ children }) {
     }
     try {
       const me = await api.me()
-      const roles = me.roles || []
       const canUseService =
         me.clientProfile &&
-        (me.role === 'CLIENT' || roles.includes('CLIENT') || roles.includes('SPECIALIST'))
+        me.role === 'CLIENT'
       if (!canUseService) {
         clearToken()
         setAuthUser(null)
@@ -642,7 +641,7 @@ export function ServiceProvider({ children }) {
       setProfile((p) => ({ ...p, ...geo }))
       await demoApi.demoPlaceServiceOrder(orderData)
       await refreshOrders()
-      notify('Заявка отправлена! Партнёр увидит её в GP Partner.')
+      notify('Заявка отправлена! Показываем её подходящим исполнителям.')
       return { id: 'demo' }
     }
     const obj = objects.find((o) => o.id === data.objectId)
@@ -703,7 +702,7 @@ export function ServiceProvider({ children }) {
       return [mapped, ...prev.filter((o) => o.id !== order.id)]
     })
     await refreshOrders()
-    notify('Заявка отправлена! Партнёр увидит её в GP Partner.')
+    notify('Заявка отправлена! Подходящие исполнители увидят её в GP Partner.')
     return order
   }, [objects, notify, refreshOrders, requireAuth, profile, catalogStoreFor])
 

@@ -214,6 +214,7 @@ enum OrderStatus {
   ON_WAY
   IN_PROCESS
   COMPLETED
+  WAITING_ADMIN
   EXPIRED
   CANCELED_BY_CLIENT
   CANCELED_BY_SPEC
@@ -527,6 +528,9 @@ model PartnerProfile {
   /// furniture_manufacturing | furniture_assembly | furniture_repair
   serviceAccess FurnitureServiceType[] @default([])
   balance    Decimal            @default(10000) @db.Decimal(12, 2)
+  completedOrders Int           @default(0)
+  canceledOrders  Int           @default(0)
+  rating      Float             @default(5)
   isOnline   Boolean            @default(false)
   lat        Float?             @default(51.243)
   lng        Float?             @default(51.377)

@@ -37,6 +37,9 @@ function mapTestPartnerToSession(me) {
     balance: Number(profile.balance ?? 10000),
     isOnline: false,
     partnerProfileId: profile.id,
+    rating: Number(profile.rating ?? 5),
+    completedOrders: Number(profile.completedOrders ?? 0),
+    canceledOrders: Number(profile.canceledOrders ?? 0),
     partnerStatus: profile.status || 'DRAFT',
     partnerType: profile.partnerType,
     partnerRole: profile.partnerRole,
@@ -59,6 +62,7 @@ async function loadPartnerSession() {
     return me?.partnerProfile ? mapTestPartnerToSession(me) : null
   }
   const me = await api.me()
+  if (me.role !== 'PARTNER') return null
   let profile = me.partnerProfile
   if (!profile) return null
   try {
@@ -79,6 +83,9 @@ async function loadPartnerSession() {
     lat: profile.lat,
     lng: profile.lng,
     partnerProfileId: profile.id,
+    rating: Number(profile.rating ?? 5),
+    completedOrders: Number(profile.completedOrders ?? 0),
+    canceledOrders: Number(profile.canceledOrders ?? 0),
     partnerStatus: profile.status || 'DRAFT',
     partnerType: profile.partnerType,
     partnerRole: profile.partnerRole,
@@ -146,6 +153,9 @@ export function PartnerProvider({ children }) {
       lat: profile.lat,
       lng: profile.lng,
       partnerProfileId: profile.id,
+      rating: Number(profile.rating ?? u.rating ?? 5),
+      completedOrders: Number(profile.completedOrders ?? u.completedOrders ?? 0),
+      canceledOrders: Number(profile.canceledOrders ?? u.canceledOrders ?? 0),
       partnerStatus: profile.status,
       partnerType: profile.partnerType,
     partnerRole: profile.partnerRole,

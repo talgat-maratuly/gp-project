@@ -20,6 +20,29 @@ class PartnerHomeScreen extends StatefulWidget {
 class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
   late Future<List<dynamic>> _orders;
 
+  String _statusLabel(String? status) {
+    switch (status) {
+      case 'NEW':
+        return 'Новая';
+      case 'ACCEPTED':
+        return 'Принята';
+      case 'ON_WAY':
+        return 'В пути';
+      case 'IN_PROCESS':
+        return 'В работе';
+      case 'COMPLETED':
+        return 'Выполнена';
+      case 'WAITING_ADMIN':
+        return 'Ждёт оператора';
+      case 'CANCELED_BY_CLIENT':
+        return 'Отменена клиентом';
+      case 'CANCELED_BY_SPEC':
+        return 'Отменена исполнителем';
+      default:
+        return status ?? 'Статус не указан';
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -61,7 +84,13 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
                     return Card(
                       child: ListTile(
                         title: Text(map['serviceName']?.toString() ?? map['id']?.toString() ?? 'Заявка'),
-                        subtitle: Text(map['city']?.toString() ?? ''),
+                        subtitle: Text(
+                          [
+                            map['city']?.toString(),
+                            _statusLabel(map['status']?.toString()),
+                            map['assignedPartnerId'] != null ? 'Ваш заказ' : 'Доступна',
+                          ].whereType<String>().where((value) => value.isNotEmpty).join(' · '),
+                        ),
                         trailing: const Icon(Icons.chevron_right),
                       ),
                     );

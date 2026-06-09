@@ -218,8 +218,8 @@ export class AdminService {
   async assignOrder(orderId: string, dto: AdminAssignOrderDto) {
     const order = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!order) throw new NotFoundException('Заказ не найден');
-    if (order.status !== OrderStatus.NEW) {
-      throw new BadRequestException('Назначить партнёра можно только для нового заказа');
+    if (order.status !== OrderStatus.WAITING_ADMIN) {
+      throw new BadRequestException('Назначение доступно только для исключений WAITING_ADMIN');
     }
 
     const assignedPartnerId = dto.assignedPartnerId ?? dto.partnerId;
@@ -234,7 +234,7 @@ export class AdminService {
 
     const updated = await this.prisma.order.update({
       where: { id: orderId },
-      data: { assignedPartnerId },
+      data: { assignedPartnerId, status: OrderStatus.ACCEPTED, acceptedAt: new Date() },
       include: {
         client: { include: { user: { select: { name: true, phone: true } } } },
         partner: { include: { user: { select: { name: true, phone: true } } } },
@@ -245,18 +245,19 @@ export class AdminService {
         orderId,
         userId: null,
         role: OrderActorRole.admin,
-        action: 'ORDER_ASSIGNED',
-        fromStatus: OrderStatus.NEW,
-        toStatus: OrderStatus.NEW,
+        action: 'ORDER_EXCEPTION_ASSIGNED',
+        fromStatus: OrderStatus.WAITING_ADMIN,
+        toStatus: OrderStatus.ACCEPTED,
         metadata: { partnerProfileId: assignedPartnerId },
       },
     });
     await this.notifications.notifyUser(
       partner.userId,
-      'Заявка назначена',
-      order.serviceName || 'Вам назначен заказ',
+      'Исключение назначено',
+      order.serviceName || 'Оператор GP назначил вам заказ',
       order.id,
     );
+    await this.notifications.notifyOrderStatusChange(order.id, OrderStatus.ACCEPTED);
     return updated;
   }
 

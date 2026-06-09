@@ -81,6 +81,7 @@ export class OrderLifecycleService {
       reason: params.reason,
       fromStatus: order.status,
     });
+    await this.syncPartnerPerformance(updated);
     await this.syncPartnerWorkStatus(updated);
     this.broadcast(updated.id, updated.status, updated.septicStage);
 
@@ -113,6 +114,33 @@ export class OrderLifecycleService {
       await this.availability.recordStatus(order.assignedPartnerId, WorkStatus.ONLINE, {
         orderId: order.id,
         reason: 'order_finished',
+      });
+    }
+  }
+
+  private async syncPartnerPerformance(order: { assignedPartnerId: string | null; status: OrderStatus }) {
+    if (!order.assignedPartnerId) return;
+    if (order.status === OrderStatus.COMPLETED) {
+      await this.prisma.partnerProfile.update({
+        where: { id: order.assignedPartnerId },
+        data: {
+          completedOrders: { increment: 1 },
+          rating: { increment: 0.01 },
+        },
+      });
+      return;
+    }
+    if (
+      order.status === OrderStatus.CANCELED_BY_CLIENT ||
+      order.status === OrderStatus.CANCELED_BY_SPEC ||
+      order.status === OrderStatus.NO_SHOW
+    ) {
+      await this.prisma.partnerProfile.update({
+        where: { id: order.assignedPartnerId },
+        data: {
+          canceledOrders: { increment: 1 },
+          rating: { decrement: order.status === OrderStatus.CANCELED_BY_SPEC || order.status === OrderStatus.NO_SHOW ? 0.05 : 0 },
+        },
       });
     }
   }

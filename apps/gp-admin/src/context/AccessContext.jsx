@@ -95,8 +95,8 @@ export function AccessProvider({ children }) {
     const completed = orders.filter((o) => o.status === 'completed')
     return {
       totalOrders: orders.length,
-      newOrders: orders.filter((o) => o.status === 'new').length,
-      assignedPending: orders.filter((o) => o.status === 'new' && (o.assignedPartnerId ?? o.partnerId)).length,
+      newOrders: orders.filter((o) => o.status === 'new' && !(o.assignedPartnerId ?? o.partnerId)).length,
+      waitingAdmin: orders.filter((o) => o.status === 'waiting_admin').length,
       inProgress: orders.filter((o) => ['accepted', 'on_way', 'in_process'].includes(o.status)).length,
       completed: completed.length,
       cancelled: orders.filter((o) => ['canceled_by_client', 'canceled_by_spec', 'expired', 'no_show'].includes(o.status)).length,

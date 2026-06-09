@@ -6,6 +6,7 @@ export const ORDER_STATUS_TO_UI = {
   ON_WAY: 'on_way',
   IN_PROCESS: 'in_process',
   COMPLETED: 'completed',
+  WAITING_ADMIN: 'waiting_admin',
   EXPIRED: 'expired',
   CANCELED_BY_CLIENT: 'canceled_by_client',
   CANCELED_BY_SPEC: 'canceled_by_spec',
@@ -18,6 +19,7 @@ export const ORDER_STATUS_TO_API = {
   on_way: 'ON_WAY',
   in_process: 'IN_PROCESS',
   completed: 'COMPLETED',
+  waiting_admin: 'WAITING_ADMIN',
   expired: 'EXPIRED',
   canceled_by_client: 'CANCELED_BY_CLIENT',
   canceled_by_spec: 'CANCELED_BY_SPEC',
@@ -194,6 +196,9 @@ export function mapPartnerUser(me) {
     lat: profile.lat,
     lng: profile.lng,
     partnerProfileId: profile.id,
+    rating: Number(profile.rating ?? 5),
+    completedOrders: Number(profile.completedOrders ?? 0),
+    canceledOrders: Number(profile.canceledOrders ?? 0),
     serviceOfferings: profile.serviceOfferings || [],
   }
 }
