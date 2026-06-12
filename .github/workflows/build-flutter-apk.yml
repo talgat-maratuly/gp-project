@@ -12,6 +12,11 @@ on:
 permissions:
   contents: read
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  GP_API_URL: ${{ vars.GP_API_URL }}
+  GP_API_FALLBACK_URL: ${{ vars.GP_API_FALLBACK_URL }}
+
 jobs:
   build-apk:
     name: Build ${{ matrix.app_name }} release APK
@@ -89,7 +94,10 @@ jobs:
       - name: Build release APK
         run: |
           cd "${{ matrix.app_dir }}"
-          flutter build apk --release --dart-define=API_URL=https://apigp.duckdns.org/api
+          API_URL="${GP_API_URL:-https://apigp.duckdns.org/api}"
+          flutter build apk --release \
+            --dart-define=API_URL="$API_URL" \
+            --dart-define=API_FALLBACK_URL="${GP_API_FALLBACK_URL:-}"
           mkdir -p ../../../apk-artifacts
           cp build/app/outputs/flutter-apk/app-release.apk "../../../apk-artifacts/${{ matrix.apk_name }}"
           ls -lh "../../../apk-artifacts/${{ matrix.apk_name }}"

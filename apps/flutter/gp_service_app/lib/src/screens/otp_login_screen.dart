@@ -40,7 +40,7 @@ class _OtpLoginScreenState extends State<OtpLoginScreen> {
         if (widget.devOtpEnabled && _otp.text.isEmpty) _otp.text = result.devCode ?? '0000';
       });
     } catch (e) {
-      setState(() => _error = e.toString());
+      setState(() => _error = formatGpMobileError(e));
     } finally {
       setState(() => _loading = false);
     }
@@ -59,7 +59,7 @@ class _OtpLoginScreenState extends State<OtpLoginScreen> {
       );
       widget.onSignedIn(session);
     } catch (e) {
-      setState(() => _error = e.toString());
+      setState(() => _error = formatGpMobileError(e));
     } finally {
       setState(() => _loading = false);
     }
@@ -112,4 +112,3 @@ class _OtpLoginScreenState extends State<OtpLoginScreen> {
     );
   }
 }
-

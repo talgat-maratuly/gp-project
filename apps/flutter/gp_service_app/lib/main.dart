@@ -9,6 +9,7 @@ const _apiUrl = String.fromEnvironment(
   'API_URL',
   defaultValue: 'https://apigp.duckdns.org/api',
 );
+const _apiFallbackUrl = String.fromEnvironment('API_FALLBACK_URL', defaultValue: '');
 const _devOtp = bool.fromEnvironment('GP_DEV_OTP', defaultValue: false);
 
 void main() {
@@ -35,6 +36,7 @@ class _GpServiceMobileAppState extends State<GpServiceMobileApp> {
     _store = SecureSessionStore();
     final config = const GpAppConfig(
       apiBaseUrl: _apiUrl,
+      apiFallbackUrl: _apiFallbackUrl,
       appId: 'gp-service-flutter',
       loginAs: 'client',
       enableDevOtp: _devOtp,
@@ -106,4 +108,3 @@ class _LoadingScreen extends StatelessWidget {
     );
   }
 }
-

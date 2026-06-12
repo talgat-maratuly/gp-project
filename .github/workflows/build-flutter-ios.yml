@@ -12,6 +12,11 @@ on:
 permissions:
   contents: read
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  GP_API_URL: ${{ vars.GP_API_URL }}
+  GP_API_FALLBACK_URL: ${{ vars.GP_API_FALLBACK_URL }}
+
 jobs:
   build-ios:
     name: Build ${{ matrix.app_name }} iOS no-codesign
@@ -79,7 +84,10 @@ jobs:
       - name: Build iOS app without codesign
         run: |
           cd "${{ matrix.app_dir }}"
-          flutter build ios --release --no-codesign --dart-define=API_URL=https://apigp.duckdns.org/api
+          API_URL="${GP_API_URL:-https://apigp.duckdns.org/api}"
+          flutter build ios --release --no-codesign \
+            --dart-define=API_URL="$API_URL" \
+            --dart-define=API_FALLBACK_URL="${GP_API_FALLBACK_URL:-}"
           mkdir -p ../../../ios-artifacts
           ditto -c -k --sequesterRsrc --keepParent build/ios/iphoneos/Runner.app "../../../ios-artifacts/${{ matrix.app_name }}-ios-app.zip"
           ls -lh "../../../ios-artifacts/${{ matrix.app_name }}-ios-app.zip"
@@ -91,4 +99,3 @@ jobs:
           path: ios-artifacts/${{ matrix.app_name }}-ios-app.zip
           if-no-files-found: error
           retention-days: 14
-

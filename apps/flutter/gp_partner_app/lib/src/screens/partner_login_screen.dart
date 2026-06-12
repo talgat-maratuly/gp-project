@@ -40,7 +40,7 @@ class _PartnerLoginScreenState extends State<PartnerLoginScreen> {
         if (widget.devOtpEnabled && _otp.text.isEmpty) _otp.text = result.devCode ?? '0000';
       });
     } catch (e) {
-      setState(() => _error = e.toString());
+      setState(() => _error = formatGpMobileError(e));
     } finally {
       setState(() => _loading = false);
     }
@@ -59,7 +59,7 @@ class _PartnerLoginScreenState extends State<PartnerLoginScreen> {
       );
       widget.onSignedIn(session);
     } catch (e) {
-      setState(() => _error = e.toString());
+      setState(() => _error = formatGpMobileError(e));
     } finally {
       setState(() => _loading = false);
     }
@@ -112,4 +112,3 @@ class _PartnerLoginScreenState extends State<PartnerLoginScreen> {
     );
   }
 }
-
