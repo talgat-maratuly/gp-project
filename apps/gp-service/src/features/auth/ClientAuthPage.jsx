@@ -28,6 +28,9 @@ const copy = {
     whatsapp: 'WhatsApp',
     sms: 'SMS',
     otpHint: 'OTP нужен только для первого входа или нового устройства.',
+    otpSent: 'Код отправлен. Введите его на следующем шаге.',
+    smsNotSent: 'SMS-доставка не настроена на сервере. Для теста используйте DEV код.',
+    whatsappNotSent: 'WhatsApp-доставка не настроена на сервере. Для теста используйте DEV код.',
     sendOtp: 'Отправить OTP',
     otpRequired: 'Введите OTP-код',
     otpConfirm: 'Подтверждение OTP для {role}',
@@ -61,6 +64,9 @@ const copy = {
     whatsapp: 'WhatsApp',
     sms: 'SMS',
     otpHint: 'OTP тек бірінші кіру немесе жаңа құрылғы үшін керек.',
+    otpSent: 'Код жіберілді. Келесі қадамда енгізіңіз.',
+    smsNotSent: 'Серверде SMS жіберу бапталмаған. Тест үшін DEV кодын пайдаланыңыз.',
+    whatsappNotSent: 'Серверде WhatsApp жіберу бапталмаған. Тест үшін DEV кодын пайдаланыңыз.',
     sendOtp: 'OTP жіберу',
     otpRequired: 'OTP кодын енгізіңіз',
     otpConfirm: '{role} үшін OTP растау',
@@ -94,6 +100,9 @@ const copy = {
     whatsapp: 'WhatsApp',
     sms: 'SMS',
     otpHint: 'OTP is only needed for first login or a new device.',
+    otpSent: 'The code was sent. Enter it on the next step.',
+    smsNotSent: 'SMS delivery is not configured on the server. Use the DEV code for testing.',
+    whatsappNotSent: 'WhatsApp delivery is not configured on the server. Use the DEV code for testing.',
     sendOtp: 'Send OTP',
     otpRequired: 'Enter the OTP code',
     otpConfirm: 'OTP confirmation for {role}',
@@ -120,10 +129,11 @@ export default function ClientAuthPage() {
   const [step, setStep] = useState(1)
   const [role, setRole] = useState('INDIVIDUAL')
   const [legalForm, setLegalForm] = useState('IP')
-  const [otpChannel, setOtpChannel] = useState('whatsapp')
+  const [otpChannel, setOtpChannel] = useState('sms')
   const [hasTrustedSession, setHasTrustedSession] = useState(() => Boolean(getRefreshToken()))
   const [egovCheck, setEgovCheck] = useState(null)
   const [devOtpCode, setDevOtpCode] = useState('')
+  const [otpStatus, setOtpStatus] = useState('')
   const [form, setForm] = useState({
     phone: '',
     otp: '',
@@ -152,6 +162,7 @@ export default function ClientAuthPage() {
   const requestOtp = async (e) => {
     e.preventDefault()
     setError('')
+    setOtpStatus('')
     if (!form.phone.trim()) {
       setError(text.phoneRequired)
       return
@@ -171,6 +182,13 @@ export default function ClientAuthPage() {
       }
       const otpResponse = await sendOtp(form.phone, otpChannel)
       setDevOtpCode(otpResponse?.devCode ? String(otpResponse.devCode) : '')
+      if (otpChannel === 'sms' && otpResponse?.smsSent === false) {
+        setOtpStatus(text.smsNotSent)
+      } else if (otpChannel === 'whatsapp' && otpResponse?.whatsappSent === false) {
+        setOtpStatus(text.whatsappNotSent)
+      } else {
+        setOtpStatus(text.otpSent)
+      }
       setStep(2)
     } catch (err) {
       setError(err.message || 'Ошибка')
@@ -339,8 +357,8 @@ export default function ClientAuthPage() {
               <p className="text-xs font-bold text-[var(--gp-text-muted)] uppercase mb-2">{text.otpChannel}</p>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { id: 'whatsapp', label: text.whatsapp },
                   { id: 'sms', label: text.sms },
+                  { id: 'whatsapp', label: text.whatsapp },
                 ].map(({ id, label }) => (
                   <button
                     key={id}
@@ -372,6 +390,11 @@ export default function ClientAuthPage() {
         <form onSubmit={confirmOtp}>
           <KaspiCard className="!p-5 space-y-4">
             <p className="text-sm text-[var(--gp-text-muted)]">{text.otpConfirm.replace('{role}', roleLabel)}</p>
+            {otpStatus && (
+              <p className="text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2">
+                {otpStatus}
+              </p>
+            )}
             {import.meta.env.DEV && (
               <p className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
                 {text.devHint}{devOtpCode ? ` · ${text.devCode}: ${devOtpCode}` : ''}

@@ -22,22 +22,38 @@ class OtpLoginScreen extends StatefulWidget {
 class _OtpLoginScreenState extends State<OtpLoginScreen> {
   final _phone = TextEditingController(text: '+77001110001');
   final _otp = TextEditingController();
+  String _channel = 'sms';
   bool _sent = false;
   bool _loading = false;
   String? _devCode;
   String? _error;
+  String? _status;
+
+  String get _channelLabel => _channel == 'sms' ? 'SMS' : 'WhatsApp';
 
   Future<void> _send() async {
     setState(() {
       _loading = true;
       _error = null;
+      _status = null;
     });
     try {
-      final result = await widget.auth.sendOtp(_phone.text);
+      final result = await widget.auth.sendOtp(_phone.text, channel: _channel);
       setState(() {
         _sent = true;
         _devCode = result.devCode;
-        if (widget.devOtpEnabled && _otp.text.isEmpty) _otp.text = result.devCode ?? '0000';
+        if (_channel == 'sms' && !result.smsSent) {
+          _status =
+              'SMS-доставка не настроена на сервере. Для теста используйте DEV код.';
+        } else if (_channel == 'whatsapp' && !result.whatsappSent) {
+          _status =
+              'WhatsApp-доставка не настроена на сервере. Для теста используйте DEV код.';
+        } else {
+          _status = 'Код отправлен через $_channelLabel.';
+        }
+        if (widget.devOtpEnabled && _otp.text.isEmpty) {
+          _otp.text = result.devCode ?? '0000';
+        }
       });
     } catch (e) {
       setState(() => _error = formatGpMobileError(e));
@@ -50,6 +66,7 @@ class _OtpLoginScreenState extends State<OtpLoginScreen> {
     setState(() {
       _loading = true;
       _error = null;
+      _status = null;
     });
     try {
       final session = await widget.auth.verifyOtp(
@@ -69,9 +86,10 @@ class _OtpLoginScreenState extends State<OtpLoginScreen> {
     setState(() {
       _loading = true;
       _error = null;
+      _status = null;
     });
     try {
-      final result = await widget.auth.sendOtp(_phone.text);
+      final result = await widget.auth.sendOtp(_phone.text, channel: _channel);
       final session = await widget.auth.verifyOtp(
         phone: _phone.text,
         code: result.devCode ?? '0000',
@@ -95,15 +113,42 @@ class _OtpLoginScreenState extends State<OtpLoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text('Вход по телефону', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800)),
+              const Text('Вход по телефону',
+                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800)),
               const SizedBox(height: 8),
-              const Text('OTP нужен только для первого входа или нового устройства.'),
+              const Text(
+                  'OTP нужен только для первого входа или нового устройства.'),
               const SizedBox(height: 24),
+              const Text('Куда отправить код'),
+              const SizedBox(height: 8),
+              SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment(value: 'sms', label: Text('SMS')),
+                  ButtonSegment(value: 'whatsapp', label: Text('WhatsApp')),
+                ],
+                selected: {_channel},
+                onSelectionChanged: _loading
+                    ? null
+                    : (values) {
+                        setState(() {
+                          _channel = values.first;
+                          _sent = false;
+                          _otp.clear();
+                          _status = null;
+                          _error = null;
+                        });
+                      },
+              ),
+              const SizedBox(height: 16),
               TextField(
                 controller: _phone,
                 keyboardType: TextInputType.phone,
                 decoration: const InputDecoration(labelText: 'Телефон'),
               ),
+              if (_status != null) ...[
+                const SizedBox(height: 12),
+                Text(_status!, style: const TextStyle(color: Colors.blueGrey)),
+              ],
               if (_sent) ...[
                 const SizedBox(height: 12),
                 TextField(
@@ -130,7 +175,8 @@ class _OtpLoginScreenState extends State<OtpLoginScreen> {
               ],
               FilledButton(
                 onPressed: _loading ? null : (_sent ? _verify : _send),
-                child: Text(_loading ? '...' : (_sent ? 'Войти' : 'Отправить OTP')),
+                child: Text(
+                    _loading ? '...' : (_sent ? 'Войти' : 'Отправить OTP')),
               ),
             ],
           ),

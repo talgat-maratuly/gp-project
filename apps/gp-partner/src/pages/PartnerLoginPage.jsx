@@ -72,7 +72,7 @@ export default function PartnerLoginPage() {
         <div className="gp-card-kaspi p-5 space-y-4">
           <div className="flex gap-2">
             {[
-              ['whatsapp', 'WhatsApp OTP'],
+              ['whatsapp', 'SMS / WhatsApp OTP'],
               ['password', t('emailPassword')],
             ].map(([id, label]) => (
               <button

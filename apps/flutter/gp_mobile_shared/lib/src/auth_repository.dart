@@ -18,7 +18,8 @@ class AuthRepository {
   final SecureSessionStore sessionStore;
   final LocalAuthentication _localAuth;
 
-  Future<GpOtpSendResult> sendOtp(String phone, {String channel = 'whatsapp'}) async {
+  Future<GpOtpSendResult> sendOtp(String phone,
+      {String channel = 'sms'}) async {
     final json = await api.postJson('/auth/mobile/otp/send', {
       'phone': phone,
       'channel': channel,
@@ -41,7 +42,9 @@ class AuthRepository {
       'deviceName': config.appId,
       'platform': platform,
       'loginAs': config.loginAs,
-      'accountType': accountType == GpAccountType.legalEntity ? 'LEGAL_ENTITY' : 'INDIVIDUAL',
+      'accountType': accountType == GpAccountType.legalEntity
+          ? 'LEGAL_ENTITY'
+          : 'INDIVIDUAL',
       'rememberDevice': true,
       'enableBiometric': true,
       ...extra,

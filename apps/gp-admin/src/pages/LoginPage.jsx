@@ -71,7 +71,7 @@ export default function LoginPage() {
         )}
         <div className="flex gap-2 mb-4">
           {[
-            ['whatsapp', 'WhatsApp OTP'],
+            ['whatsapp', 'SMS / WhatsApp OTP'],
             ['password', 'Email / пароль'],
           ].map(([id, label]) => (
             <button
@@ -119,7 +119,7 @@ export default function LoginPage() {
           <p className="font-semibold admin-heading">API</p>
           <p>admin@gp.kz · password123 (SUPER_ADMIN)</p>
           <p>uralsk_admin@gp.kz · password123 (регион)</p>
-          <p className="mt-2">WhatsApp OTP: +77001110001 / +77001110002 (seed)</p>
+          <p className="mt-2">OTP: +77001110001 / +77001110002 (seed)</p>
           <p className="font-semibold admin-heading mt-2">{t('demoAccounts')}</p>
           <p>VITE_GP_DEMO=true: superadmin · uralsk_admin (1234) или API email выше</p>
         </div>}

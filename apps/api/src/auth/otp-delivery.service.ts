@@ -75,20 +75,29 @@ export class OtpDeliveryService {
     phone: string,
     code: string,
     channel: OtpChannel,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const webhook = process.env.OTP_WEBHOOK_URL?.trim();
-    if (!webhook) return;
+    if (!webhook) {
+      this.logger.warn('OTP_WEBHOOK_URL не настроен — SMS OTP не отправлен');
+      return false;
+    }
 
     try {
-      await fetch(webhook, {
+      const response = await fetch(webhook, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone, code, channel }),
       });
+      if (!response.ok) {
+        this.logger.warn(`Не удалось отправить SMS OTP: HTTP ${response.status} (${phone})`);
+        return false;
+      }
+      return true;
     } catch (err) {
       this.logger.warn(
         `Ошибка SMS webhook: ${err instanceof Error ? err.message : String(err)}`,
       );
+      return false;
     }
   }
 
@@ -100,13 +109,13 @@ export class OtpDeliveryService {
     phone: string,
     code: string,
     channel: OtpChannel,
-  ): Promise<{ whatsappSent?: boolean }> {
+  ): Promise<{ smsSent?: boolean; whatsappSent?: boolean }> {
     if (channel === OtpChannel.whatsapp) {
       const whatsappSent = await this.sendOtpViaWhatsapp(phone, code);
       return { whatsappSent };
     }
 
-    await this.dispatchSmsWebhook(phone, code, channel);
-    return {};
+    const smsSent = await this.dispatchSmsWebhook(phone, code, channel);
+    return { smsSent };
   }
 }

@@ -366,7 +366,7 @@ export class MobileAuthService {
       expiresInSec: OTP_TTL_MS / 1000,
       ...(dto.channel === OtpChannel.whatsapp
         ? { whatsappSent: delivery.whatsappSent ?? false }
-        : {}),
+        : { smsSent: delivery.smsSent ?? false }),
       ...(this.isDevOtpVisible()
         ? { devCode: DEV_OTP_CODE, realDevCode: code, devBypassCode: DEV_OTP_CODE }
         : {}),

@@ -14,11 +14,13 @@ class GpSession {
   final int? expiresIn;
 
   factory GpSession.fromJson(Map<String, dynamic> json) {
-    final userJson = (json['user'] as Map?)?.cast<String, dynamic>() ?? const {};
+    final userJson =
+        (json['user'] as Map?)?.cast<String, dynamic>() ?? const {};
     return GpSession(
       accessToken: json['accessToken']?.toString() ?? '',
       refreshToken: json['refreshToken']?.toString() ?? '',
-      expiresIn: json['expiresIn'] is num ? (json['expiresIn'] as num).toInt() : null,
+      expiresIn:
+          json['expiresIn'] is num ? (json['expiresIn'] as num).toInt() : null,
       user: GpUser.fromJson(userJson),
     );
   }
@@ -49,22 +51,27 @@ class GpUser {
       email: json['email']?.toString(),
       phone: json['phone']?.toString(),
       name: json['name']?.toString(),
-      roles: rawRoles is List ? rawRoles.map((e) => e.toString()).toList() : const [],
+      roles: rawRoles is List
+          ? rawRoles.map((e) => e.toString()).toList()
+          : const [],
     );
   }
 }
 
 class GpOtpSendResult {
   const GpOtpSendResult({
+    required this.smsSent,
     required this.whatsappSent,
     this.devCode,
   });
 
+  final bool smsSent;
   final bool whatsappSent;
   final String? devCode;
 
   factory GpOtpSendResult.fromJson(Map<String, dynamic> json) {
     return GpOtpSendResult(
+      smsSent: json['smsSent'] != false,
       whatsappSent: json['whatsappSent'] != false,
       devCode: json['devCode']?.toString(),
     );
@@ -108,4 +115,3 @@ class GpOrderDraft {
         ...payload,
       };
 }
-
