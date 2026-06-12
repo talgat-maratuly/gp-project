@@ -65,6 +65,26 @@ class _PartnerLoginScreenState extends State<PartnerLoginScreen> {
     }
   }
 
+  Future<void> _loginForTesting() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final result = await widget.auth.sendOtp(_phone.text);
+      final session = await widget.auth.verifyOtp(
+        phone: _phone.text,
+        code: result.devCode ?? '0000',
+        deviceId: await widget.deviceIdProvider(),
+      );
+      widget.onSignedIn(session);
+    } catch (e) {
+      setState(() => _error = formatGpMobileError(e));
+    } finally {
+      setState(() => _loading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -101,6 +121,13 @@ class _PartnerLoginScreenState extends State<PartnerLoginScreen> {
                 Text(_error!, style: const TextStyle(color: Colors.redAccent)),
               ],
               const Spacer(),
+              if (widget.devOtpEnabled) ...[
+                OutlinedButton(
+                  onPressed: _loading ? null : _loginForTesting,
+                  child: const Text('Войти без OTP'),
+                ),
+                const SizedBox(height: 10),
+              ],
               FilledButton(
                 onPressed: _loading ? null : (_sent ? _verify : _send),
                 child: Text(_loading ? '...' : (_sent ? 'Войти' : 'Отправить OTP')),

@@ -87,7 +87,8 @@ jobs:
           API_URL="${GP_API_URL:-https://apigp.duckdns.org/api}"
           flutter build ios --release --no-codesign \
             --dart-define=API_URL="$API_URL" \
-            --dart-define=API_FALLBACK_URL="${GP_API_FALLBACK_URL:-}"
+            --dart-define=API_FALLBACK_URL="${GP_API_FALLBACK_URL:-}" \
+            --dart-define=GP_DEV_OTP=true
           mkdir -p ../../../ios-artifacts
           ditto -c -k --sequesterRsrc --keepParent build/ios/iphoneos/Runner.app "../../../ios-artifacts/${{ matrix.app_name }}-ios-app.zip"
           ls -lh "../../../ios-artifacts/${{ matrix.app_name }}-ios-app.zip"

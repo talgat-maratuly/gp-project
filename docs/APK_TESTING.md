@@ -10,6 +10,9 @@ Default production API:
 npm run flutter:build:apk
 ```
 
+The debug APK scripts enable `GP_DEV_OTP=true` by default. Testers can press
+`Войти без OTP` on the phone login screen.
+
 Custom API or tunnel:
 
 ```bash
