@@ -24,35 +24,10 @@ android {
         versionName = flutter.versionName
     }
 
-    val releaseStoreFile = System.getenv("ANDROID_KEYSTORE_PATH")
-    val releaseStorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
-    val releaseKeyAlias = System.getenv("ANDROID_KEY_ALIAS")
-    val releaseKeyPassword = System.getenv("ANDROID_KEY_PASSWORD")
-    val hasReleaseSigning = listOf(
-        releaseStoreFile,
-        releaseStorePassword,
-        releaseKeyAlias,
-        releaseKeyPassword,
-    ).all { !it.isNullOrBlank() }
-
-    signingConfigs {
-        create("release") {
-            if (hasReleaseSigning) {
-                storeFile = file(releaseStoreFile!!)
-                storePassword = releaseStorePassword
-                keyAlias = releaseKeyAlias
-                keyPassword = releaseKeyPassword
-            }
-        }
-    }
-
     buildTypes {
         release {
-            signingConfig = if (hasReleaseSigning) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
-            }
+            // GitHub artifact APKs are for testing. Store builds need real signing.
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 }

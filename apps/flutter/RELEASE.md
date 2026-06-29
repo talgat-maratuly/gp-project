@@ -41,18 +41,9 @@ If native folders are generated with `flutter create`, verify these IDs in:
 
 ## Android Signing
 
-Local debug APK builds can use the debug key. Store builds should provide a
-release keystore through environment variables:
-
-```bash
-export ANDROID_KEYSTORE_PATH=/absolute/path/to/gp-upload-key.jks
-export ANDROID_KEYSTORE_PASSWORD=...
-export ANDROID_KEY_ALIAS=...
-export ANDROID_KEY_PASSWORD=...
-```
-
-If those variables are missing, the Flutter apps still build with the debug key
-for local testing, but that output is not Play Market-ready.
+The GitHub APK workflow produces test artifacts signed with the debug key so
+they can be downloaded and installed quickly. Play Market releases must use a
+real upload key or app signing configuration before publishing.
 
 ## Commands
 
