@@ -20,7 +20,7 @@ env:
 
 jobs:
   build-apk:
-    name: Build ${{ matrix.app_name }} release APK
+    name: Build ${{ matrix.app_name }} test APK
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
@@ -31,14 +31,14 @@ jobs:
             app_dir: apps/flutter/gp_service_app
             project_name: service
             package_id: kz.gp.service
-            artifact_name: gp-service-release-apk
-            apk_name: gp-service-release.apk
+            artifact_name: gp-service-test-apk
+            apk_name: gp-service-test.apk
           - app_name: gp-partner
             app_dir: apps/flutter/gp_partner_app
             project_name: partner
             package_id: kz.gp.partner
-            artifact_name: gp-partner-release-apk
-            apk_name: gp-partner-release.apk
+            artifact_name: gp-partner-test-apk
+            apk_name: gp-partner-test.apk
 
     steps:
       - name: Check out repository
@@ -92,19 +92,19 @@ jobs:
           cd "${{ matrix.app_dir }}"
           flutter analyze
 
-      - name: Build release APK
+      - name: Build test APK
         run: |
           cd "${{ matrix.app_dir }}"
           API_URL="${GP_API_URL:-https://apigp.duckdns.org/api}"
-          flutter build apk --release \
+          flutter build apk --debug \
             --dart-define=API_URL="$API_URL" \
             --dart-define=API_FALLBACK_URL="${GP_API_FALLBACK_URL:-}" \
             --dart-define=GP_DEV_OTP=true
           mkdir -p ../../../apk-artifacts
-          cp build/app/outputs/flutter-apk/app-release.apk "../../../apk-artifacts/${{ matrix.apk_name }}"
+          cp build/app/outputs/flutter-apk/app-debug.apk "../../../apk-artifacts/${{ matrix.apk_name }}"
           ls -lh "../../../apk-artifacts/${{ matrix.apk_name }}"
 
-      - name: Verify release APK package and signature
+      - name: Verify test APK package and signature
         shell: bash
         run: |
           set -euo pipefail
@@ -122,7 +122,7 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Verify release APK installs on Android emulator
+      - name: Verify test APK installs on Android emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -141,4 +141,4 @@ jobs:
           name: ${{ matrix.artifact_name }}
           path: apk-artifacts/${{ matrix.apk_name }}
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 30
