@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - 'gp-service-mobile-*'
     paths:
       - 'apps/flutter/**'
       - '.github/workflows/build-flutter-ios.yml'
@@ -30,13 +31,13 @@ jobs:
             app_dir: apps/flutter/gp_service_app
             project_name: service
             bundle_id: kz.gp.service
-            artifact_name: gp-service-ios-app
+            artifact_name: gp-service-ios-unsigned-app
             app_name_output: GP Service.app
           - app_name: gp-partner
             app_dir: apps/flutter/gp_partner_app
             project_name: partner
             bundle_id: kz.gp.partner
-            artifact_name: gp-partner-ios-app
+            artifact_name: gp-partner-ios-unsigned-app
             app_name_output: GP Partner.app
 
     steps:
@@ -82,21 +83,51 @@ jobs:
           flutter analyze
 
       - name: Build iOS app without codesign
+        id: build_ios
+        shell: bash
         run: |
+          set +e
           cd "${{ matrix.app_dir }}"
           API_URL="${GP_API_URL:-https://apigp.duckdns.org/api}"
+          mkdir -p ../../../ios-artifacts
           flutter build ios --release --no-codesign \
             --dart-define=API_URL="$API_URL" \
             --dart-define=API_FALLBACK_URL="${GP_API_FALLBACK_URL:-}" \
-            --dart-define=GP_DEV_OTP=true
-          mkdir -p ../../../ios-artifacts
-          ditto -c -k --sequesterRsrc --keepParent build/ios/iphoneos/Runner.app "../../../ios-artifacts/${{ matrix.app_name }}-ios-app.zip"
-          ls -lh "../../../ios-artifacts/${{ matrix.app_name }}-ios-app.zip"
+            --dart-define=GP_DEV_OTP=true 2>&1 | tee "../../../ios-artifacts/${{ matrix.app_name }}-ios-build.log"
+          status="${PIPESTATUS[0]}"
+          echo "status=${status}" >> "$GITHUB_OUTPUT"
+          if [ "$status" -eq 0 ]; then
+            ditto -c -k --sequesterRsrc --keepParent build/ios/iphoneos/Runner.app "../../../ios-artifacts/${{ matrix.app_name }}-ios-app.zip"
+            ls -lh "../../../ios-artifacts/${{ matrix.app_name }}-ios-app.zip"
+          else
+            tail -n 80 "../../../ios-artifacts/${{ matrix.app_name }}-ios-build.log" > "../../../ios-artifacts/${{ matrix.app_name }}-ios-build-tail.log"
+            {
+              echo "iOS build failed for ${{ matrix.app_name }}. Last log lines:"
+              cat "../../../ios-artifacts/${{ matrix.app_name }}-ios-build-tail.log"
+            } | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g' | sed 's/^/::error title=iOS build failed::/'
+          fi
+          exit 0
 
       - name: Upload iOS app artifact
+        if: steps.build_ios.outputs.status == '0'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
           path: ios-artifacts/${{ matrix.app_name }}-ios-app.zip
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 30
+
+      - name: Upload iOS build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.app_name }}-ios-build-log
+          path: |
+            ios-artifacts/${{ matrix.app_name }}-ios-build.log
+            ios-artifacts/${{ matrix.app_name }}-ios-build-tail.log
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Fail when iOS build failed
+        if: steps.build_ios.outputs.status != '0'
+        run: exit 1

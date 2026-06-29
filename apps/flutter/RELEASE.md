@@ -103,6 +103,13 @@ iPhone cannot install Android APK files.
 
 The GitHub workflow `Build Flutter iOS` verifies that both Flutter apps compile for iOS without code signing. Its artifacts are unsigned `.app` bundles and are only build artifacts; they cannot be installed on tester iPhones.
 
+Downloadable GitHub artifacts:
+
+```text
+gp-service-ios-unsigned-app
+gp-partner-ios-unsigned-app
+```
+
 For real iPhone testing, use TestFlight. Required Apple credentials:
 
 - Apple Developer Program membership.
