@@ -1,4 +1,4 @@
-package com.example.gp_partner_app
+package kz.gp.partner
 
 import io.flutter.embedding.android.FlutterActivity
 

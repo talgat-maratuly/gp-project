@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - 'gp-service-mobile-*'
     paths:
       - 'apps/flutter/**'
       - '.github/workflows/build-flutter-apk.yml'

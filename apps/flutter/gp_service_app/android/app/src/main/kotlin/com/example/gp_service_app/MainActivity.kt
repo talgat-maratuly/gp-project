@@ -1,4 +1,4 @@
-package com.example.gp_service_app
+package kz.gp.service
 
 import io.flutter.embedding.android.FlutterActivity
 

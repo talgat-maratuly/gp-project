@@ -88,5 +88,16 @@ class AuthRepository {
     );
   }
 
-  Future<void> logout() => sessionStore.clear();
+  Future<void> logout() async {
+    final refreshToken = await sessionStore.readRefreshToken();
+    if (refreshToken != null && refreshToken.isNotEmpty) {
+      try {
+        await api
+            .postJson('/auth/mobile/logout', {'refreshToken': refreshToken});
+      } catch (_) {
+        // Local logout should still work when the phone is offline.
+      }
+    }
+    await sessionStore.clear();
+  }
 }

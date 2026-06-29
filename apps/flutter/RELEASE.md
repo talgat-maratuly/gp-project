@@ -37,7 +37,22 @@ GP Partner Android application id: kz.gp.partner
 If native folders are generated with `flutter create`, verify these IDs in:
 
 - `ios/Runner.xcodeproj/project.pbxproj`
-- `android/app/build.gradle`
+- `android/app/build.gradle` or `android/app/build.gradle.kts`
+
+## Android Signing
+
+Local debug APK builds can use the debug key. Store builds should provide a
+release keystore through environment variables:
+
+```bash
+export ANDROID_KEYSTORE_PATH=/absolute/path/to/gp-upload-key.jks
+export ANDROID_KEYSTORE_PASSWORD=...
+export ANDROID_KEY_ALIAS=...
+export ANDROID_KEY_PASSWORD=...
+```
+
+If those variables are missing, the Flutter apps still build with the debug key
+for local testing, but that output is not Play Market-ready.
 
 ## Commands
 
@@ -83,6 +98,12 @@ Build GP Partner for App Store:
 
 ```bash
 npm run flutter:partner:build:ios
+```
+
+Generate/check unsigned iOS app bundles without Apple signing:
+
+```bash
+npm run flutter:build:ios:unsigned
 ```
 
 ## iPhone Testing
